@@ -1,13 +1,4 @@
-// src/components/Dashboard/index.ts
-export {
-  ClaimProjectionGauge,
-  CooldownTimer,
-  RiskMeter,
-  TierBadge,
-  StakingStats
-} from './components';
-
-// Main Dashboard component that combines all elements
+// src/components/Dashboard/index.tsx
 import { FC } from 'react';
 import {
   ClaimProjectionGauge,
@@ -34,3 +25,10 @@ const Dashboard: FC = () => {
 };
 
 export default Dashboard;
+export {
+  ClaimProjectionGauge,
+  CooldownTimer,
+  RiskMeter,
+  TierBadge,
+  StakingStats
+};
