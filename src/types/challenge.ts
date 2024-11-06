@@ -8,3 +8,13 @@ export interface Challenge {
   progress: number
   completed: boolean
 }
+
+export interface GameEvent {
+  id: number
+  name: string
+  description: string
+  startTime: TimePoint
+  endTime: TimePoint
+  reward: Asset
+  participants: number
+}
