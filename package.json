@@ -13,7 +13,11 @@
     "@wharfkit/wallet-plugin-anchor": "^1.0.0",
     "@wharfkit/web-renderer": "^1.0.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "class-variance-authority": "^0.7.0",
+    "lucide-react": "^0.292.0",
+    "framer-motion": "^10.16.4",
+    "recharts": "^2.9.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.24",
