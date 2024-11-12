@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Database, Plus, Trash2, Power, PowerOff } from 'lucide-react';
-import { PoolEntity } from '../config/types'; // Changed from contract
+import { PoolEntity } from '../config/types';
 import { formatAsset } from '../config/contract';
 
 interface PoolManagementProps {
@@ -8,10 +8,18 @@ interface PoolManagementProps {
   onAddPool: (pool: Omit<PoolEntity, 'pool_id' | 'is_active'>) => Promise<void>;
   onRemovePool: (poolId: number) => Promise<void>;
   onToggleActive: (poolId: number, active: boolean) => Promise<void>;
+  onUpdatePoolWeight: (poolId: number, weight: string) => Promise<void>;
   loading?: boolean;
 }
 
-const PoolManagement = ({ pools, onAddPool, onRemovePool, onToggleActive, loading }: PoolManagementProps) => {
+const PoolManagement = ({ 
+  pools, 
+  onAddPool, 
+  onRemovePool, 
+  onToggleActive,
+  onUpdatePoolWeight, 
+  loading 
+}: PoolManagementProps) => {
   const [newPool, setNewPool] = useState({
     staked_token_contract: '',
     staked_token_symbol: '',
@@ -24,6 +32,11 @@ const PoolManagement = ({ pools, onAddPool, onRemovePool, onToggleActive, loadin
     emission_unit: 86400, // 1 day in seconds
     emission_rate: 100,
     last_emission_updated_at: new Date().toISOString()
+  });
+
+  const [weightUpdateForm, setWeightUpdateForm] = useState({
+    poolId: '',
+    weight: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,41 +168,53 @@ const PoolManagement = ({ pools, onAddPool, onRemovePool, onToggleActive, loadin
         </button>
       </form>
 
-<div className="mt-6 pt-6 border-t border-slate-700">
-  <h3 className="text-sm font-medium mb-3">Update Pool Weight</h3>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label className="block text-sm text-slate-400 mb-1">Pool ID</label>
-      <input
-        type="number"
-        className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-        placeholder="Enter pool ID"
-        value={poolWeightId}
-        onChange={(e) => setPoolWeightId(e.target.value)}
-      />
-    </div>
-    <div>
-      <label className="block text-sm text-slate-400 mb-1">New Weight</label>
-      <input
-        type="text"
-        className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-        placeholder="e.g., 100.0000 WAX"
-        value={newWeight}
-        onChange={(e) => setNewWeight(e.target.value)}
-      />
-    </div>
-  </div>
-  <button
-    onClick={() => handleSetPoolWeight(parseInt(poolWeightId), newWeight)}
-    disabled={loading}
-    className="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
-  >
-    Update Pool Weight
-  </button>
-</div>
+      {/* Pool Weight Update Section */}
+      <div className="mt-6 pt-6 border-t border-slate-700">
+        <h3 className="text-sm font-medium mb-3">Update Pool Weight</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">Pool ID</label>
+            <input
+              type="number"
+              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+              placeholder="Enter pool ID"
+              value={weightUpdateForm.poolId}
+              onChange={(e) => setWeightUpdateForm({
+                ...weightUpdateForm,
+                poolId: e.target.value
+              })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">New Weight</label>
+            <input
+              type="text"
+              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+              placeholder="e.g., 100.0000 WAX"
+              value={weightUpdateForm.weight}
+              onChange={(e) => setWeightUpdateForm({
+                ...weightUpdateForm,
+                weight: e.target.value
+              })}
+            />
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            if (weightUpdateForm.poolId && weightUpdateForm.weight) {
+              onUpdatePoolWeight(parseInt(weightUpdateForm.poolId), weightUpdateForm.weight);
+              setWeightUpdateForm({ poolId: '', weight: '' });
+            }
+          }}
+          disabled={loading || !weightUpdateForm.poolId || !weightUpdateForm.weight}
+          className="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+        >
+          Update Pool Weight
+        </button>
+      </div>
 
       {/* Active Pools */}
-      <div>
+      <div className="mt-8">
         <h3 className="text-sm font-medium text-slate-400 mb-3">Active Pools</h3>
         <div className="overflow-x-auto">
           <table className="w-full">
