@@ -1,7 +1,7 @@
-// src/hooks/useContract.ts
 import { useState } from 'react'
 import { Session } from '@wharfkit/session'
-import { CONTRACT_ACCOUNT, ConfigState, TierEntity, PoolEntity } from '../config/contract'
+import { CONTRACT_ACCOUNT } from '../config/contract'
+import { ConfigData, TierEntity, PoolEntity } from '../config/types' // Changed imports
 
 export const useContract = (session: Session | null) => {
   const [loading, setLoading] = useState(false)
@@ -85,13 +85,13 @@ export const useContract = (session: Session | null) => {
 
   // Queries
   const queries = {
-    getConfig: async (): Promise<ConfigState> => {
-      const rows = await getTableRows<ConfigState>('config')
+    getConfig: async (): Promise<ConfigData> => {
+      const rows = await getTableRows<ConfigData>('config')
       return rows[0]
     },
     
+    // Rest remains the same
     getTiers: () => getTableRows<TierEntity>('tiers'),
-    
     getPools: () => getTableRows<PoolEntity>('pools'),
     
     getStats: async () => {
