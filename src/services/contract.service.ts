@@ -1,8 +1,8 @@
 import { Session } from '@wharfkit/session';
-import { ConfigData, TierData, PoolData, PoolEntity, TierEntity } from '../config/types';
+import { ConfigData, TierEntity, PoolEntity, NewPoolData } from '../config/types';
+import { CONTRACT_ACCOUNT } from '../config/contract';
 
 export class ContractService {
-  private readonly contractAccount = 'token.stake';
   constructor(private session: Session) {}
 
   // Core transaction handler
@@ -10,16 +10,14 @@ export class ContractService {
     if (!this.session) {
       throw new Error('No session available');
     }
-
     const transaction = {
       action: {
-        account: this.contractAccount,
+        account: CONTRACT_ACCOUNT,
         name: action,
         authorization: [this.session.permissionLevel],
         data: data
       }
     };
-
     return await this.session.transact(transaction);
   }
 
@@ -35,7 +33,7 @@ export class ContractService {
     return this.transact('maintenance', { maintenance: enabled });
   }
 
-  async setTier(data: TierData) {
+  async setTier(data: TierEntity) {
     return this.transact('settier', data);
   }
 
@@ -43,7 +41,7 @@ export class ContractService {
     return this.transact('removetier', { tier });
   }
 
-  async setPool(data: PoolData) {
+  async setPool(data: NewPoolData) {
     return this.transact('setpool', data);
   }
 
@@ -57,19 +55,18 @@ export class ContractService {
   // Table Queries
   async getConfig(): Promise<ConfigData> {
     const response = await this.session.client.v1.chain.get_table_rows({
-      code: this.contractAccount,
-      scope: this.contractAccount,
+      code: CONTRACT_ACCOUNT,
+      scope: CONTRACT_ACCOUNT,
       table: 'config',
       limit: 1
     });
     return response.rows[0];
   }
 
-  // Update return types for these methods
   async getTiers(): Promise<TierEntity[]> {
     const response = await this.session.client.v1.chain.get_table_rows({
-      code: this.contractAccount,
-      scope: this.contractAccount,
+      code: CONTRACT_ACCOUNT,
+      scope: CONTRACT_ACCOUNT,
       table: 'tiers',
       limit: 100
     });
@@ -78,16 +75,11 @@ export class ContractService {
 
   async getPools(): Promise<PoolEntity[]> {
     const response = await this.session.client.v1.chain.get_table_rows({
-      code: this.contractAccount,
-      scope: this.contractAccount,
+      code: CONTRACT_ACCOUNT,
+      scope: CONTRACT_ACCOUNT,
       table: 'pools',
       limit: 100
     });
     return response.rows;
-  }
-
-  // Update setPool to use proper types
-  async setPool(data: Omit<PoolEntity, 'pool_id' | 'is_active'>) {
-    return this.transact('setpool', data);
   }
 }
