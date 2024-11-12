@@ -12,6 +12,18 @@ interface PoolManagementProps {
   loading?: boolean;
 }
 
+// Helper for WAX asset formatting
+const formatWaxAsset = (amount: string, symbol: string = 'WAX') => {
+  const num = parseFloat(amount);
+  return `${num.toFixed(8)} ${symbol.toUpperCase()}`;
+};
+
+// Helper to validate WAX asset format
+const isValidWaxAsset = (value: string): boolean => {
+  const regex = /^\d+\.\d{8} [A-Z]+$/;
+  return regex.test(value);
+};
+
 const PoolManagement = ({ 
   pools, 
   onAddPool, 
@@ -27,11 +39,10 @@ const PoolManagement = ({
     total_staked_weight: '',
     reward_pool: {
       quantity: '',
-      contract: ''
+      contract: 'eosio.token' // Default to eosio.token
     },
     emission_unit: 86400, // 1 day in seconds
     emission_rate: 100,
-    last_emission_updated_at: new Date().toISOString()
   });
 
   const [weightUpdateForm, setWeightUpdateForm] = useState({
@@ -39,22 +50,53 @@ const PoolManagement = ({
     weight: ''
   });
 
+  // Format data for smart contract
+  const formatPoolData = (data: typeof newPool) => {
+    const symbol = data.staked_token_symbol.toUpperCase();
+    
+    // Format asset strings
+    const total_staked_weight = isValidWaxAsset(data.total_staked_weight) 
+      ? data.total_staked_weight 
+      : formatWaxAsset(data.total_staked_weight);
+
+    // Format reward pool
+    const [amount, symbol_contract] = data.reward_pool.quantity.split('@');
+    const [quantity_amount, quantity_symbol] = amount.split(' ');
+    const formatted_quantity = formatWaxAsset(quantity_amount, quantity_symbol || 'WAX');
+    const formatted_reward_pool = `${formatted_quantity}@${data.reward_pool.contract}`;
+
+    return {
+      staked_token_contract: data.staked_token_contract,
+      staked_token_symbol: symbol,
+      total_staked_weight,
+      reward_pool: formatted_reward_pool,
+      emission_unit: data.emission_unit,
+      emission_rate: data.emission_rate
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onAddPool(newPool);
-    setNewPool({
-      staked_token_contract: '',
-      staked_token_symbol: '',
-      total_staked_quantity: '',
-      total_staked_weight: '',
-      reward_pool: {
-        quantity: '',
-        contract: ''
-      },
-      emission_unit: 86400,
-      emission_rate: 100,
-      last_emission_updated_at: new Date().toISOString()
-    });
+    try {
+      const formattedData = formatPoolData(newPool);
+      await onAddPool(formattedData);
+      
+      // Reset form
+      setNewPool({
+        staked_token_contract: '',
+        staked_token_symbol: '',
+        total_staked_quantity: '',
+        total_staked_weight: '',
+        reward_pool: {
+          quantity: '',
+          contract: 'eosio.token'
+        },
+        emission_unit: 86400,
+        emission_rate: 100
+      });
+    } catch (e) {
+      console.error('Error submitting pool data:', e);
+    }
   };
 
   return (
@@ -88,11 +130,19 @@ const PoolManagement = ({
             <input
               type="text"
               value={newPool.staked_token_symbol}
-              onChange={(e) => setNewPool({ ...newPool, staked_token_symbol: e.target.value })}
+              onChange={(e) => setNewPool({ 
+                ...newPool, 
+                staked_token_symbol: e.target.value.toUpperCase() 
+              })}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 4,EOS"
+              placeholder="e.g., 8,WAX"
+              pattern="[0-9]+,[A-Z]+"
+              title="Format: precision,SYMBOL (e.g., 8,WAX)"
               required
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Format: precision,SYMBOL (e.g., 8,WAX)
+            </p>
           </div>
 
           <div>
@@ -104,9 +154,14 @@ const PoolManagement = ({
               value={newPool.total_staked_weight}
               onChange={(e) => setNewPool({ ...newPool, total_staked_weight: e.target.value })}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 100000.0000 EOS"
+              placeholder="e.g., 100000.00000000 WAX"
+              pattern="[0-9]+\.[0-9]{8} [A-Z]+"
+              title="Format: amount SYMBOL (e.g., 100000.00000000 WAX)"
               required
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Must have exactly 8 decimal places
+            </p>
           </div>
 
           <div>
@@ -118,12 +173,20 @@ const PoolManagement = ({
               value={newPool.reward_pool.quantity}
               onChange={(e) => setNewPool({
                 ...newPool,
-                reward_pool: { ...newPool.reward_pool, quantity: e.target.value }
+                reward_pool: { 
+                  ...newPool.reward_pool, 
+                  quantity: e.target.value 
+                }
               })}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 10000.0000 EOS@eosio.token"
+              placeholder="e.g., 10000.00000000 WAX@eosio.token"
+              pattern="[0-9]+\.[0-9]{8} [A-Z]+@[a-z1-5\.]+"
+              title="Format: amount SYMBOL@contract (e.g., 10000.00000000 WAX@eosio.token)"
               required
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Format: amount with 8 decimals SYMBOL@contract
+            </p>
           </div>
 
           <div>
@@ -183,6 +246,8 @@ const PoolManagement = ({
                 ...weightUpdateForm,
                 poolId: e.target.value
               })}
+              min="1"
+              required
             />
           </div>
           <div>
@@ -190,20 +255,30 @@ const PoolManagement = ({
             <input
               type="text"
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 100.0000 WAX"
+              placeholder="e.g., 100000.00000000 WAX"
               value={weightUpdateForm.weight}
               onChange={(e) => setWeightUpdateForm({
                 ...weightUpdateForm,
                 weight: e.target.value
               })}
+              pattern="[0-9]+\.[0-9]{8} [A-Z]+"
+              title="Format: amount with 8 decimal places and symbol (e.g., 100000.00000000 WAX)"
+              required
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Must have exactly 8 decimal places
+            </p>
           </div>
         </div>
         <button
           onClick={() => {
             if (weightUpdateForm.poolId && weightUpdateForm.weight) {
-              onUpdatePoolWeight(parseInt(weightUpdateForm.poolId), weightUpdateForm.weight);
-              setWeightUpdateForm({ poolId: '', weight: '' });
+              if (isValidWaxAsset(weightUpdateForm.weight)) {
+                onUpdatePoolWeight(parseInt(weightUpdateForm.poolId), weightUpdateForm.weight);
+                setWeightUpdateForm({ poolId: '', weight: '' });
+              } else {
+                alert('Please enter a valid WAX asset format (e.g., 100000.00000000 WAX)');
+              }
             }
           }}
           disabled={loading || !weightUpdateForm.poolId || !weightUpdateForm.weight}
@@ -233,7 +308,7 @@ const PoolManagement = ({
               {pools.map((pool) => (
                 <tr key={pool.pool_id} className="border-t border-slate-700">
                   <td className="py-3">{pool.pool_id}</td>
-                  <td className="py-3">{`${pool.staked_token_contract}`}</td>
+                  <td className="py-3">{`${pool.staked_token_contract} (${pool.staked_token_symbol})`}</td>
                   <td className="py-3">{formatAsset(pool.total_staked_quantity).formatted}</td>
                   <td className="py-3">{formatAsset(pool.reward_pool.quantity).formatted}</td>
                   <td className="py-3">
@@ -258,13 +333,19 @@ const PoolManagement = ({
                             ? 'text-red-400 hover:bg-red-900/20'
                             : 'text-green-400 hover:bg-green-900/20'
                         }`}
+                        title={pool.is_active ? 'Deactivate Pool' : 'Activate Pool'}
                       >
                         {pool.is_active ? <PowerOff className="w-4 h-4"/> : <Power className="w-4 h-4"/>}
                       </button>
                       <button
-                        onClick={() => onRemovePool(pool.pool_id)}
+                        onClick={() => {
+                          if (confirm('Are you sure you want to remove this pool?')) {
+                            onRemovePool(pool.pool_id);
+                          }
+                        }}
                         disabled={loading}
                         className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg"
+                        title="Remove Pool"
                       >
                         <Trash2 className="w-4 h-4"/>
                       </button>
