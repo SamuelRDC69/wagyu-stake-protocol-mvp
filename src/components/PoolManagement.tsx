@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Database, Plus, Trash2, Power, PowerOff } from 'lucide-react';
-import { PoolEntity, formatAsset } from '../config/contract';
+import { PoolEntity } from '../config/types'; // Changed from contract
+import { formatAsset } from '../config/contract';
 
 interface PoolManagementProps {
   pools: PoolEntity[];
