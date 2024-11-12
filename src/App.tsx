@@ -10,18 +10,18 @@ import {
   Layers,
   BarChart3
 } from 'lucide-react'
+import TierManagement from './components/TierManagement'
+import PoolManagement from './components/PoolManagement'
+import { toast } from '@/components/ui/toast'
 
 function App() {
   const { session, login, logout, loading: sessionLoading } = useSession()
   const { loading: contractLoading, error, actions, queries } = useContract(session)
   
   const [config, setConfig] = useState<ConfigState | null>(null)
-  const [stats, setStats] = useState<{
-    pools: PoolEntity[];
-    tiers: TierEntity[];
-    totalStaked: number;
-    totalRewards: number;
-  } | null>(null)
+  const [tiers, setTiers] = useState<TierEntity[]>([])
+  const [pools, setPools] = useState<PoolEntity[]>([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -31,14 +31,23 @@ function App() {
 
   const loadData = async () => {
     try {
-      const [configData, statsData] = await Promise.all([
+      setLoading(true)
+      const [configData, tiersData, poolsData] = await Promise.all([
         queries.getConfig(),
-        queries.getStats()
+        queries.getTiers(),
+        queries.getPools()
       ])
       setConfig(configData)
-      setStats(statsData)
+      setTiers(tiersData)
+      setPools(poolsData)
     } catch (e) {
-      console.error('Failed to load data:', e)
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to load data',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -46,10 +55,128 @@ function App() {
     if (!config) return
     
     try {
+      setLoading(true)
       await actions.setMaintenance(!config.maintenance)
+      toast({
+        title: 'Success',
+        description: `Maintenance mode ${config.maintenance ? 'disabled' : 'enabled'}`
+      })
       await loadData()
     } catch (e) {
-      console.error('Failed to toggle maintenance:', e)
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to toggle maintenance',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Tier Management Handlers
+  const handleAddTier = async (tierData: Omit<TierEntity, 'id'>) => {
+    try {
+      setLoading(true)
+      await actions.setTier(
+        tierData.tier,
+        tierData.tier_name,
+        tierData.weight,
+        tierData.staked_up_to_percent
+      )
+      toast({
+        title: 'Success',
+        description: `Tier ${tierData.tier_name} added successfully`
+      })
+      await loadData()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to add tier',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRemoveTier = async (tier: string) => {
+    try {
+      setLoading(true)
+      await actions.removeTier(tier)
+      toast({
+        title: 'Success',
+        description: `Tier ${tier} removed successfully`
+      })
+      await loadData()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to remove tier',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Pool Management Handlers
+  const handleAddPool = async (poolData: Omit<PoolEntity, 'pool_id' | 'is_active'>) => {
+    try {
+      setLoading(true)
+      await actions.setPool(poolData)
+      toast({
+        title: 'Success',
+        description: 'Pool created successfully'
+      })
+      await loadData()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to create pool',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRemovePool = async (poolId: number) => {
+    try {
+      setLoading(true)
+      await actions.removePool(poolId)
+      toast({
+        title: 'Success',
+        description: `Pool ${poolId} removed successfully`
+      })
+      await loadData()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to remove pool',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleTogglePool = async (poolId: number, active: boolean) => {
+    try {
+      setLoading(true)
+      await actions.setPoolActive(poolId, active)
+      toast({
+        title: 'Success',
+        description: `Pool ${poolId} ${active ? 'activated' : 'deactivated'} successfully`
+      })
+      await loadData()
+    } catch (e) {
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to toggle pool status',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -96,40 +223,17 @@ function App() {
           </div>
         </div>
 
-        {/* Stats Overview */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-slate-800 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Database className="w-5 h-5 text-blue-400"/>
-                <h3 className="font-medium">Total Pools</h3>
-              </div>
-              <p className="text-2xl font-bold">{stats.pools.length}</p>
-            </div>
-            
-            <div className="bg-slate-800 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="w-5 h-5 text-purple-400"/>
-                <h3 className="font-medium">Total Staked</h3>
-              </div>
-              <p className="text-2xl font-bold">
-                {stats.totalStaked.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="bg-slate-800 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="w-5 h-5 text-green-400"/>
-                <h3 className="font-medium">Total Rewards</h3>
-              </div>
-              <p className="text-2xl font-bold text-green-400">
-                {stats.totalRewards.toLocaleString()}
-              </p>
-            </div>
+        {/* Maintenance Warning */}
+        {config?.maintenance && (
+          <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 mb-6 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-400"/>
+            <p className="text-red-400">
+              Contract is in maintenance mode. All user actions are disabled.
+            </p>
           </div>
         )}
 
-        {/* Maintenance Control */}
+        {/* Maintenance Toggle */}
         <div className="bg-slate-800 rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
@@ -138,14 +242,15 @@ function App() {
                 <h3 className="font-medium">Maintenance Mode</h3>
               </div>
               <p className="text-sm text-slate-400">
-                {config?.maintenance ? 'Enabled' : 'Disabled'}
+                Temporarily disable all user actions
               </p>
             </div>
             <button
               onClick={handleMaintenanceToggle}
+              disabled={loading}
               className={`px-4 py-2 rounded-lg ${
-                config?.maintenance 
-                  ? 'bg-green-600 hover:bg-green-700' 
+                config?.maintenance
+                  ? 'bg-green-600 hover:bg-green-700'
                   : 'bg-red-600 hover:bg-red-700'
               }`}
             >
@@ -154,7 +259,26 @@ function App() {
           </div>
         </div>
 
-        {/* Add more sections for tier management, pool management, etc. */}
+        {/* Tier Management */}
+        <div className="mb-6">
+          <TierManagement
+            tiers={tiers}
+            onAddTier={handleAddTier}
+            onRemoveTier={handleRemoveTier}
+            loading={loading}
+          />
+        </div>
+
+        {/* Pool Management */}
+        <div className="mb-6">
+          <PoolManagement
+            pools={pools}
+            onAddPool={handleAddPool}
+            onRemovePool={handleRemovePool}
+            onToggleActive={handleTogglePool}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   )
