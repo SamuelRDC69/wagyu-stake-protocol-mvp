@@ -73,6 +73,27 @@ function App() {
     }
   }
 
+// Add this handler to App.tsx alongside other handlers
+const handleSetConfig = async (cooldown: number, vault: string) => {
+  try {
+    setLoading(true)
+    await actions.setConfig(cooldown, vault)
+    toast({
+      title: 'Success',
+      description: 'Configuration updated successfully'
+    })
+    await loadData()
+  } catch (e) {
+    toast({
+      title: 'Error',
+      description: e instanceof Error ? e.message : 'Failed to update configuration',
+      variant: 'destructive'
+    })
+  } finally {
+    setLoading(false)
+  }
+}
+
 
   // Tier Management Handlers
   const handleAddTier = async (tierData: Omit<TierEntity, 'id'>) => {
@@ -274,8 +295,66 @@ const handleSetPoolWeight = async (poolId: number, weight: string) => {
           </div>
         )}
 
+{/* Configuration Management */}
+<div className="bg-slate-800 rounded-lg p-6 mb-6">
+  <div className="flex items-center gap-2 mb-4">
+    <Settings className="w-5 h-5 text-blue-400"/>
+    <h3 className="font-medium">Configuration Settings</h3>
+  </div>
+
+  <form onSubmit={(e) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    handleSetConfig(
+      parseInt(formData.get('cooldown') as string),
+      formData.get('vault') as string
+    );
+  }}>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm text-slate-400 mb-1">
+          Cooldown Period (seconds)
+        </label>
+        <input
+          name="cooldown"
+          type="number"
+          defaultValue={config?.cooldown_seconds_per_claim}
+          className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+          placeholder="e.g., 3600"
+          required
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          3600 = 1 hour, 86400 = 1 day
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm text-slate-400 mb-1">
+          Vault Account
+        </label>
+        <input
+          name="vault"
+          type="text"
+          defaultValue={config?.vault_account}
+          className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+          placeholder="e.g., stakevault"
+          required
+        />
+      </div>
+    </div>
+
+    <button
+      type="submit"
+      disabled={loading}
+      className="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+    >
+      Update Configuration
+    </button>
+  </form>
+</div>
+
         {/* Maintenance Toggle */}
-        <div className="bg-slate-800 rounded-lg p-6 mb-6">
+<div className="bg-slate-800 rounded-lg p-6 mb-6">
   <div className="flex justify-between items-center">
     <div>
       <div className="flex items-center gap-2 mb-2">
@@ -283,20 +362,31 @@ const handleSetPoolWeight = async (poolId: number, weight: string) => {
         <h3 className="font-medium">Maintenance Mode</h3>
       </div>
       <p className="text-sm text-slate-400">
-        Temporarily disable all user actions
+        Current Status: {config?.maintenance ? 'Enabled' : 'Disabled'}
       </p>
     </div>
     <div className="flex gap-2">
       <button
-        onClick={handleMaintenanceToggle}
-        disabled={loading}
+        onClick={() => actions.setMaintenance(true)}
+        disabled={loading || config?.maintenance}
         className={`px-4 py-2 rounded-lg ${
           config?.maintenance
-            ? 'bg-green-600 hover:bg-green-700'
+            ? 'bg-slate-600 cursor-not-allowed'
             : 'bg-red-600 hover:bg-red-700'
         }`}
       >
-        {config?.maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
+        Enable Maintenance
+      </button>
+      <button
+        onClick={() => actions.setMaintenance(false)}
+        disabled={loading || !config?.maintenance}
+        className={`px-4 py-2 rounded-lg ${
+          !config?.maintenance
+            ? 'bg-slate-600 cursor-not-allowed'
+            : 'bg-green-600 hover:bg-green-700'
+        }`}
+      >
+        Disable Maintenance
       </button>
       <button
         onClick={handleDestructConfig}
