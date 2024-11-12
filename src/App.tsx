@@ -276,37 +276,38 @@ const handleSetPoolWeight = async (poolId: number, weight: string) => {
 
         {/* Maintenance Toggle */}
         <div className="bg-slate-800 rounded-lg p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-5 h-5 text-red-400"/>
-                <h3 className="font-medium">Maintenance Mode</h3>
-              </div>
-              <p className="text-sm text-slate-400">
-                Temporarily disable all user actions
-              </p>
-            </div>
-            <button
-              onClick={handleMaintenanceToggle}
-              disabled={loading}
-              className={`px-4 py-2 rounded-lg ${
-                config?.maintenance
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-red-600 hover:bg-red-700'
-              }`}
-            >
-              {config?.maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
-            </button>
-            // Add this button near your maintenance controls
-<button
-  onClick={handleDestructConfig}
-  disabled={loading}
-  className="px-4 py-2 bg-red-800 hover:bg-red-900 rounded-lg text-sm ml-2"
->
-  Destruct Config
-</button>
-          </div>
-        </div>
+  <div className="flex justify-between items-center">
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <Shield className="w-5 h-5 text-red-400"/>
+        <h3 className="font-medium">Maintenance Mode</h3>
+      </div>
+      <p className="text-sm text-slate-400">
+        Temporarily disable all user actions
+      </p>
+    </div>
+    <div className="flex gap-2">
+      <button
+        onClick={handleMaintenanceToggle}
+        disabled={loading}
+        className={`px-4 py-2 rounded-lg ${
+          config?.maintenance
+            ? 'bg-green-600 hover:bg-green-700'
+            : 'bg-red-600 hover:bg-red-700'
+        }`}
+      >
+        {config?.maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
+      </button>
+      <button
+        onClick={handleDestructConfig}
+        disabled={loading}
+        className="px-4 py-2 bg-red-800 hover:bg-red-900 rounded-lg text-sm"
+      >
+        Destruct Config
+      </button>
+    </div>
+  </div>
+</div>
 
         {/* Tier Management */}
         <div className="mb-6">
@@ -320,14 +321,15 @@ const handleSetPoolWeight = async (poolId: number, weight: string) => {
 
         {/* Pool Management */}
         <div className="mb-6">
-          <PoolManagement
-            pools={pools}
-            onAddPool={handleAddPool}
-            onRemovePool={handleRemovePool}
-            onToggleActive={handleTogglePool}
-            loading={loading}
-          />
-        </div>
+  <PoolManagement
+    pools={pools}
+    onAddPool={handleAddPool}
+    onRemovePool={handleRemovePool}
+    onToggleActive={handleTogglePool}
+    onUpdatePoolWeight={handleSetPoolWeight}  // Added this line
+    loading={loading}
+  />
+</div>
       </div>
     </div>
   )
