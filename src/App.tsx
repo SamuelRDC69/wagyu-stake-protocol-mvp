@@ -18,7 +18,7 @@ function App() {
   const { session, login, logout, loading: sessionLoading } = useSession()
   const { loading: contractLoading, error, actions, queries } = useContract(session)
   
-  const [config, setConfig] = useState<ConfigState | null>(null)
+  const [config, setConfig] = useState<ConfigData | null>(null)
   const [tiers, setTiers] = useState<TierEntity[]>([])
   const [pools, setPools] = useState<PoolEntity[]>([])
   const [loading, setLoading] = useState(false)
