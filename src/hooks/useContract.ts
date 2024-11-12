@@ -83,6 +83,17 @@ export const useContract = (session: Session | null) => {
       handleTransaction('removepool', { pool_id: poolId })
   }
 
+  // Add destructcfg action
+  destructConfig: async () => 
+    handleTransaction('destructcfg', {}),
+
+  // Add setpweight action
+  setPoolWeight: async (pool_id: number, total_staked_weight: string) =>
+    handleTransaction('setpweight', { 
+      pool_id, 
+      total_staked_weight 
+    }),
+
   // Queries
   const queries = {
     getConfig: async (): Promise<ConfigData> => {
