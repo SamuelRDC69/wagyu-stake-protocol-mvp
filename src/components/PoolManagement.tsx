@@ -155,6 +155,39 @@ const PoolManagement = ({ pools, onAddPool, onRemovePool, onToggleActive, loadin
         </button>
       </form>
 
+<div className="mt-6 pt-6 border-t border-slate-700">
+  <h3 className="text-sm font-medium mb-3">Update Pool Weight</h3>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label className="block text-sm text-slate-400 mb-1">Pool ID</label>
+      <input
+        type="number"
+        className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+        placeholder="Enter pool ID"
+        value={poolWeightId}
+        onChange={(e) => setPoolWeightId(e.target.value)}
+      />
+    </div>
+    <div>
+      <label className="block text-sm text-slate-400 mb-1">New Weight</label>
+      <input
+        type="text"
+        className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+        placeholder="e.g., 100.0000 WAX"
+        value={newWeight}
+        onChange={(e) => setNewWeight(e.target.value)}
+      />
+    </div>
+  </div>
+  <button
+    onClick={() => handleSetPoolWeight(parseInt(poolWeightId), newWeight)}
+    disabled={loading}
+    className="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+  >
+    Update Pool Weight
+  </button>
+</div>
+
       {/* Active Pools */}
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-3">Active Pools</h3>
