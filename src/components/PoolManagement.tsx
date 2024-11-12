@@ -12,66 +12,6 @@ interface PoolManagementProps {
   loading?: boolean;
 }
 
-// Add this after the PoolManagementProps interface and before the component
-const formatPoolData = (data: any): Omit<PoolEntity, 'pool_id' | 'is_active'> => {
-  // Format symbol to uppercase
-  const symbol = data.staked_token_symbol.toUpperCase();
-  
-  // Format weight with 8 decimals
-  const total_staked_weight = data.total_staked_weight.includes(' ') 
-    ? data.total_staked_weight.split(' ').map((part, i) => {
-        if (i === 0) return parseFloat(part).toFixed(8);
-        return part.toUpperCase();
-      }).join(' ')
-    : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
-
-  // Format reward pool with uppercase symbol
-  const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
-  const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
-  const formatted_reward_pool = {
-    quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
-    contract: data.reward_pool.contract || 'eosio.token'
-  };
-
-  return {
-    staked_token_contract: data.staked_token_contract,
-    staked_token_symbol: symbol,
-    total_staked_quantity: '0.00000000 WAX', // Initial value
-    total_staked_weight,
-    reward_pool: formatted_reward_pool,
-    emission_unit: data.emission_unit,
-    emission_rate: data.emission_rate,
-    last_emission_updated_at: new Date().toISOString()
-  };
-};
-
-// Then update the handleSubmit function to include all required properties in the reset
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    const formattedData = formatPoolData(newPool);
-    await onAddPool(formattedData);
-    
-    // Reset form with all required properties
-    setNewPool({
-      staked_token_contract: '',
-      staked_token_symbol: '',
-      total_staked_quantity: '0.00000000 WAX', // Added
-      total_staked_weight: '',
-      reward_pool: {
-        quantity: '',
-        contract: 'eosio.token'
-      },
-      emission_unit: 86400,
-      emission_rate: 100,
-      last_emission_updated_at: new Date().toISOString() // Added
-    });
-  } catch (e) {
-    console.error('Error formatting pool data:', e);
-  }
-};
-
 const PoolManagement = ({ 
   pools, 
   onAddPool, 
@@ -80,48 +20,83 @@ const PoolManagement = ({
   onUpdatePoolWeight, 
   loading 
 }: PoolManagementProps) => {
+  // Fixed initial state with all required properties
   const [newPool, setNewPool] = useState({
-  staked_token_contract: '',
-  staked_token_symbol: '',
-  total_staked_quantity: '0.00000000 WAX',  // Added
-  total_staked_weight: '',
-  reward_pool: {
-    quantity: '',
-    contract: 'eosio.token'
-  },
-  emission_unit: 86400,
-  emission_rate: 100,
-  last_emission_updated_at: new Date().toISOString()  // Added
-});
+    staked_token_contract: '',
+    staked_token_symbol: '',
+    total_staked_quantity: '0.00000000 WAX',
+    total_staked_weight: '',
+    reward_pool: {
+      quantity: '',
+      contract: 'eosio.token'
+    },
+    emission_unit: 86400,
+    emission_rate: 100,
+    last_emission_updated_at: new Date().toISOString()
+  });
 
   const [weightUpdateForm, setWeightUpdateForm] = useState({
     poolId: '',
     weight: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    const formattedData = formatPoolData(newPool);
-    await onAddPool(formattedData);
+  // Properly typed formatPoolData function
+  const formatPoolData = (data: typeof newPool): Omit<PoolEntity, 'pool_id' | 'is_active'> => {
+    const symbol = data.staked_token_symbol.toUpperCase();
     
-    // Reset form
-    setNewPool({
-      staked_token_contract: '',
-      staked_token_symbol: '',
-      total_staked_weight: '',
-      reward_pool: {
-        quantity: '',
-        contract: ''
-      },
-      emission_unit: 86400,
-      emission_rate: 100
-    });
-  } catch (e) {
-    console.error('Error formatting pool data:', e);
-  }
-};
+    const total_staked_weight = data.total_staked_weight.includes(' ') 
+      ? data.total_staked_weight.split(' ').map((part: string, i: number) => {
+          if (i === 0) return parseFloat(part).toFixed(8);
+          return part.toUpperCase();
+        }).join(' ')
+      : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
+
+    const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
+    const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
+    const formatted_reward_pool = {
+      quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
+      contract: data.reward_pool.contract || 'eosio.token'
+    };
+
+    return {
+      staked_token_contract: data.staked_token_contract,
+      staked_token_symbol: symbol,
+      total_staked_quantity: '0.00000000 WAX',
+      total_staked_weight,
+      reward_pool: formatted_reward_pool,
+      emission_unit: data.emission_unit,
+      emission_rate: data.emission_rate,
+      last_emission_updated_at: new Date().toISOString()
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const formattedData = formatPoolData(newPool);
+      await onAddPool(formattedData);
+      
+      // Reset form with all required properties
+      setNewPool({
+        staked_token_contract: '',
+        staked_token_symbol: '',
+        total_staked_quantity: '0.00000000 WAX',
+        total_staked_weight: '',
+        reward_pool: {
+          quantity: '',
+          contract: 'eosio.token'
+        },
+        emission_unit: 86400,
+        emission_rate: 100,
+        last_emission_updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error('Error formatting pool data:', e);
+    }
+  };
+
+
   return (
     <div className="bg-slate-800 rounded-lg p-6">
       <div className="flex items-center gap-2 mb-6">
