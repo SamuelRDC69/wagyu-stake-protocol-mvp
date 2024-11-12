@@ -1,4 +1,5 @@
 import { Session } from '@wharfkit/session';
+import { ConfigData, TierData, PoolData } from '../config/types';
 
 export class ContractService {
   private readonly contractAccount = 'token.stake';
