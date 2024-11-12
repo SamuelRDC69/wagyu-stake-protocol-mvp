@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, Plus, Trash2, AlertTriangle } from 'lucide-react';
-import { TierEntity } from '../config/contract';
+import { TierEntity } from '../config/types'; // Changed from contract
 
 interface TierManagementProps {
   tiers: TierEntity[];
