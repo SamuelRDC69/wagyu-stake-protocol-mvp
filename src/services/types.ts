@@ -1,3 +1,4 @@
+// src/config/types.ts
 export interface ConfigData {
   maintenance: boolean;
   cooldown_seconds_per_claim: number;
@@ -11,11 +12,23 @@ export interface TierData {
   staked_up_to_percent: number;
 }
 
+export interface TierEntity extends TierData {} // For future extension if needed
+
 export interface PoolData {
   staked_token_contract: string;
   staked_token_symbol: string;
+  total_staked_quantity: string;
   total_staked_weight: string;
-  reward_pool: string;
+  reward_pool: {
+    quantity: string;
+    contract: string;
+  };
   emission_unit: number;
   emission_rate: number;
+  last_emission_updated_at: string;
+}
+
+export interface PoolEntity extends PoolData {
+  pool_id: number;
+  is_active: boolean;
 }
