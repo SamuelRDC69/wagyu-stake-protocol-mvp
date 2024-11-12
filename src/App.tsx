@@ -73,6 +73,7 @@ function App() {
     }
   }
 
+
   // Tier Management Handlers
   const handleAddTier = async (tierData: Omit<TierEntity, 'id'>) => {
     try {
@@ -139,6 +140,46 @@ function App() {
       setLoading(false)
     }
   }
+
+  const handleDestructConfig = async () => {
+  try {
+    setLoading(true)
+    await actions.destructConfig()
+    toast({
+      title: 'Success',
+      description: 'Config destroyed successfully'
+    })
+    await loadData()
+  } catch (e) {
+    toast({
+      title: 'Error',
+      description: e instanceof Error ? e.message : 'Failed to destroy config',
+      variant: 'destructive'
+    })
+  } finally {
+    setLoading(false)
+  }
+}
+
+const handleSetPoolWeight = async (poolId: number, weight: string) => {
+  try {
+    setLoading(true)
+    await actions.setPoolWeight(poolId, weight)
+    toast({
+      title: 'Success',
+      description: `Pool ${poolId} weight updated successfully`
+    })
+    await loadData()
+  } catch (e) {
+    toast({
+      title: 'Error',
+      description: e instanceof Error ? e.message : 'Failed to update pool weight',
+      variant: 'destructive'
+    })
+  } finally {
+    setLoading(false)
+  }
+}
 
   const handleRemovePool = async (poolId: number) => {
     try {
@@ -256,6 +297,14 @@ function App() {
             >
               {config?.maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
             </button>
+            // Add this button near your maintenance controls
+<button
+  onClick={handleDestructConfig}
+  disabled={loading}
+  className="px-4 py-2 bg-red-800 hover:bg-red-900 rounded-lg text-sm ml-2"
+>
+  Destruct Config
+</button>
           </div>
         </div>
 
