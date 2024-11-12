@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Session } from '@wharfkit/session'
 import { CONTRACT_ACCOUNT } from '../config/contract'
-import { ConfigData, TierEntity, PoolEntity } from '../config/types' // Changed imports
+import { ConfigData, TierEntity, PoolEntity } from '../config/types'
 
 export const useContract = (session: Session | null) => {
   const [loading, setLoading] = useState(false)
@@ -34,7 +34,6 @@ export const useContract = (session: Session | null) => {
 
   const getTableRows = async <T>(table: string, scope = CONTRACT_ACCOUNT): Promise<T[]> => {
     if (!session) throw new Error('No session available')
-
     try {
       const response = await session.client.v1.chain.get_table_rows({
         code: CONTRACT_ACCOUNT,
@@ -59,6 +58,9 @@ export const useContract = (session: Session | null) => {
     
     setMaintenance: async (enabled: boolean) => 
       handleTransaction('maintenance', { maintenance: enabled }),
+
+    destructConfig: async () => 
+      handleTransaction('destructcfg', {}),
     
     // Tier Management  
     setTier: async (tier: string, tierName: string, weight: number, stakedUpToPercent: number) =>
@@ -80,19 +82,14 @@ export const useContract = (session: Session | null) => {
       handleTransaction('setpoolact', { pool_id: poolId, is_active: isActive }),
     
     removePool: async (poolId: number) =>
-      handleTransaction('removepool', { pool_id: poolId })
+      handleTransaction('removepool', { pool_id: poolId }),
+
+    setPoolWeight: async (pool_id: number, total_staked_weight: string) =>
+      handleTransaction('setpweight', { 
+        pool_id, 
+        total_staked_weight 
+    })
   }
-
-  // Add destructcfg action
-  destructConfig: async () => 
-    handleTransaction('destructcfg', {}),
-
-  // Add setpweight action
-  setPoolWeight: async (pool_id: number, total_staked_weight: string) =>
-    handleTransaction('setpweight', { 
-      pool_id, 
-      total_staked_weight 
-    }),
 
   // Queries
   const queries = {
@@ -101,7 +98,6 @@ export const useContract = (session: Session | null) => {
       return rows[0]
     },
     
-    // Rest remains the same
     getTiers: () => getTableRows<TierEntity>('tiers'),
     getPools: () => getTableRows<PoolEntity>('pools'),
     
