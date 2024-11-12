@@ -1,9 +1,8 @@
 import { Session } from '@wharfkit/session';
-import { ConfigData, TierData, PoolData } from '../config/types';
+import { ConfigData, TierData, PoolData, PoolEntity, TierEntity } from '../config/types';
 
 export class ContractService {
   private readonly contractAccount = 'token.stake';
-
   constructor(private session: Session) {}
 
   // Core transaction handler
@@ -66,7 +65,8 @@ export class ContractService {
     return response.rows[0];
   }
 
-  async getTiers(): Promise<TierData[]> {
+  // Update return types for these methods
+  async getTiers(): Promise<TierEntity[]> {
     const response = await this.session.client.v1.chain.get_table_rows({
       code: this.contractAccount,
       scope: this.contractAccount,
@@ -74,5 +74,20 @@ export class ContractService {
       limit: 100
     });
     return response.rows;
+  }
+
+  async getPools(): Promise<PoolEntity[]> {
+    const response = await this.session.client.v1.chain.get_table_rows({
+      code: this.contractAccount,
+      scope: this.contractAccount,
+      table: 'pools',
+      limit: 100
+    });
+    return response.rows;
+  }
+
+  // Update setPool to use proper types
+  async setPool(data: Omit<PoolEntity, 'pool_id' | 'is_active'>) {
+    return this.transact('setpool', data);
   }
 }
