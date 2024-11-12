@@ -40,23 +40,28 @@ const PoolManagement = ({
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onAddPool(newPool);
+  e.preventDefault();
+  
+  try {
+    const formattedData = formatPoolData(newPool);
+    await onAddPool(formattedData);
+    
+    // Reset form
     setNewPool({
       staked_token_contract: '',
       staked_token_symbol: '',
-      total_staked_quantity: '',
       total_staked_weight: '',
       reward_pool: {
         quantity: '',
         contract: ''
       },
       emission_unit: 86400,
-      emission_rate: 100,
-      last_emission_updated_at: new Date().toISOString()
+      emission_rate: 100
     });
-  };
-
+  } catch (e) {
+    console.error('Error formatting pool data:', e);
+  }
+};
   return (
     <div className="bg-slate-800 rounded-lg p-6">
       <div className="flex items-center gap-2 mb-6">
@@ -81,50 +86,78 @@ const PoolManagement = ({
             />
           </div>
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">
-              Token Symbol
-            </label>
-            <input
-              type="text"
-              value={newPool.staked_token_symbol}
-              onChange={(e) => setNewPool({ ...newPool, staked_token_symbol: e.target.value })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 4,EOS"
-              required
-            />
-          </div>
+          {/* Token Symbol field */}
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Token Symbol
+  </label>
+  <input
+    type="text"
+    value={newPool.staked_token_symbol}
+    onChange={(e) => setNewPool({ 
+      ...newPool, 
+      staked_token_symbol: e.target.value.toUpperCase() // Force uppercase
+    })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    placeholder="e.g., 8,WAX"
+    pattern="[0-9]+,[A-Z]+"
+    title="Format: precision,SYMBOL (e.g., 8,WAX)"
+    required
+  />
+  <p className="mt-1 text-xs text-slate-500">
+    Format: precision,SYMBOL (e.g., 8,WAX)
+  </p>
+</div>
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">
-              Total Staked Weight
-            </label>
-            <input
-              type="text"
-              value={newPool.total_staked_weight}
-              onChange={(e) => setNewPool({ ...newPool, total_staked_weight: e.target.value })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 100000.0000 EOS"
-              required
-            />
-          </div>
+{/* Total Staked Weight field */}
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Total Staked Weight
+  </label>
+  <input
+    type="text"
+    value={newPool.total_staked_weight}
+    onChange={(e) => setNewPool({ 
+      ...newPool, 
+      total_staked_weight: e.target.value 
+    })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    placeholder="e.g., 100000.00000000 WAX"
+    pattern="[0-9]+\.[0-9]+ [A-Z]+"
+    title="Format: amount SYMBOL (e.g., 100000.00000000 WAX)"
+    required
+  />
+  <p className="mt-1 text-xs text-slate-500">
+    Format: amount SYMBOL (e.g., 100000.00000000 WAX)
+  </p>
+</div>
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">
-              Reward Pool
-            </label>
-            <input
-              type="text"
-              value={newPool.reward_pool.quantity}
-              onChange={(e) => setNewPool({
-                ...newPool,
-                reward_pool: { ...newPool.reward_pool, quantity: e.target.value }
-              })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 10000.0000 EOS@eosio.token"
-              required
-            />
-          </div>
+{/* Reward Pool field */}
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Reward Pool
+  </label>
+  <input
+    type="text"
+    value={newPool.reward_pool.quantity}
+    onChange={(e) => setNewPool({
+      ...newPool,
+      reward_pool: { 
+        ...newPool.reward_pool, 
+        quantity: e.target.value,
+        contract: 'eosio.token' // Default contract
+      }
+    })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    placeholder="e.g., 10000.00000000 WAX@eosio.token"
+    pattern="[0-9]+\.[0-9]+ [A-Z]+@[a-z1-5\.]+"
+    title="Format: amount SYMBOL@contract (e.g., 10000.00000000 WAX@eosio.token)"
+    required
+  />
+  <p className="mt-1 text-xs text-slate-500">
+    Format: amount SYMBOL@contract (e.g., 10000.00000000 WAX@eosio.token)
+  </p>
+</div>
 
           <div>
             <label className="block text-sm text-slate-400 mb-1">
