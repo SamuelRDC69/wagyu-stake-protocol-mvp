@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { useSession } from './hooks/useSession'
-import { useContract } from './hooks/useContract'
-import { ConfigState, PoolEntity, TierEntity } from './config/contract'
+import { useEffect, useState } from 'react';
+import { useSession } from './hooks/useSession';
+import { useContract } from './hooks/useContract';
+import { ConfigData, PoolEntity, TierEntity } from './config/types';
 import { 
   Settings, 
   Shield, 
@@ -9,10 +9,10 @@ import {
   AlertTriangle,
   Layers,
   BarChart3
-} from 'lucide-react'
-import TierManagement from './components/TierManagement'
-import PoolManagement from './components/PoolManagement'
-import { toast } from '@/components/ui/toast'
+} from 'lucide-react';
+import TierManagement from './components/TierManagement';
+import PoolManagement from './components/PoolManagement';
+import { toast } from './components/ui/toast';
 
 function App() {
   const { session, login, logout, loading: sessionLoading } = useSession()
