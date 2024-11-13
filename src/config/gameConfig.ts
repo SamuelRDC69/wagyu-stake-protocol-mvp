@@ -1,3 +1,11 @@
+export interface ToastConfig {
+    type: 'success' | 'error' | 'warning' | 'info'
+    title: string
+    message: string
+    duration?: number
+}
+
+
 // Game-specific configuration parameters
 export const GAME_CONFIG = {
     // Claim projection settings
