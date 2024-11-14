@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useWharfKit } from '../useWharfKit';
-import { PoolTable, TableResponse } from '../../types/tables';
-import { CONTRACTS, TABLE_NAMES, getPoolScope } from '../../config/contracts';
+import { PoolTable } from '../../types/tables';
+import { CONTRACTS } from '../../config/contracts';
 
 interface UsePoolsTableReturn {
   pools: PoolTable[];
@@ -16,36 +16,35 @@ export function usePoolsTable(): UsePoolsTableReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchPools = async () => {
+  const fetchPools = useCallback(async () => {
     if (!session) return;
 
     try {
       setIsLoading(true);
       const response = await session.client.v1.chain.get_table_rows({
         code: CONTRACTS.STAKING.toString(),
-        scope: getPoolScope(),
-        table: TABLE_NAMES.POOLS,
+        scope: CONTRACTS.STAKING.toString(),
+        table: 'pools',
         limit: 100,
-        type: 'PoolTable',
+        json: true
       });
 
-      setPools(response.rows as PoolTable[]);
+      setPools(response.rows);
       setError(null);
     } catch (e) {
       setError(e as Error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session]);
 
   useEffect(() => {
     if (session) {
       fetchPools();
-      // Poll every 6 seconds for updates
       const interval = setInterval(fetchPools, 6000);
       return () => clearInterval(interval);
     }
-  }, [session]);
+  }, [fetchPools, session]);
 
   return { pools, isLoading, error, refetch: fetchPools };
 }
