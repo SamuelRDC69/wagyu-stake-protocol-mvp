@@ -6,6 +6,7 @@ import { Chains, Session, SessionKit } from '@wharfkit/session'
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
 import WebRenderer from '@wharfkit/web-renderer'
 import React from 'react'
+import GameUI from './components/GameUI'
 
 const sessionKit = new SessionKit({
   appName: 'demo',
