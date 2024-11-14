@@ -1,43 +1,36 @@
-import { AppShell as MantineAppShell, Box } from '@mantine/core';
+import { AppShell, Box, LoadingOverlay } from '@mantine/core';
 import { Navigation } from './Navigation';
+import { BottomNav } from './BottomNav';
 import { useWharfKit } from '../../hooks/useWharfKit';
 import { WagyuProvider } from '../../providers/WagyuProvider';
-import { LoadingOverlay } from '@mantine/core';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShellLayout({ children }: AppShellProps) {
   const { isLoading } = useWharfKit();
 
   return (
     <WagyuProvider>
-      <MantineAppShell
+      <AppShell
         padding="md"
-        header={{ height: 60 }}
-        footer={{ height: 60 }}
-        bg="dark.9"
+        header={<Navigation />}
+        footer={<BottomNav />}
+        styles={(theme) => ({
+          main: {
+            backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[0],
+          },
+        })}
       >
-        <MantineAppShell.Header>
-          <Navigation />
-        </MantineAppShell.Header>
-
-        <MantineAppShell.Main>
-          {isLoading ? (
-            <LoadingOverlay visible={true} overlayBlur={2} />
-          ) : (
-            <Box className="container mx-auto max-w-3xl">{children}</Box>
-          )}
-        </MantineAppShell.Main>
-
-        <MantineAppShell.Footer
-          className="sm:hidden"
-          bg="dark.8"
-        >
-          <BottomNav />
-        </MantineAppShell.Footer>
-      </MantineAppShell>
+        {isLoading ? (
+          <LoadingOverlay visible={true} overlayBlur={2} />
+        ) : (
+          <Box mx="auto" maw={1200}>
+            {children}
+          </Box>
+        )}
+      </AppShell>
     </WagyuProvider>
   );
 }
