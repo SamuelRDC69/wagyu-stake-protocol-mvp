@@ -8,7 +8,7 @@ import { LoadingOverlay } from '@mantine/core';
 
 const sessionKit = new SessionKit({
   appName: 'WAGYU Staking',
-  chains: [Chains.Jungle4],
+  chains: [Chains.WaxTestnet],
   ui: new WebRenderer(),
   walletPlugins: [new WalletPluginAnchor()],
 });
