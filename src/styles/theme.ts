@@ -1,4 +1,4 @@
-import { createTheme, MantineThemeOverride } from '@mantine/core';
+import { MantineThemeOverride } from '@mantine/core';
 
 export const theme: MantineThemeOverride = {
   colorScheme: 'dark',
@@ -25,7 +25,7 @@ export const theme: MantineThemeOverride = {
       '#FFBD7A',
       '#FFA952',
       '#FF942A',
-      '#FF6B6B', // Primary
+      '#FF6B6B',
       '#FF5252',
       '#FF3838',
       '#FF1F1F',
@@ -33,12 +33,6 @@ export const theme: MantineThemeOverride = {
   },
 
   components: {
-    Card: {
-      defaultProps: {
-        padding: 'lg',
-        radius: 'md',
-      },
-    },
     Button: {
       defaultProps: {
         radius: 'md',
@@ -52,8 +46,8 @@ export const theme: MantineThemeOverride = {
     },
     body: {
       ...theme.fn.fontStyles(),
-      backgroundColor: theme.colors.dark[9],
-      color: theme.colors.dark[0],
+      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[9] : theme.white,
+      color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.black,
       lineHeight: theme.lineHeight,
     },
   }),
