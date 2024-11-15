@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
 import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
@@ -61,13 +61,6 @@ interface NavItem {
   id: string;
 }
 
-// Initialize SessionKit
-const sessionKit = new SessionKit({
-  appName: 'Stakeland',
-  chains: [Chains.Jungle4],
-  ui: new WebRenderer(),
-  walletPlugins: [new WalletPluginAnchor()],
-});
 
 const GameUI: React.FC = () => {
   const { session, setSession } = useContext(WharfkitContext);
@@ -80,21 +73,13 @@ const GameUI: React.FC = () => {
   const [isStaking, setIsStaking] = useState<boolean>(false);
 
   useEffect(() => {
-    const restoreSession = async (): Promise<void> => {
-      const restored = await sessionKit.restore();
-      setSession(restored);
-    };
-    restoreSession();
-  }, []);
-
-  useEffect(() => {
     const fetchPools = async (): Promise<void> => {
       if (session) {
         try {
           const response = await session.client.v1.chain.get_table_rows({
-            code: 'token.staking',
-            scope: 'token.staking',
-            table: 'pools',
+            code: Name.from('token.staking'),
+            scope: Name.from('token.staking'),
+            table: Name.from('pools'),
             limit: 10
           });
           setPools(response.rows as PoolEntity[]);
@@ -112,7 +97,7 @@ const GameUI: React.FC = () => {
         try {
           const response = await session.client.v1.chain.get_table_rows({
             code: Name.from('token.staking'),
-            scope: session.actor,
+            scope: Name.from(session.actor.toString()),
             table: Name.from('stakeds'),
             lower_bound: UInt64.from(selectedPool.pool_id),
             upper_bound: UInt64.from(selectedPool.pool_id),
@@ -148,7 +133,7 @@ const GameUI: React.FC = () => {
       
       const response = await session.client.v1.chain.get_table_rows({
         code: Name.from('token.staking'),
-        scope: session.actor,
+        scope: Name.from(session.actor.toString()),
         table: Name.from('stakeds'),
         lower_bound: UInt64.from(selectedPool.pool_id),
         upper_bound: UInt64.from(selectedPool.pool_id),
@@ -182,7 +167,7 @@ const GameUI: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="text-purple-200 border-purple-500" 
-                onClick={logout}
+                onClick={() => setSession(undefined)}
               >
                 Logout
               </Button>
@@ -191,7 +176,7 @@ const GameUI: React.FC = () => {
             <Button 
               variant="outline" 
               className="text-purple-200 border-purple-500" 
-              onClick={login}
+              onClick={sessionKit.login}
             >
               Connect Wallet
             </Button>
