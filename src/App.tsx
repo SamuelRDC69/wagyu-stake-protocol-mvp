@@ -20,11 +20,11 @@ function App() {
   const [session, setSession] = useState<Session | undefined>()
 
   return (
-    <WharfkitContext.Provider value={{ session, setSession }}>
-      <div className="App">
-        <GameUI />
-      </div>
-    </WharfkitContext.Provider>
+  <WharfkitContext.Provider value={{ session, setSession, sessionKit }}>
+    <div className="App">
+      <GameUI />
+    </div>
+  </WharfkitContext.Provider>
   )
 }
 
