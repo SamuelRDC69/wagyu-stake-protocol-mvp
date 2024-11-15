@@ -4,6 +4,8 @@ import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
 import WebRenderer from '@wharfkit/web-renderer'
 import GameUI from './components/GameUI'
 import { WharfkitContext } from './lib/wharfkit/context'
+import './index.css'  // For Tailwind and shadcn/ui styles
+import './App.css'    // For your custom styles
 
 const sessionKit = new SessionKit({
   appName: 'Stakeland',
