@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Session, SessionKit, Chains } from '@wharfkit/session'
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
 import WebRenderer from '@wharfkit/web-renderer'
 import GameUI from './components/GameUI'
-// Import CSS files
-import './index.css'  // For Tailwind and shadcn/ui styles
-import './App.css'    // For your custom styles
+import { WharfkitContext } from './lib/wharfkit/context'
 
 const sessionKit = new SessionKit({
   appName: 'Stakeland',
@@ -18,15 +16,13 @@ const sessionKit = new SessionKit({
 
 function App() {
   const [session, setSession] = useState<Session | undefined>()
-  
-  useEffect(() => {
-    sessionKit.restore().then((restored) => setSession(restored))
-  }, [])
 
   return (
-    <div className="App">
-      <GameUI />
-    </div>
+    <WharfkitContext.Provider value={{ session, setSession }}>
+      <div className="App">
+        <GameUI />
+      </div>
+    </WharfkitContext.Provider>
   )
 }
 
