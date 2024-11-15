@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
-import { Name, UInt64 } from '@wharfkit/session';
+import { Name, UInt64, SessionKit, Chains } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import {
   Dialog,
@@ -20,6 +20,7 @@ import {
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
+// Interface definitions...
 interface PoolEntity {
   pool_id: number;
   staked_token_contract: string;
@@ -61,9 +62,8 @@ interface NavItem {
   id: string;
 }
 
-
 const GameUI: React.FC = () => {
-  const { session, setSession } = useContext(WharfkitContext);
+  const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
   const [showTierDetails, setShowTierDetails] = useState<boolean>(false);
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
@@ -154,6 +154,18 @@ const GameUI: React.FC = () => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
+  const handleLogin = async () => {
+    const response = await sessionKit.login();
+    setSession(response.session);
+  };
+
+  const handleLogout = async () => {
+    if (session) {
+      await sessionKit.logout(session);
+      setSession(undefined);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-slate-950 text-white relative overflow-hidden">
       <div className="fixed inset-0 hex-pattern opacity-20" />
@@ -162,33 +174,27 @@ const GameUI: React.FC = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-purple-200">Stakeland</h1>
           {session ? (
-  <div className="flex items-center gap-4">
-    <span className="text-purple-200">{session.actor.toString()}</span>
-    <Button 
-      variant="outline" 
-      className="text-purple-200 border-purple-500" 
-      onClick={() => {
-        if (session) {
-          sessionKit.logout(session);
-          setSession(undefined);
-        }
-      }}
-    >
-      Logout
-    </Button>
-  </div>
-) : (
-  <Button 
-    variant="outline" 
-    className="text-purple-200 border-purple-500" 
-    onClick={async () => {
-      const response = await sessionKit.login();
-      setSession(response.session);
-    }}
-  >
-    Connect Wallet
-  </Button>
-)}
+            <div className="flex items-center gap-4">
+              <span className="text-purple-200">{session.actor.toString()}</span>
+              <Button 
+                variant="outline" 
+                className="text-purple-200 border-purple-500" 
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="text-purple-200 border-purple-500" 
+              onClick={handleLogin}
+            >
+              Connect Wallet
+            </Button>
+          )}
+        </div>
+      </div>
 
       {session ? (
         <div className="p-6 space-y-6">
