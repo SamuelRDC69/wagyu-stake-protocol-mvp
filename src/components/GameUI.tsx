@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
-import { Session, SessionKit, Chains } from '@wharfkit/session';
+import { Session, SessionKit, Chains, PermissionLevel } from '@wharfkit/session';
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor';
-import { WebRenderer } from '@wharfkit/web-renderer';
+import WebRenderer from '@wharfkit/web-renderer';
 import {
   Dialog,
   DialogContent,
@@ -10,16 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from "./ui/select";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+
 
 interface PoolEntity {
   pool_id: number;
