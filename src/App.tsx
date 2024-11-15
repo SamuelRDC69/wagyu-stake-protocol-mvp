@@ -9,7 +9,7 @@ import './App.css'    // For your custom styles
 
 const sessionKit = new SessionKit({
   appName: 'Stakeland',
-  chains: [Chains.WaxTestnet],
+  chains: [Chains.WAXTestnet],
   ui: new WebRenderer(),
   walletPlugins: [
     new WalletPluginAnchor(),
