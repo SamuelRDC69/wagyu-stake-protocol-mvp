@@ -162,27 +162,33 @@ const GameUI: React.FC = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-purple-200">Stakeland</h1>
           {session ? (
-            <div className="flex items-center gap-4">
-              <span className="text-purple-200">{session.actor.toString()}</span>
-              <Button 
-                variant="outline" 
-                className="text-purple-200 border-purple-500" 
-                onClick={() => setSession(undefined)}
-              >
-                Logout
-              </Button>
-            </div>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="text-purple-200 border-purple-500" 
-              onClick={sessionKit.login}
-            >
-              Connect Wallet
-            </Button>
-          )}
-        </div>
-      </div>
+  <div className="flex items-center gap-4">
+    <span className="text-purple-200">{session.actor.toString()}</span>
+    <Button 
+      variant="outline" 
+      className="text-purple-200 border-purple-500" 
+      onClick={() => {
+        if (session) {
+          sessionKit.logout(session);
+          setSession(undefined);
+        }
+      }}
+    >
+      Logout
+    </Button>
+  </div>
+) : (
+  <Button 
+    variant="outline" 
+    className="text-purple-200 border-purple-500" 
+    onClick={async () => {
+      const response = await sessionKit.login();
+      setSession(response.session);
+    }}
+  >
+    Connect Wallet
+  </Button>
+)}
 
       {session ? (
         <div className="p-6 space-y-6">
