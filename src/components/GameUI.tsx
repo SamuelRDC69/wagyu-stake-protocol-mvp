@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
-import { Session, SessionKit, Chains, PermissionLevel } from '@wharfkit/session';
+import { Session, SessionKit, Chains, PermissionLevel, Name } from '@wharfkit/session';
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor';
 import WebRenderer from '@wharfkit/web-renderer';
 import {
@@ -10,16 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
+} from "../components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
+} from "../components/ui/select";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
 
 
 interface PoolEntity {
@@ -116,8 +116,8 @@ const GameUI: React.FC = () => {
             code: 'token.staking',
             scope: session.actor.toString(),
             table: 'stakeds',
-            lower_bound: selectedPool.pool_id,
-            upper_bound: selectedPool.pool_id,
+            lower_bound: selectedPool.pool_id.toString(),
+            upper_bound: selectedPool.pool_id.toString(),
             limit: 1
           });
           setPlayerStake(response.rows[0] as StakedEntity);
@@ -129,34 +129,19 @@ const GameUI: React.FC = () => {
     fetchPlayerStake();
   }, [session, selectedPool]);
 
-  const login = async (): Promise<void> => {
-    try {
-      const response = await sessionKit.login();
-      setSession(response.session);
-    } catch (error) {
-      console.error('Login error:', error);
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    if (session) {
-      await sessionKit.logout(session);
-      setSession(undefined);
-    }
-  };
-
   const handleStake = async (): Promise<void> => {
     if (!session || !selectedPool || !stakeAmount) return;
     
     setIsStaking(true);
     try {
+      const toAccount = Name.from('token.staking');
       const action = {
         account: selectedPool.staked_token_contract,
         name: 'transfer',
         authorization: [session.permissionLevel],
         data: {
           from: session.actor,
-          to: 'token.staking',
+          to: toAccount,
           quantity: `${parseFloat(stakeAmount).toFixed(4)} ${selectedPool.total_staked_quantity.symbol}`,
           memo: 'stake'
         }
@@ -168,8 +153,8 @@ const GameUI: React.FC = () => {
         code: 'token.staking',
         scope: session.actor.toString(),
         table: 'stakeds',
-        lower_bound: selectedPool.pool_id,
-        upper_bound: selectedPool.pool_id,
+        lower_bound: selectedPool.pool_id.toString(),
+        upper_bound: selectedPool.pool_id.toString(),
         limit: 1
       });
       setPlayerStake(response.rows[0] as StakedEntity);
