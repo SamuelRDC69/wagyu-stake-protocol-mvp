@@ -301,7 +301,6 @@ useEffect(() => {
   <DialogContent className="bg-slate-900 text-white">
     <DialogHeader>
       <DialogTitle>
-        {console.log('Rendering Dialog Title')}
         Stake {selectedPool.total_staked_quantity.split(' ')[1]}
       </DialogTitle>
       <DialogDescription className="text-gray-300">
