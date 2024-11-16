@@ -224,13 +224,13 @@ const GameUI: React.FC = () => {
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a kingdom" />
               </SelectTrigger>
-              <SelectContent>
-                {pools.map((pool) => (
-                  <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
-                    {pool.staked_token_contract} - {pool.total_staked_quantity.symbol}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+<SelectContent>
+  {pools.map((pool) => (
+    <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
+      {`${pool.total_staked_quantity.symbol} - ${pool.staked_token_contract}`}
+    </SelectItem>
+  ))}
+</SelectContent>
             </Select>
           </div>
 
