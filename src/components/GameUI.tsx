@@ -270,6 +270,7 @@ const GameUI: React.FC = () => {
                       {playerStake ? 
                         `${playerStake.staked_quantity.amount} ${playerStake.staked_quantity.symbol}` : 
                         `0.0000 ${selectedPool.total_staked_quantity.symbol}`
+                        )
                       }
                     </p>
                   </div>
