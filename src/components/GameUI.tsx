@@ -284,7 +284,8 @@ const GameUI: React.FC = () => {
       Stake {selectedPool.total_staked_quantity.split(' ')[1]} Tokens
     </Button>
   </DialogTrigger>
-  <DialogContent className="bg-slate-900 text-white"><DialogHeader>
+  <DialogContent className="bg-slate-900 text-white">
+                        <DialogHeader>
                         <DialogTitle>Stake {selectedPool.total_staked_quantity.split(' ')[1]}</DialogTitle>
                         <DialogDescription className="text-gray-300">
                           Enter the amount of {selectedPool.total_staked_quantity.split(' ')[1]} tokens to stake in pool #{selectedPool.pool_id}
