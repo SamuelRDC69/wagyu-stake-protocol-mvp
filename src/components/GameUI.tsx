@@ -275,14 +275,11 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  // Replace your Dialog section with this:
-<Dialog open={isDialogOpen} onOpenChange={(open) => {
-  console.log('Dialog onOpenChange called:', open);
-  setIsDialogOpen(open);
-}}>
+ {/* Dialog Component */}
+<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
   <DialogTrigger asChild>
     <Button 
-      className="w-full bg-purple-600 hover:bg-purple-700"
+      className="w-full bg-purple-600 hover:bg-purple-700 relative z-50 touch-auto"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -298,7 +295,7 @@ useEffect(() => {
       Stake {selectedPool.total_staked_quantity.split(' ')[1]} Tokens
     </Button>
   </DialogTrigger>
-  <DialogContent className="bg-slate-900 text-white">
+  <DialogContent className="DialogContent bg-slate-900 text-white">
     <DialogHeader>
       <DialogTitle>
         Stake {selectedPool.total_staked_quantity.split(' ')[1]}
@@ -328,7 +325,7 @@ useEffect(() => {
           handleStake();
         }} 
         disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
-        className="w-full"
+        className="w-full bg-purple-600 hover:bg-purple-700"
       >
         {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.00000000'} ${selectedPool.total_staked_quantity.split(' ')[1]}`}
       </Button>
