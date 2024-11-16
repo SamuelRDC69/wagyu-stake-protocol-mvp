@@ -62,6 +62,12 @@ const GameUI: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
+
+  // Add this with your other useEffect hooks
+useEffect(() => {
+  console.log('Dialog state changed:', isDialogOpen);
+}, [isDialogOpen]);
+
   useEffect(() => {
     const fetchPools = async (): Promise<void> => {
       if (session) {
@@ -269,15 +275,23 @@ const GameUI: React.FC = () => {
                     </div>
                   </div>
 
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  // Replace your Dialog section with this:
+<Dialog open={isDialogOpen} onOpenChange={(open) => {
+  console.log('Dialog onOpenChange called:', open);
+  setIsDialogOpen(open);
+}}>
   <DialogTrigger asChild>
     <Button 
       className="w-full bg-purple-600 hover:bg-purple-700"
       onClick={(e) => {
-        e.preventDefault(); // Add this to prevent button default behavior
-        console.log('Opening stake dialog');
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Stake button clicked');
+        console.log('Current isDialogOpen state:', isDialogOpen);
         console.log('Selected Pool:', selectedPool);
+        console.log('Attempting to open dialog...');
         setIsDialogOpen(true);
+        console.log('Set dialog open to true');
       }}
     >
       <TrendingUp className="w-4 h-4 mr-2" />
@@ -285,40 +299,43 @@ const GameUI: React.FC = () => {
     </Button>
   </DialogTrigger>
   <DialogContent className="bg-slate-900 text-white">
-                        <DialogHeader>
-                        <DialogTitle>Stake {selectedPool.total_staked_quantity.split(' ')[1]}</DialogTitle>
-                        <DialogDescription className="text-gray-300">
-                          Enter the amount of {selectedPool.total_staked_quantity.split(' ')[1]} tokens to stake in pool #{selectedPool.pool_id}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <Input
-                          type="number"
-                          step="0.00000001"
-                          min="0.00000001"
-                          placeholder={`Amount of ${selectedPool.total_staked_quantity.split(' ')[1]}`}
-                          value={stakeAmount}
-                          onChange={(e) => {
-                            console.log('Input changed:', e.target.value);
-                            setStakeAmount(e.target.value);
-                          }}
-                          className="bg-slate-800 border-slate-700 text-white"
-                        />
-                        <Button 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            console.log('Confirm stake clicked');
-                            console.log('Amount:', stakeAmount);
-                            handleStake();
-                          }} 
-                          disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
-                          className="w-full"
-                        >
-                          {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.00000000'} ${selectedPool.total_staked_quantity.split(' ')[1]}`}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+    <DialogHeader>
+      <DialogTitle>
+        {console.log('Rendering Dialog Title')}
+        Stake {selectedPool.total_staked_quantity.split(' ')[1]}
+      </DialogTitle>
+      <DialogDescription className="text-gray-300">
+        Enter the amount of {selectedPool.total_staked_quantity.split(' ')[1]} tokens to stake in pool #{selectedPool.pool_id}
+      </DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4">
+      <Input
+        type="number"
+        step="0.00000001"
+        min="0.00000001"
+        placeholder={`Amount of ${selectedPool.total_staked_quantity.split(' ')[1]}`}
+        value={stakeAmount}
+        onChange={(e) => {
+          console.log('Input value changed:', e.target.value);
+          setStakeAmount(e.target.value);
+        }}
+        className="bg-slate-800 border-slate-700 text-white"
+      />
+      <Button 
+        onClick={(e) => {
+          e.preventDefault();
+          console.log('Stake confirmation clicked');
+          console.log('Current stake amount:', stakeAmount);
+          handleStake();
+        }} 
+        disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
+        className="w-full"
+      >
+        {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.00000000'} ${selectedPool.total_staked_quantity.split(' ')[1]}`}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
                 </>
               )}
             </>
