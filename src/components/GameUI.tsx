@@ -219,7 +219,7 @@ const GameUI: React.FC = () => {
         </div>
       </div>
 
-      {session ? (
+{session ? (
   <div className="p-6 space-y-6">
     {isLoading ? (
       <div className="flex justify-center items-center h-64">
@@ -230,54 +230,54 @@ const GameUI: React.FC = () => {
         <p className="text-purple-200">No pools available</p>
       </div>
     ) : (
-      <div className="crystal-bg rounded-2xl p-6">
-        <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-        <Select 
-          onValueChange={(value) => {
-            console.log('Selected pool value:', value);
-            const pool = pools.find(p => p.pool_id === parseInt(value));
-            console.log('Found pool:', pool);
-            setSelectedPool(pool);
-          }}
-          value={selectedPool?.pool_id.toString()}
-        >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a kingdom" />
-              </SelectTrigger>
-<SelectContent>
-  {pools.map((pool) => (
-    <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
-      {`${pool.total_staked_quantity.symbol.split(' ')[1]} - Pool #${pool.pool_id}`}
-    </SelectItem>
-  ))}
-</SelectContent>
-            </Select>
-          </div>
+      <>
+        <div className="crystal-bg rounded-2xl p-6">
+          <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+          <Select 
+            onValueChange={(value) => {
+              console.log('Selected pool value:', value);
+              const pool = pools.find(p => p.pool_id === parseInt(value));
+              console.log('Found pool:', pool);
+              setSelectedPool(pool);
+            }}
+            value={selectedPool?.pool_id.toString()}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Choose a kingdom" />
+            </SelectTrigger>
+            <SelectContent>
+              {pools.map((pool) => (
+                <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
+                  {`${pool.total_staked_quantity.symbol.split(' ')[1]} - Pool #${pool.pool_id}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {selectedPool && (
-            <>
-              <div className="crystal-bg rounded-2xl p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm text-purple-300">Total Staked</h3>
-                    <p className="text-xl font-bold">
-                      {`${selectedPool.total_staked_quantity.amount} ${selectedPool.total_staked_quantity.symbol}`}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm text-purple-300">Your Stake</h3>
-                    <p className="text-xl font-bold">
-                      {playerStake ? 
-                        `${playerStake.staked_quantity.amount} ${playerStake.staked_quantity.symbol}` : 
-                        `0.0000 ${selectedPool.total_staked_quantity.symbol}`
-                        )
-                      }
-                    </p>
-                  </div>
+        {selectedPool && (
+          <>
+            <div className="crystal-bg rounded-2xl p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm text-purple-300">Total Staked</h3>
+                  <p className="text-xl font-bold">
+                    {`${selectedPool.total_staked_quantity.amount} ${selectedPool.total_staked_quantity.symbol}`}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-purple-300">Your Stake</h3>
+                  <p className="text-xl font-bold">
+                    {playerStake ? 
+                      `${playerStake.staked_quantity.amount} ${playerStake.staked_quantity.symbol}` : 
+                      `0.0000 ${selectedPool.total_staked_quantity.symbol}`
+                    }
+                  </p>
                 </div>
               </div>
+            </div>
 
-<Dialog>
+            <Dialog>
   <DialogTrigger asChild>
     <Button 
       className="w-full bg-purple-600 hover:bg-purple-700"
@@ -325,14 +325,16 @@ const GameUI: React.FC = () => {
     </div>
   </DialogContent>
 </Dialog>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="flex justify-center items-center h-64">
-          <p className="text-purple-200">Connect your wallet to start playing</p>
-        </div>
-      )}
+          </>
+        )}
+      </>
+    )}
+  </div>
+) : (
+  <div className="flex justify-center items-center h-64">
+    <p className="text-purple-200">Connect your wallet to start playing</p>
+  </div>
+)}
 
       <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
         <div className="flex justify-around p-4 max-w-lg mx-auto">
