@@ -1,7 +1,8 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
-import { Name, UInt64, SessionKit, Chains } from '@wharfkit/session';
+import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
+import { CONTRACTS } from '../lib/wharfkit/contracts';
 import {
   Dialog,
   DialogContent,
@@ -77,9 +78,9 @@ const GameUI: React.FC = () => {
       if (session) {
         try {
           const response = await session.client.v1.chain.get_table_rows({
-            code: Name.from('token.staking'),
-            scope: Name.from('token.staking'),
-            table: Name.from('pools'),
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
             limit: 10
           });
           setPools(response.rows as PoolEntity[]);
@@ -96,9 +97,9 @@ const GameUI: React.FC = () => {
       if (session && selectedPool) {
         try {
           const response = await session.client.v1.chain.get_table_rows({
-            code: Name.from('token.staking'),
+            code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(session.actor.toString()),
-            table: Name.from('stakeds'),
+            table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
             lower_bound: UInt64.from(selectedPool.pool_id),
             upper_bound: UInt64.from(selectedPool.pool_id),
             limit: 1
@@ -123,7 +124,7 @@ const GameUI: React.FC = () => {
         authorization: [session.permissionLevel],
         data: {
           from: session.actor,
-          to: Name.from('token.staking'),
+          to: Name.from(CONTRACTS.STAKING.NAME),
           quantity: `${parseFloat(stakeAmount).toFixed(4)} ${selectedPool.total_staked_quantity.symbol}`,
           memo: 'stake'
         }
@@ -132,9 +133,9 @@ const GameUI: React.FC = () => {
       await session.transact({ action });
       
       const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from('token.staking'),
+        code: Name.from(CONTRACTS.STAKING.NAME),
         scope: Name.from(session.actor.toString()),
-        table: Name.from('stakeds'),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
         lower_bound: UInt64.from(selectedPool.pool_id),
         upper_bound: UInt64.from(selectedPool.pool_id),
         limit: 1
@@ -147,16 +148,13 @@ const GameUI: React.FC = () => {
     }
   };
 
-  const navItems: NavItem[] = [
-    { icon: Crown, label: 'Kingdom', id: 'kingdom' },
-    { icon: Users, label: 'Guild', id: 'guild' },
-    { icon: Sword, label: 'Battle', id: 'battle' },
-    { icon: Trophy, label: 'Rewards', id: 'rewards' }
-  ];
-
   const handleLogin = async () => {
-    const response = await sessionKit.login();
-    setSession(response.session);
+    try {
+      const response = await sessionKit.login();
+      setSession(response.session);
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   };
 
   const handleLogout = async () => {
@@ -165,6 +163,13 @@ const GameUI: React.FC = () => {
       setSession(undefined);
     }
   };
+
+  const navItems: NavItem[] = [
+    { icon: Crown, label: 'Kingdom', id: 'kingdom' },
+    { icon: Users, label: 'Guild', id: 'guild' },
+    { icon: Sword, label: 'Battle', id: 'battle' },
+    { icon: Trophy, label: 'Rewards', id: 'rewards' }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-slate-950 text-white relative overflow-hidden">
