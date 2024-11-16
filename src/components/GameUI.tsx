@@ -256,37 +256,54 @@ const GameUI: React.FC = () => {
                 </div>
               </div>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Stake Tokens
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Stake in {selectedPool.staked_token_contract}</DialogTitle>
-                    <DialogDescription>
-                      Enter the amount you want to stake in this kingdom
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input
-                      type="number"
-                      placeholder="Amount to stake"
-                      value={stakeAmount}
-                      onChange={(e) => setStakeAmount(e.target.value)}
-                    />
-                    <Button 
-                      onClick={handleStake} 
-                      disabled={isStaking} 
-                      className="w-full"
-                    >
-                      {isStaking ? 'Staking...' : 'Confirm Stake'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+<Dialog>
+  <DialogTrigger asChild>
+    <Button 
+      className="w-full bg-purple-600 hover:bg-purple-700"
+      onClick={() => {
+        console.log('Opening stake dialog');
+        console.log('Selected Pool:', selectedPool);
+      }}
+    >
+      <TrendingUp className="w-4 h-4 mr-2" />
+      Stake {selectedPool.total_staked_quantity.symbol} Tokens
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="bg-slate-900 text-white">
+    <DialogHeader>
+      <DialogTitle>Stake {selectedPool.total_staked_quantity.symbol}</DialogTitle>
+      <DialogDescription className="text-gray-300">
+        Enter the amount of {selectedPool.total_staked_quantity.symbol} tokens to stake in {selectedPool.staked_token_contract}
+      </DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4">
+      <Input
+        type="number"
+        step="0.0001"
+        min="0.0001"
+        placeholder={`Amount of ${selectedPool.total_staked_quantity.symbol}`}
+        value={stakeAmount}
+        onChange={(e) => {
+          console.log('Input changed:', e.target.value);
+          setStakeAmount(e.target.value);
+        }}
+        className="bg-slate-800 border-slate-700 text-white"
+      />
+      <Button 
+        onClick={(e) => {
+          e.preventDefault();
+          console.log('Confirm stake clicked');
+          console.log('Amount:', stakeAmount);
+          handleStake();
+        }} 
+        disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
+        className="w-full"
+      >
+        {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.0000'} ${selectedPool.total_staked_quantity.symbol}`}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
             </>
           )}
         </div>
