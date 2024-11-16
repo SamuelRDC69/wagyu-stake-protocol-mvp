@@ -60,6 +60,7 @@ const GameUI: React.FC = () => {
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchPools = async (): Promise<void> => {
@@ -148,6 +149,8 @@ const GameUI: React.FC = () => {
       } catch (e) {
         console.error('Transaction error:', e);
       }
+    setIsDialogOpen(false); // Close dialog after successful stake
+      setStakeAmount('');
     } catch (error) {
       console.error('Staking error:', error);
     } finally {
@@ -273,6 +276,7 @@ const GameUI: React.FC = () => {
                         onClick={() => {
                           console.log('Opening stake dialog');
                           console.log('Selected Pool:', selectedPool);
+                          setIsDialogOpen(true);
                         }}
                       >
                         <TrendingUp className="w-4 h-4 mr-2" />
