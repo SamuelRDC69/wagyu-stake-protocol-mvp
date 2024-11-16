@@ -227,7 +227,7 @@ const GameUI: React.FC = () => {
 <SelectContent>
   {pools.map((pool) => (
     <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
-      {`${pool.total_staked_quantity.symbol} - ${pool.staked_token_contract}`}
+      {`${pool.total_staked_quantity.symbol.split(' ')[1]} - Pool #${pool.pool_id}`}
     </SelectItem>
   ))}
 </SelectContent>
@@ -266,22 +266,22 @@ const GameUI: React.FC = () => {
       }}
     >
       <TrendingUp className="w-4 h-4 mr-2" />
-      Stake {selectedPool.total_staked_quantity.symbol} Tokens
+      Stake {selectedPool.total_staked_quantity.symbol.split(' ')[1]} Tokens
     </Button>
   </DialogTrigger>
   <DialogContent className="bg-slate-900 text-white">
     <DialogHeader>
-      <DialogTitle>Stake {selectedPool.total_staked_quantity.symbol}</DialogTitle>
+      <DialogTitle>Stake {selectedPool.total_staked_quantity.symbol.split(' ')[1]}</DialogTitle>
       <DialogDescription className="text-gray-300">
-        Enter the amount of {selectedPool.total_staked_quantity.symbol} tokens to stake in {selectedPool.staked_token_contract}
+        Enter the amount of {selectedPool.total_staked_quantity.symbol.split(' ')[1]} tokens to stake in pool #{selectedPool.pool_id}
       </DialogDescription>
     </DialogHeader>
     <div className="space-y-4">
       <Input
         type="number"
-        step="0.0001"
-        min="0.0001"
-        placeholder={`Amount of ${selectedPool.total_staked_quantity.symbol}`}
+        step="0.00000001"
+        min="0.00000001"
+        placeholder={`Amount of ${selectedPool.total_staked_quantity.symbol.split(' ')[1]}`}
         value={stakeAmount}
         onChange={(e) => {
           console.log('Input changed:', e.target.value);
@@ -299,7 +299,7 @@ const GameUI: React.FC = () => {
         disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
         className="w-full"
       >
-        {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.0000'} ${selectedPool.total_staked_quantity.symbol}`}
+        {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.00000000'} ${selectedPool.total_staked_quantity.symbol.split(' ')[1]}`}
       </Button>
     </div>
   </DialogContent>
