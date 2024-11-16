@@ -118,36 +118,48 @@ const GameUI: React.FC = () => {
     
     setIsStaking(true);
     try {
+      // Log the action for debugging
+      console.log('Starting stake transaction...');
+      
       const action = {
-        account: Name.from(selectedPool.staked_token_contract),
-        name: Name.from('transfer'),
+        account: selectedPool.staked_token_contract, // Use the token contract
+        name: 'transfer',
         authorization: [session.permissionLevel],
         data: {
           from: session.actor,
-          to: Name.from(CONTRACTS.STAKING.NAME),
+          to: CONTRACTS.STAKING.NAME,
           quantity: `${parseFloat(stakeAmount).toFixed(4)} ${selectedPool.total_staked_quantity.symbol}`,
           memo: 'stake'
         }
       };
 
-      await session.transact({ action });
-      
-      const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from(CONTRACTS.STAKING.NAME),
-        scope: Name.from(session.actor.toString()),
-        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-        lower_bound: UInt64.from(selectedPool.pool_id),
-        upper_bound: UInt64.from(selectedPool.pool_id),
-        limit: 1
-      });
-      setPlayerStake(response.rows[0] as StakedEntity);
+      console.log('Transaction action:', action);
+
+      try {
+        const result = await session.transact({
+          actions: [action] // Notice the actions array
+        });
+        console.log('Transaction result:', result);
+
+        // Refresh stake data
+        const response = await session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(session.actor.toString()),
+          table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+          lower_bound: UInt64.from(selectedPool.pool_id),
+          upper_bound: UInt64.from(selectedPool.pool_id),
+          limit: 1
+        });
+        setPlayerStake(response.rows[0] as StakedEntity);
+      } catch (e) {
+        console.error('Transaction error:', e);
+      }
     } catch (error) {
       console.error('Staking error:', error);
     } finally {
       setIsStaking(false);
     }
-  };
-
+};
   const handleLogin = async () => {
     try {
       const response = await sessionKit.login();
