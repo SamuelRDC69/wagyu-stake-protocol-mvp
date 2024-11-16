@@ -72,25 +72,31 @@ const GameUI: React.FC = () => {
   const [pools, setPools] = useState<PoolEntity[]>([]);
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
   const [isStaking, setIsStaking] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchPools = async (): Promise<void> => {
-      if (session) {
-        try {
-          const response = await session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
-            limit: 10
-          });
-          setPools(response.rows as PoolEntity[]);
-        } catch (error) {
-          console.error('Error fetching pools:', error);
-        }
+  const fetchPools = async (): Promise<void> => {
+    if (session) {
+      setIsLoading(true);
+      try {
+        console.log('Fetching pools...');
+        const response = await session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
+          limit: 10
+        });
+        console.log('Pools response:', response);
+        setPools(response.rows as PoolEntity[]);
+      } catch (error) {
+        console.error('Error fetching pools:', error);
+      } finally {
+        setIsLoading(false);
       }
-    };
-    fetchPools();
-  }, [session]);
+    }
+  };
+  fetchPools();
+}, [session]);
 
   useEffect(() => {
     const fetchPlayerStake = async (): Promise<void> => {
@@ -214,13 +220,27 @@ const GameUI: React.FC = () => {
       </div>
 
       {session ? (
-        <div className="p-6 space-y-6">
-          <div className="crystal-bg rounded-2xl p-6">
-            <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-            <Select 
-              onValueChange={(value) => setSelectedPool(pools.find(p => p.pool_id === parseInt(value)))}
-              value={selectedPool?.pool_id.toString()}
-            >
+  <div className="p-6 space-y-6">
+    {isLoading ? (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-purple-200">Loading pools...</p>
+      </div>
+    ) : pools.length === 0 ? (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-purple-200">No pools available</p>
+      </div>
+    ) : (
+      <div className="crystal-bg rounded-2xl p-6">
+        <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+        <Select 
+          onValueChange={(value) => {
+            console.log('Selected pool value:', value);
+            const pool = pools.find(p => p.pool_id === parseInt(value));
+            console.log('Found pool:', pool);
+            setSelectedPool(pool);
+          }}
+          value={selectedPool?.pool_id.toString()}
+        >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Choose a kingdom" />
               </SelectTrigger>
