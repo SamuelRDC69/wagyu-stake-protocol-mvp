@@ -269,22 +269,22 @@ const GameUI: React.FC = () => {
                     </div>
                   </div>
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                        onClick={() => {
-                          console.log('Opening stake dialog');
-                          console.log('Selected Pool:', selectedPool);
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        <TrendingUp className="w-4 h-4 mr-2" />
-                        Stake {selectedPool.total_staked_quantity.split(' ')[1]} Tokens
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-900 text-white">
-                      <DialogHeader>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+  <DialogTrigger asChild>
+    <Button 
+      className="w-full bg-purple-600 hover:bg-purple-700"
+      onClick={(e) => {
+        e.preventDefault(); // Add this to prevent button default behavior
+        console.log('Opening stake dialog');
+        console.log('Selected Pool:', selectedPool);
+        setIsDialogOpen(true);
+      }}
+    >
+      <TrendingUp className="w-4 h-4 mr-2" />
+      Stake {selectedPool.total_staked_quantity.split(' ')[1]} Tokens
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="bg-slate-900 text-white"><DialogHeader>
                         <DialogTitle>Stake {selectedPool.total_staked_quantity.split(' ')[1]}</DialogTitle>
                         <DialogDescription className="text-gray-300">
                           Enter the amount of {selectedPool.total_staked_quantity.split(' ')[1]} tokens to stake in pool #{selectedPool.pool_id}
