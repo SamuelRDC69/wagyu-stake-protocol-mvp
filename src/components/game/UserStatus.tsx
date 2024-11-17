@@ -2,13 +2,13 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { CooldownTimer } from './CooldownTimer';
+import { StakedEntity } from '../../lib/types/staked';
+import { ConfigEntity } from '../../lib/types/config';
+
 
 interface UserStatusProps {
-  stakedAmount: string;
-  tier: string;
-  lastClaimedAt: string;
-  cooldownEndAt: string;
-  cooldownSeconds: number;
+  stakedData: StakedEntity;
+  config: Pick<ConfigEntity, 'cooldown_seconds_per_claim'>;
 }
 
 export const UserStatus: React.FC<UserStatusProps> = ({
