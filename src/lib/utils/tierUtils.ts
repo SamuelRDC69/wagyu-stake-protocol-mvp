@@ -3,44 +3,76 @@ import { StakedEntity } from '../types/staked';
 import { PoolEntity } from '../types/pool';
 import { parseTokenString } from './tokenUtils';
 
+// tierUtils.ts
+
 export const calculateTierProgress = (
   stakedAmount: string,
   totalStaked: string,
   tiers: TierEntity[]
-): TierProgress => {
-  const stakedPercent = (parseTokenString(stakedAmount).amount / 
-    parseTokenString(totalStaked).amount) * 100;
+): TierProgress | null => {
+  console.log('Calculate Tier Progress Input:', {
+    stakedAmount,
+    totalStaked,
+    tiers
+  });
 
-  // Sort tiers by staked_up_to_percent
-  const sortedTiers = [...tiers].sort((a, b) => 
-    a.staked_up_to_percent - b.staked_up_to_percent);
-
-  let currentTier = sortedTiers[0];
-  let nextTier: TierEntity | undefined;
-  let prevTier: TierEntity | undefined;
-
-  for (let i = 0; i < sortedTiers.length; i++) {
-    if (stakedPercent <= sortedTiers[i].staked_up_to_percent) {
-      currentTier = sortedTiers[i];
-      nextTier = sortedTiers[i + 1];
-      prevTier = sortedTiers[i - 1];
-      break;
+  try {
+    // Parse the staked amounts first
+    const stakedValue = parseFloat(stakedAmount.split(' ')[0]);
+    const totalValue = parseFloat(totalStaked.split(' ')[0]);
+    
+    if (isNaN(stakedValue) || isNaN(totalValue) || totalValue === 0) {
+      console.log('Invalid staked values:', { stakedValue, totalValue });
+      return null;
     }
+
+    // Calculate percentage
+    const stakedPercent = (stakedValue / totalValue) * 100;
+    console.log('Calculated staked percent:', stakedPercent);
+
+    // Sort tiers by staked_up_to_percent
+    const sortedTiers = [...tiers].sort((a, b) => 
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+    );
+
+    // Find current tier
+    let currentTier = sortedTiers[0];
+    let nextTier: TierEntity | undefined;
+    let prevTier: TierEntity | undefined;
+
+    for (let i = 0; i < sortedTiers.length; i++) {
+      const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
+      if (stakedPercent <= tierThreshold) {
+        currentTier = sortedTiers[i];
+        nextTier = sortedTiers[i + 1];
+        prevTier = sortedTiers[i - 1];
+        break;
+      }
+    }
+
+    // Calculate progress
+    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
+    
+    const progress = prevTier
+      ? ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100
+      : (stakedPercent / currentThreshold) * 100;
+
+    const result = {
+      currentTier,
+      nextTier,
+      prevTier,
+      progress: Math.min(progress, 100),
+      requiredForNext: nextTier ? parseFloat(nextTier.staked_up_to_percent) : undefined,
+      requiredForCurrent: parseFloat(currentTier.staked_up_to_percent)
+    };
+
+    console.log('Calculated tier progress result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error in calculateTierProgress:', error);
+    return null;
   }
-
-  const progress = prevTier ? 
-    ((stakedPercent - prevTier.staked_up_to_percent) / 
-    (currentTier.staked_up_to_percent - prevTier.staked_up_to_percent)) * 100 :
-    (stakedPercent / currentTier.staked_up_to_percent) * 100;
-
-  return {
-    currentTier,
-    nextTier,
-    prevTier,
-    progress: Math.min(progress, 100),
-    requiredForNext: nextTier?.staked_up_to_percent,
-    requiredForCurrent: currentTier.staked_up_to_percent
-  };
 };
 
 export const getTierColor = (tier: string): string => {
@@ -52,22 +84,24 @@ export const getTierColor = (tier: string): string => {
   }
 };
 
-export const getTierWeight = (tier: string, tiers: TierEntity[]): number => {
-  const tierEntity = tiers.find(t => t.tier === tier);
-  return tierEntity?.weight || 1;
-};
-
 export const isTierUpgradeAvailable = (
   currentStaked: string,
   totalStaked: string,
   currentTier: TierEntity,
   tiers: TierEntity[]
 ): boolean => {
-  const stakedPercent = (parseTokenString(currentStaked).amount / 
-    parseTokenString(totalStaked).amount) * 100;
-  
-  const nextTier = tiers.find(t => 
-    t.staked_up_to_percent > currentTier.staked_up_to_percent);
+  try {
+    const stakedValue = parseFloat(currentStaked.split(' ')[0]);
+    const totalValue = parseFloat(totalStaked.split(' ')[0]);
+    const stakedPercent = (stakedValue / totalValue) * 100;
     
-  return !!nextTier && stakedPercent >= currentTier.staked_up_to_percent;
+    const nextTier = tiers.find(t => 
+      parseFloat(t.staked_up_to_percent) > parseFloat(currentTier.staked_up_to_percent)
+    );
+    
+    return !!nextTier && stakedPercent >= parseFloat(currentTier.staked_up_to_percent);
+  } catch (error) {
+    console.error('Error in isTierUpgradeAvailable:', error);
+    return false;
+  }
 };
