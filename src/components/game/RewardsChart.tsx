@@ -2,28 +2,37 @@ import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PoolEntity } from '../../lib/types/pool';
+import { parseTokenString } from '../../lib/utils/tokenUtils';
+import { formatNumber } from '../../lib/utils/formatUtils';
 
 interface RewardsChartProps {
   poolData: Pick<PoolEntity, 'reward_pool' | 'emission_unit' | 'emission_rate' | 'last_emission_updated_at'>;
 }
 
+interface ChartDataPoint {
+  time: string;
+  rewards: number;
+  formatted: string;
+}
+
 export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
   const chartData = useMemo(() => {
+    const data: ChartDataPoint[] = [];
     const currentTime = new Date().getTime();
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-    const timeDiff = currentTime - lastUpdate;
-    const currentRewards = parseFloat(poolData.reward_pool.quantity.split(' ')[0]);
+    const { amount: currentRewards, symbol } = parseTokenString(poolData.reward_pool.quantity);
     
-    // Calculate projected rewards for next 24 hours
-    const data = [];
+    // Calculate 24 hourly points
     for (let i = 0; i <= 24; i++) {
       const timePoint = lastUpdate + (i * 3600000); // hourly points
-      const projectedRewards = currentRewards + 
-        ((timePoint - lastUpdate) / (poolData.emission_unit * 1000)) * poolData.emission_rate;
-      
+      const emissionTime = (timePoint - lastUpdate) / 1000; // seconds
+      const newEmissions = (emissionTime / poolData.emission_unit) * poolData.emission_rate;
+      const projectedRewards = currentRewards + newEmissions;
+
       data.push({
-        time: new Date(timePoint).toLocaleTimeString(),
-        rewards: projectedRewards.toFixed(8),
+        time: new Date(timePoint).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        rewards: projectedRewards,
+        formatted: `${formatNumber(projectedRewards)} ${symbol}`
       });
     }
     
@@ -48,14 +57,22 @@ export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
               <YAxis 
                 stroke="#94a3b8"
                 tick={{ fill: '#94a3b8' }}
+                tickFormatter={(value) => formatNumber(value)}
               />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '0.5rem'
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-slate-800 border border-slate-700 p-2 rounded-lg">
+                        <p className="text-sm text-slate-300">{label}</p>
+                        <p className="text-sm font-medium text-purple-300">
+                          {payload[0].payload.formatted}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
-                labelStyle={{ color: '#94a3b8' }}
               />
               <Line 
                 type="monotone" 
@@ -63,6 +80,7 @@ export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
                 stroke="#8b5cf6" 
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 4, stroke: '#8b5cf6', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
