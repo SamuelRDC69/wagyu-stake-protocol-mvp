@@ -62,51 +62,59 @@ const GameUI: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      if (session) {
-        setIsLoading(true);
-        try {
-          const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
-            session.client.v1.chain.get_table_rows({
-              code: Name.from(CONTRACTS.STAKING.NAME),
-              scope: Name.from(CONTRACTS.STAKING.NAME),
-              table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
-              limit: 10
-            }),
-            session.client.v1.chain.get_table_rows({
-              code: Name.from(CONTRACTS.STAKING.NAME),
-              scope: Name.from(CONTRACTS.STAKING.NAME),
-              table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
-              limit: 10
-            }),
-            session.client.v1.chain.get_table_rows({
-              code: Name.from(CONTRACTS.STAKING.NAME),
-              scope: Name.from(CONTRACTS.STAKING.NAME),
-              table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
-              limit: 1
-            })
-          ]);
+  const fetchInitialData = async () => {
+    if (session) {
+      setIsLoading(true);
+      try {
+        console.log('Fetching data from contract:', CONTRACTS.STAKING.NAME);
+        
+        const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+          session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
+            limit: 10
+          }),
+          session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+            limit: 10
+          }),
+          session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+            limit: 1
+          })
+        ]);
 
-          if (poolsResponse.rows?.length > 0) {
-            setPools(poolsResponse.rows as PoolEntity[]);
-          }
-          if (tiersResponse.rows?.length > 0) {
-            setTiers(tiersResponse.rows as TierEntity[]);
-          }
-          if (configResponse.rows?.length > 0) {
-            setConfig(configResponse.rows[0] as ConfigEntity);
-          }
-        } catch (error) {
-          console.error('Error fetching initial data:', error);
-          setError('Failed to load game data. Please try again.');
-        } finally {
-          setIsLoading(false);
+        console.log('Raw Pools Response:', poolsResponse);
+        console.log('Raw Tiers Response:', tiersResponse);
+        console.log('Raw Config Response:', configResponse);
+
+        if (poolsResponse.rows?.length > 0) {
+          console.log('Pool Data Structure:', poolsResponse.rows[0]);
+          setPools(poolsResponse.rows as PoolEntity[]);
         }
+        if (tiersResponse.rows?.length > 0) {
+          console.log('Tier Data Structure:', tiersResponse.rows[0]);
+          setTiers(tiersResponse.rows as TierEntity[]);
+        }
+        if (configResponse.rows?.length > 0) {
+          console.log('Config Data Structure:', configResponse.rows[0]);
+          setConfig(configResponse.rows[0] as ConfigEntity);
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setError('Failed to load game data. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
-    };
-    fetchInitialData();
-  }, [session]);
-
+    }
+  };
+  fetchInitialData();
+}, [session]);
   useEffect(() => {
     const fetchPlayerStake = async () => {
       if (session && selectedPool) {
@@ -269,13 +277,28 @@ const GameUI: React.FC = () => {
               <div className="crystal-bg rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
                 <Select 
-                  onValueChange={(value) => {
-                    const pool = pools.find(p => p.pool_id === parseInt(value));
-                    setSelectedPool(pool);
-                    setError(null);
-                  }}
-                  value={selectedPool?.pool_id?.toString()}
-                >
+  onValueChange={(value) => {
+    console.log('Selected pool value:', value);
+    const pool = pools.find(p => p.pool_id === parseInt(value));
+    console.log('Selected pool raw data:', pool);
+    if (pool) {
+      // Log the exact structure
+      console.log('Pool details:', {
+        id: pool.pool_id,
+        stakedToken: pool.total_staked_quantity,
+        weight: pool.total_staked_weight,
+        reward: pool.reward_pool,
+        emission: {
+          unit: pool.emission_unit,
+          rate: pool.emission_rate
+        }
+      });
+    }
+    setSelectedPool(pool);
+    setError(null);
+  }}
+  value={selectedPool?.pool_id?.toString()}
+>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a kingdom" />
                   </SelectTrigger>
@@ -301,10 +324,21 @@ const GameUI: React.FC = () => {
               </div>
 
               {selectedPool && (
-                <ErrorBoundary fallback={<div className="text-red-400">Error loading pool data</div>}>
-                  <div className="space-y-6">
-                    <PoolStats poolData={selectedPool} />
-                    
+  <ErrorBoundary 
+    fallback={<div className="text-red-400">
+      Error loading pool data. Check console for details.
+    </div>}
+  >
+    <div className="space-y-6">
+      {console.log('Rendering pool data:', {
+        selectedPool,
+        tierProgress,
+        playerStake,
+        config
+      })}
+      <PoolStats poolData={selectedPool} />
+      ...
+
                     {tierProgress && (
                       <TierDisplay 
                         tierProgress={tierProgress}
