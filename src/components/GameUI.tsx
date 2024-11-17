@@ -3,6 +3,8 @@ import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } f
 import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
+
+// UI Components
 import {
   Dialog,
   DialogContent,
@@ -21,28 +23,22 @@ import {
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
-interface PoolEntity {
-  pool_id: number;
-  staked_token_contract: string;
-  total_staked_quantity: string;
-  total_staked_weight: string;
-  reward_pool: {
-    contract: string;
-    quantity: string;
-  };
-  emission_unit: number;
-  emission_rate: number;
-  last_emission_updated_at: string;
-  is_active: number;
-}
+// Game Components
+import { TierDisplay } from './game/TierDisplay';
+import { RewardsChart } from './game/RewardsChart';
+import { UserStatus } from './game/UserStatus';
+import { PoolStats } from './game/PoolStats';
 
-interface StakedEntity {
-  pool_id: number;
-  staked_quantity: string;
-  tier: string;
-  last_claimed_at: string;
-  cooldown_end_at: string;
-}
+// Types
+import { PoolEntity } from '../lib/types/pool';
+import { StakedEntity } from '../lib/types/staked';
+import { TierEntity } from '../lib/types/tier';
+import { ConfigEntity } from '../lib/types/config';
+
+// Utils
+import { parseTokenString, formatTokenAmount } from '../lib/utils/tokenUtils';
+import { calculateTierProgress, isTierUpgradeAvailable } from '../lib/utils/tierUtils';
+import { isActionReady } from '../lib/utils/dateUtils';
 
 interface NavItem {
   icon: React.ComponentType<any>;
@@ -51,9 +47,9 @@ interface NavItem {
 }
 
 const GameUI: React.FC = () => {
+  // Context and Basic State
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
-  const [showTierDetails, setShowTierDetails] = useState<boolean>(false);
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
   const [stakeAmount, setStakeAmount] = useState<string>('');
   const [pools, setPools] = useState<PoolEntity[]>([]);
@@ -61,39 +57,59 @@ const GameUI: React.FC = () => {
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  
+  // New State for Additional Features
+  const [tiers, setTiers] = useState<TierEntity[]>([]);
+  const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
 
-
-  // Add this with your other useEffect hooks
-useEffect(() => {
-  console.log('Dialog state changed:', isDialogOpen);
-}, [isDialogOpen]);
-
+  // Fetch Initial Data
   useEffect(() => {
-    const fetchPools = async (): Promise<void> => {
+    const fetchInitialData = async () => {
       if (session) {
         setIsLoading(true);
         try {
-          console.log('Fetching pools...');
-          const response = await session.client.v1.chain.get_table_rows({
+          // Fetch pools
+          const poolsResponse = await session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
             limit: 10
           });
-          console.log('Pools response:', response);
-          setPools(response.rows as PoolEntity[]);
+
+          // Fetch tiers
+          const tiersResponse = await session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+            limit: 10
+          });
+
+          // Fetch config
+          const configResponse = await session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+            limit: 1
+          });
+
+          setPools(poolsResponse.rows as PoolEntity[]);
+          setTiers(tiersResponse.rows as TierEntity[]);
+          setConfig(configResponse.rows[0] as ConfigEntity);
         } catch (error) {
-          console.error('Error fetching pools:', error);
+          console.error('Error fetching initial data:', error);
+          setError('Failed to load game data. Please try again.');
         } finally {
           setIsLoading(false);
         }
       }
     };
-    fetchPools();
+    fetchInitialData();
   }, [session]);
 
+  // Fetch Player Stake
   useEffect(() => {
-    const fetchPlayerStake = async (): Promise<void> => {
+    const fetchPlayerStake = async () => {
       if (session && selectedPool) {
         try {
           const response = await session.client.v1.chain.get_table_rows({
@@ -113,6 +129,7 @@ useEffect(() => {
     fetchPlayerStake();
   }, [session, selectedPool]);
 
+  // Handle Staking
   const handleStake = async (): Promise<void> => {
     if (!session || !selectedPool || !stakeAmount) return;
     
@@ -120,8 +137,8 @@ useEffect(() => {
     try {
       console.log('Starting stake transaction...');
       
-      const tokenSymbol = selectedPool.total_staked_quantity.split(' ')[1];
-      const quantity = `${parseFloat(stakeAmount).toFixed(8)} ${tokenSymbol}`;
+      const tokenSymbol = parseTokenString(selectedPool.total_staked_quantity).symbol;
+      const quantity = formatTokenAmount(parseFloat(stakeAmount), tokenSymbol);
       
       const action = {
         account: selectedPool.staked_token_contract,
@@ -135,41 +152,38 @@ useEffect(() => {
         }
       };
 
-      console.log('Transaction action:', action);
+      const result = await session.transact({ actions: [action] });
+      console.log('Transaction result:', result);
 
-      try {
-        const result = await session.transact({
-          actions: [action]
-        });
-        console.log('Transaction result:', result);
-
-        const response = await session.client.v1.chain.get_table_rows({
-          code: Name.from(CONTRACTS.STAKING.NAME),
-          scope: Name.from(session.actor.toString()),
-          table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-          lower_bound: UInt64.from(selectedPool.pool_id),
-          upper_bound: UInt64.from(selectedPool.pool_id),
-          limit: 1
-        });
-        setPlayerStake(response.rows[0] as StakedEntity);
-      } catch (e) {
-        console.error('Transaction error:', e);
-      }
-    setIsDialogOpen(false); // Close dialog after successful stake
+      // Refresh stake data
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
+      
+      setPlayerStake(response.rows[0] as StakedEntity);
+      setIsDialogOpen(false);
       setStakeAmount('');
     } catch (error) {
       console.error('Staking error:', error);
+      setError('Failed to stake tokens. Please try again.');
     } finally {
       setIsStaking(false);
     }
   };
 
+  // Auth Handlers
   const handleLogin = async () => {
     try {
       const response = await sessionKit.login();
       setSession(response.session);
     } catch (error) {
       console.error('Login error:', error);
+      setError('Failed to connect wallet. Please try again.');
     }
   };
 
@@ -180,6 +194,7 @@ useEffect(() => {
     }
   };
 
+  // Navigation Items
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
     { icon: Users, label: 'Guild', id: 'guild' },
@@ -187,10 +202,37 @@ useEffect(() => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
+  // Calculate tier progress if all data is available
+  const tierProgress = React.useMemo(() => {
+    if (playerStake && selectedPool && tiers.length > 0) {
+      return calculateTierProgress(
+        playerStake.staked_quantity,
+        selectedPool.total_staked_quantity,
+        tiers
+      );
+    }
+    return null;
+  }, [playerStake, selectedPool, tiers]);
+
+  const canUpgradeTier = React.useMemo(() => {
+    if (playerStake && selectedPool && tiers.length > 0 && tierProgress?.currentTier) {
+      return isTierUpgradeAvailable(
+        playerStake.staked_quantity,
+        selectedPool.total_staked_quantity,
+        tierProgress.currentTier,
+        tiers
+      );
+    }
+    return false;
+  }, [playerStake, selectedPool, tiers, tierProgress]);
+
+  // Main Render
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-slate-950 text-white relative overflow-hidden">
+      {/* Background Pattern */}
       <div className="fixed inset-0 hex-pattern opacity-20" />
       
+      {/* Header */}
       <div className="relative crystal-bg py-4 px-6 border-b border-purple-500/20">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-purple-200">Stakeland</h1>
@@ -217,26 +259,29 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* Main Content */}
       {session ? (
         <div className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400">
+              {error}
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
-              <p className="text-purple-200">Loading pools...</p>
-            </div>
-          ) : pools.length === 0 ? (
-            <div className="flex justify-center items-center h-64">
-              <p className="text-purple-200">No pools available</p>
+              <div className="loading-spinner" />
             </div>
           ) : (
-            <>
+            <div className="space-y-6">
+              {/* Pool Selection */}
               <div className="crystal-bg rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
                 <Select 
                   onValueChange={(value) => {
-                    console.log('Selected pool value:', value);
                     const pool = pools.find(p => p.pool_id === parseInt(value));
-                    console.log('Found pool:', pool);
                     setSelectedPool(pool);
+                    setError(null);
                   }}
                   value={selectedPool?.pool_id.toString()}
                 >
@@ -246,95 +291,88 @@ useEffect(() => {
                   <SelectContent>
                     {pools.map((pool) => (
                       <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
-                        {`${pool.total_staked_quantity.split(' ')[1]} - Pool #${pool.pool_id}`}
+                        {`${parseTokenString(pool.total_staked_quantity).symbol} - Pool #${pool.pool_id}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Selected Pool Content */}
               {selectedPool && (
-                <>
-                  <div className="crystal-bg rounded-2xl p-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-sm text-purple-300">Total Staked</h3>
-                        <p className="text-xl font-bold">
-                          {selectedPool.total_staked_quantity}
-                        </p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm text-purple-300">Your Stake</h3>
-                        <p className="text-xl font-bold">
-                          {playerStake ? 
-                            playerStake.staked_quantity : 
-                            `0.00000000 ${selectedPool.total_staked_quantity.split(' ')[1]}`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="space-y-6">
+                  {/* Pool Stats */}
+                  <PoolStats poolData={selectedPool} />
 
- {/* Dialog Component */}
-<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-  <DialogTrigger asChild>
-    <Button 
-      className="w-full bg-purple-600 hover:bg-purple-700 relative z-50 touch-auto"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Stake button clicked');
-        console.log('Current isDialogOpen state:', isDialogOpen);
-        console.log('Selected Pool:', selectedPool);
-        console.log('Attempting to open dialog...');
-        setIsDialogOpen(true);
-        console.log('Set dialog open to true');
-      }}
-    >
-      <TrendingUp className="w-4 h-4 mr-2" />
-      Stake {selectedPool.total_staked_quantity.split(' ')[1]} Tokens
-    </Button>
-  </DialogTrigger>
-  <DialogContent className="DialogContent bg-slate-900 text-white">
-    <DialogHeader>
-      <DialogTitle>
-        Stake {selectedPool.total_staked_quantity.split(' ')[1]}
-      </DialogTitle>
-      <DialogDescription className="text-gray-300">
-        Enter the amount of {selectedPool.total_staked_quantity.split(' ')[1]} tokens to stake in pool #{selectedPool.pool_id}
-      </DialogDescription>
-    </DialogHeader>
-    <div className="space-y-4">
-      <Input
-        type="number"
-        step="0.00000001"
-        min="0.00000001"
-        placeholder={`Amount of ${selectedPool.total_staked_quantity.split(' ')[1]}`}
-        value={stakeAmount}
-        onChange={(e) => {
-          console.log('Input value changed:', e.target.value);
-          setStakeAmount(e.target.value);
-        }}
-        className="bg-slate-800 border-slate-700 text-white"
-      />
-      <Button 
-        onClick={(e) => {
-          e.preventDefault();
-          console.log('Stake confirmation clicked');
-          console.log('Current stake amount:', stakeAmount);
-          handleStake();
-        }} 
-        disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
-        className="w-full bg-purple-600 hover:bg-purple-700"
-      >
-        {isStaking ? 'Staking...' : `Confirm Stake of ${stakeAmount || '0.00000000'} ${selectedPool.total_staked_quantity.split(' ')[1]}`}
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
-                </>
+                  {/* Tier Display */}
+                  {tierProgress && (
+                    <TierDisplay 
+                      tierProgress={tierProgress}
+                      isUpgradeAvailable={canUpgradeTier}
+                    />
+                  )}
+
+                  {/* User Status */}
+                  {playerStake && config && (
+                    <UserStatus 
+                      stakedData={playerStake}
+                      config={config}
+                      onCooldownComplete={() => {
+                        // Refresh data when cooldown completes
+                        setError(null);
+                      }}
+                    />
+                  )}
+
+                  {/* Rewards Chart */}
+                  <RewardsChart poolData={selectedPool} />
+
+                  {/* Staking Dialog */}
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                        onClick={() => {
+                          setError(null);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Stake {parseTokenString(selectedPool.total_staked_quantity).symbol} Tokens
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-slate-900 text-white">
+                      <DialogHeader>
+                        <DialogTitle>
+                          Stake {parseTokenString(selectedPool.total_staked_quantity).symbol}
+                        </DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                          Enter the amount to stake in pool #{selectedPool.pool_id}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <Input
+                          type="number"
+                          step="0.00000001"
+                          min="0.00000001"
+                          placeholder={`Amount of ${parseTokenString(selectedPool.total_staked_quantity).symbol}`}
+                          value={stakeAmount}
+                          onChange={(e) => setStakeAmount(e.target.value)}
+                          className="bg-slate-800 border-slate-700 text-white"
+                        />
+                        <Button 
+                          onClick={handleStake} 
+                          disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                        >
+                          {isStaking ? 'Staking...' : `Confirm Stake`}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               )}
-            </>
+            </div>
           )}
         </div>
       ) : (
@@ -343,6 +381,7 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Navigation */}
       <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
         <div className="flex justify-around p-4 max-w-lg mx-auto">
           {navItems.map((item) => (
@@ -359,6 +398,13 @@ useEffect(() => {
           ))}
         </div>
       </div>
+
+      {/* Error Toast */}
+      {error && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg">
+          {error}
+        </div>
+      )}
     </div>
   );
 };
