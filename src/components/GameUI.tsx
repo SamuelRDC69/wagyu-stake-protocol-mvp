@@ -278,24 +278,17 @@ const GameUI: React.FC = () => {
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
                 <Select 
   onValueChange={(value) => {
-    console.log('Selected pool value:', value);
-    const pool = pools.find(p => p.pool_id === parseInt(value));
-    console.log('Selected pool raw data:', pool);
-    if (pool) {
-      // Log the exact structure
-      console.log('Pool details:', {
-        id: pool.pool_id,
-        stakedToken: pool.total_staked_quantity,
-        weight: pool.total_staked_weight,
-        reward: pool.reward_pool,
-        emission: {
-          unit: pool.emission_unit,
-          rate: pool.emission_rate
-        }
-      });
+    try {
+      console.log('Pool selection value:', value);
+      console.log('Available pools:', pools);
+      const pool = pools.find(p => p.pool_id === parseInt(value));
+      console.log('Selected pool data:', JSON.stringify(pool, null, 2));
+      setSelectedPool(pool);
+      setError(null);
+    } catch (error) {
+      console.error('Error selecting pool:', error);
+      setError('Error selecting pool');
     }
-    setSelectedPool(pool);
-    setError(null);
   }}
   value={selectedPool?.pool_id?.toString()}
 >
