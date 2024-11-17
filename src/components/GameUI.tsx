@@ -61,121 +61,90 @@ const GameUI: React.FC = () => {
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
+  // Initial data fetch
   useEffect(() => {
     const fetchInitialData = async () => {
-      if (session) {
-        setIsLoading(true);
-        try {
-          console.log('Starting data fetch...');
-          
-          // Fetch pools
-          const poolsResponse = await session.client.v1.chain.get_table_rows({
+      if (!session) return;
+      
+      setIsLoading(true);
+      try {
+        // Fetch all data in parallel
+        const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+          session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
             limit: 10
-          });
-
-          console.log('Pools response:', poolsResponse);
-          
-          if (!poolsResponse.rows) {
-            throw new Error('No pools data received');
-          }
-
-          // Fetch tiers
-          const tiersResponse = await session.client.v1.chain.get_table_rows({
+          }),
+          session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
             limit: 10
-          });
-          
-          console.log('Tiers response:', tiersResponse);
-          
-          if (!tiersResponse.rows) {
-            throw new Error('No tiers data received');
-          }
-
-          // Fetch config
-          const configResponse = await session.client.v1.chain.get_table_rows({
+          }),
+          session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
             limit: 1
-          });
-          
-          console.log('Config response:', configResponse);
-          
-          if (!configResponse.rows) {
-            throw new Error('No config data received');
-          }
+          })
+        ]);
 
-          // Set the state with validation
-          if (poolsResponse.rows?.length > 0) {
-            console.log('Setting pools:', poolsResponse.rows[0]);
-            setPools(poolsResponse.rows);
-            // If we have pools but no selected pool, select the first one
-            if (!selectedPool) {
-              setSelectedPool(poolsResponse.rows[0]);
-            }
+        // Set data with validation
+        if (poolsResponse.rows?.length > 0) {
+          setPools(poolsResponse.rows);
+          if (!selectedPool) {
+            setSelectedPool(poolsResponse.rows[0]);
           }
-
-          if (tiersResponse.rows?.length > 0) {
-            console.log('Setting tiers:', tiersResponse.rows);
-            setTiers(tiersResponse.rows);
-          }
-
-          if (configResponse.rows?.length > 0) {
-            console.log('Setting config:', configResponse.rows[0]);
-            setConfig(configResponse.rows[0]);
-          }
-
-          setError(null);
-        } catch (error) {
-          console.error('Error in fetchInitialData:', error);
-          setError(error instanceof Error ? error.message : 'Failed to load game data');
-          // Clear potentially invalid data
-          setPools([]);
-          setTiers([]);
-          setConfig(undefined);
-          setSelectedPool(undefined);
-        } finally {
-          setIsLoading(false);
         }
+
+        if (tiersResponse.rows?.length > 0) {
+          setTiers(tiersResponse.rows);
+        }
+
+        if (configResponse.rows?.length > 0) {
+          setConfig(configResponse.rows[0]);
+        }
+
+        setError(null);
+      } catch (error) {
+        console.error('Error in fetchInitialData:', error);
+        setError('Failed to load game data');
+        setPools([]);
+        setTiers([]);
+        setConfig(undefined);
+        setSelectedPool(undefined);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchInitialData();
   }, [session]);
 
+  // Fetch player stake when pool is selected
   useEffect(() => {
     const fetchPlayerStake = async () => {
-      if (session && selectedPool) {
-        try {
-          console.log('Fetching player stake for pool:', selectedPool.pool_id);
-          
-          const response = await session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(session.actor.toString()),
-            table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-            lower_bound: UInt64.from(selectedPool.pool_id),
-            upper_bound: UInt64.from(selectedPool.pool_id),
-            limit: 1
-          });
+      if (!session || !selectedPool) return;
+      
+      try {
+        const response = await session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(session.actor.toString()),
+          table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+          lower_bound: UInt64.from(selectedPool.pool_id),
+          upper_bound: UInt64.from(selectedPool.pool_id),
+          limit: 1
+        });
 
-          console.log('Player stake response:', response);
-          
-          if (response.rows?.length > 0) {
-            console.log('Setting player stake:', response.rows[0]);
-            setPlayerStake(response.rows[0]);
-          } else {
-            setPlayerStake(undefined);
-          }
-        } catch (error) {
-          console.error('Error fetching player stake:', error);
-          setError('Failed to load stake data');
+        if (response.rows?.length > 0) {
+          setPlayerStake(response.rows[0]);
+        } else {
           setPlayerStake(undefined);
         }
+      } catch (error) {
+        console.error('Error fetching player stake:', error);
+        setPlayerStake(undefined);
       }
     };
 
@@ -203,7 +172,10 @@ const GameUI: React.FC = () => {
       };
 
       await session.transact({ actions: [action] });
+      setIsDialogOpen(false);
+      setStakeAmount('');
       
+      // Refetch player stake
       const response = await session.client.v1.chain.get_table_rows({
         code: Name.from(CONTRACTS.STAKING.NAME),
         scope: Name.from(session.actor.toString()),
@@ -214,13 +186,11 @@ const GameUI: React.FC = () => {
       });
       
       if (response.rows?.length > 0) {
-        setPlayerStake(response.rows[0] as StakedEntity);
+        setPlayerStake(response.rows[0]);
       }
-      setIsDialogOpen(false);
-      setStakeAmount('');
     } catch (error) {
       console.error('Staking error:', error);
-      setError('Failed to stake tokens. Please try again.');
+      setError('Failed to stake tokens');
     } finally {
       setIsStaking(false);
     }
@@ -232,7 +202,7 @@ const GameUI: React.FC = () => {
       setSession(response.session);
     } catch (error) {
       console.error('Login error:', error);
-      setError('Failed to connect wallet. Please try again.');
+      setError('Failed to connect wallet');
     }
   };
 
@@ -250,33 +220,45 @@ const GameUI: React.FC = () => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
+  // Calculate tier progress only when all required data is available
   const tierProgress = React.useMemo(() => {
-    if (playerStake && selectedPool && tiers.length > 0) {
+    if (!playerStake || !selectedPool || !tiers.length) return null;
+
+    try {
       return calculateTierProgress(
         playerStake.staked_quantity,
         selectedPool.total_staked_quantity,
         tiers
       );
+    } catch (error) {
+      console.error('Error calculating tier progress:', error);
+      return null;
     }
-    return null;
   }, [playerStake, selectedPool, tiers]);
 
+  // Calculate upgrade availability only when tier progress is available
   const canUpgradeTier = React.useMemo(() => {
-    if (playerStake && selectedPool && tiers.length > 0 && tierProgress?.currentTier) {
+    if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
+
+    try {
       return isTierUpgradeAvailable(
         playerStake.staked_quantity,
         selectedPool.total_staked_quantity,
         tierProgress.currentTier,
         tiers
       );
+    } catch (error) {
+      console.error('Error calculating upgrade availability:', error);
+      return false;
     }
-    return false;
-  }, [playerStake, selectedPool, tiers, tierProgress]);
+  }, [tierProgress, selectedPool, playerStake, tiers]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-slate-950 text-white relative overflow-hidden">
+      {/* Background pattern */}
       <div className="fixed inset-0 hex-pattern opacity-20" />
       
+      {/* Header */}
       <div className="relative crystal-bg py-4 px-6 border-b border-purple-500/20">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-purple-200">Stakeland</h1>
@@ -303,88 +285,87 @@ const GameUI: React.FC = () => {
         </div>
       </div>
 
+      {/* Main content */}
       {session ? (
         <div className="p-6 space-y-6">
-{error && (
-        <div className="fixed top-4 right-4 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg">
-          Error: {error}
-        </div>
-      )}
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
           ) : (
             <div className="space-y-6">
+              {/* Pool selection */}
               <div className="crystal-bg rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
                 <Select 
-  onValueChange={(value) => {
-    try {
-      console.log('Pool selection value:', value);
-      console.log('Available pools:', pools);
-      const pool = pools.find(p => p.pool_id === parseInt(value));
-      console.log('Selected pool data:', JSON.stringify(pool, null, 2));
-      setSelectedPool(pool);
-      setError(null);
-    } catch (error) {
-      console.error('Error selecting pool:', error);
-      setError('Error selecting pool');
-    }
-  }}
-  value={selectedPool?.pool_id?.toString()}
->
+                  onValueChange={(value) => {
+                    try {
+                      const pool = pools.find(p => p.pool_id === parseInt(value));
+                      setSelectedPool(pool);
+                      setError(null);
+                    } catch (error) {
+                      console.error('Error selecting pool:', error);
+                      setError('Error selecting pool');
+                    }
+                  }}
+                  value={selectedPool?.pool_id?.toString()}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a kingdom" />
                   </SelectTrigger>
                   <SelectContent>
-                    {pools.map((pool) => {
-                      try {
-                        const { symbol } = parseTokenString(pool.total_staked_quantity);
-                        return (
-                          <SelectItem 
-                            key={pool.pool_id} 
-                            value={pool.pool_id.toString()}
-                          >
-                            {`${symbol} - Pool #${pool.pool_id}`}
-                          </SelectItem>
-                        );
-                      } catch (e) {
-                        console.error('Error parsing pool data:', e);
-                        return null;
-                      }
-                    })}
+                    <div>
+                      {pools.map((pool) => {
+                        try {
+                          const { symbol } = parseTokenString(pool.total_staked_quantity);
+                          return (
+                            <SelectItem 
+                              key={pool.pool_id} 
+                              value={pool.pool_id.toString()}
+                            >
+                              {`${symbol} - Pool #${pool.pool_id}`}
+                            </SelectItem>
+                          );
+                        } catch (e) {
+                          console.error('Error parsing pool data:', e);
+                          return null;
+                        }
+                      })}
+                    </div>
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Pool stats and actions */}
               {selectedPool && (
-  <ErrorBoundary 
-    fallback={<div className="text-red-400">
-      Error loading pool data. Check console for details.
-    </div>}
-  >
-    <div className="space-y-6">
-      <PoolStats poolData={selectedPool} />
+                <ErrorBoundary 
+                  fallback={<div className="text-red-400">
+                    Error loading pool data. Check console for details.
+                  </div>}
+                >
+                  <div className="space-y-6">
+                    <PoolStats poolData={selectedPool} />
 
-      {tierProgress && (
-        <TierDisplay 
-          tierProgress={tierProgress}
-          isUpgradeAvailable={canUpgradeTier}
-        />
-      )}
-      
-      {playerStake && config && (
-        <UserStatus 
-          stakedData={playerStake}
-          config={config}
-          onCooldownComplete={() => setError(null)}
-        />
-      )}
+                    {tierProgress && (
+                      <TierDisplay 
+                        tierProgress={tierProgress}
+                        isUpgradeAvailable={canUpgradeTier}
+                      />
+                    )}
+                    
+                    {playerStake && config && (
+                      <UserStatus 
+                        stakedData={playerStake}
+                        config={config}
+                        onCooldownComplete={() => setError(null)}
+                      />
+                    )}
 
-      <RewardsChart poolData={selectedPool} />
+                    {selectedPool && (
+                      <RewardsChart poolData={selectedPool} />
+                    )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
                           className="w-full bg-purple-600 hover:bg-purple-700"
