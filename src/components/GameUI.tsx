@@ -330,7 +330,6 @@ const GameUI: React.FC = () => {
         config
       })}
       <PoolStats poolData={selectedPool} />
-      ...
 
                     {tierProgress && (
                       <TierDisplay 
