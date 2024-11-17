@@ -1,5 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
+import {
+  Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users
+} from 'lucide-react';
 import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
@@ -50,70 +52,59 @@ const GameUI: React.FC = () => {
   // Context and Basic State
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
-  const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
+  const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>();
   const [stakeAmount, setStakeAmount] = useState<string>('');
   const [pools, setPools] = useState<PoolEntity[]>([]);
-  const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
+  const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>();
   const [isStaking, setIsStaking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  
+
   // New State for Additional Features
   const [tiers, setTiers] = useState<TierEntity[]>([]);
-  const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
+  const [config, setConfig] = useState<ConfigEntity | undefined>();
   const [error, setError] = useState<string | null>(null);
 
-useEffect(() => {
-  const fetchInitialData = async () => {
-    if (session) {
-      setIsLoading(true);
-      try {
-        const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
-          session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
-            limit: 10
-          }),
-          session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
-            limit: 10
-          }),
-          session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
-            limit: 1
-          })
-        ]);
-
-        if (poolsResponse.rows && poolsResponse.rows.length > 0) {
-          setPools(poolsResponse.rows as PoolEntity[]);
-        }
-        if (tiersResponse.rows && tiersResponse.rows.length > 0) {
-          setTiers(tiersResponse.rows as TierEntity[]);
-        }
-        if (configResponse.rows && configResponse.rows.length > 0) {
-          setConfig(configResponse.rows[0] as ConfigEntity);
-        }
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-        setError('Failed to load game data. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-  fetchInitialData();
-}, [session]);
-
+  // Fetch Initial Data
   useEffect(() => {
-  console.log('Selected Pool Changed:', selectedPool);
-  console.log('Current Tiers:', tiers);
-  console.log('Current Config:', config);
-}, [selectedPool, tiers, config]);
+    const fetchInitialData = async () => {
+      if (session) {
+        setIsLoading(true);
+        try {
+          const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+            session.client.v1.chain.get_table_rows({
+              code: Name.from(CONTRACTS.STAKING.NAME),
+              scope: Name.from(CONTRACTS.STAKING.NAME),
+              table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
+              limit: 10,
+            }),
+            session.client.v1.chain.get_table_rows({
+              code: Name.from(CONTRACTS.STAKING.NAME),
+              scope: Name.from(CONTRACTS.STAKING.NAME),
+              table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+              limit: 10,
+            }),
+            session.client.v1.chain.get_table_rows({
+              code: Name.from(CONTRACTS.STAKING.NAME),
+              scope: Name.from(CONTRACTS.STAKING.NAME),
+              table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+              limit: 1,
+            }),
+          ]);
+
+          setPools(poolsResponse.rows as PoolEntity[]);
+          setTiers(tiersResponse.rows as TierEntity[]);
+          setConfig(configResponse.rows[0] as ConfigEntity);
+        } catch (error) {
+          console.error('Error fetching initial data:', error);
+          setError('Failed to load game data. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchInitialData();
+  }, [session]);
 
   // Fetch Player Stake
   useEffect(() => {
@@ -126,7 +117,7 @@ useEffect(() => {
             table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
             lower_bound: UInt64.from(selectedPool.pool_id),
             upper_bound: UInt64.from(selectedPool.pool_id),
-            limit: 1
+            limit: 1,
           });
           setPlayerStake(response.rows[0] as StakedEntity);
         } catch (error) {
@@ -140,14 +131,12 @@ useEffect(() => {
   // Handle Staking
   const handleStake = async (): Promise<void> => {
     if (!session || !selectedPool || !stakeAmount) return;
-    
+
     setIsStaking(true);
     try {
-      console.log('Starting stake transaction...');
-      
       const tokenSymbol = parseTokenString(selectedPool.total_staked_quantity).symbol;
       const quantity = formatTokenAmount(parseFloat(stakeAmount), tokenSymbol);
-      
+
       const action = {
         account: selectedPool.staked_token_contract,
         name: 'transfer',
@@ -156,8 +145,8 @@ useEffect(() => {
           from: session.actor,
           to: CONTRACTS.STAKING.NAME,
           quantity,
-          memo: 'stake'
-        }
+          memo: 'stake',
+        },
       };
 
       const result = await session.transact({ actions: [action] });
@@ -170,9 +159,9 @@ useEffect(() => {
         table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
         lower_bound: UInt64.from(selectedPool.pool_id),
         upper_bound: UInt64.from(selectedPool.pool_id),
-        limit: 1
+        limit: 1,
       });
-      
+
       setPlayerStake(response.rows[0] as StakedEntity);
       setIsDialogOpen(false);
       setStakeAmount('');
@@ -207,10 +196,10 @@ useEffect(() => {
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
     { icon: Users, label: 'Guild', id: 'guild' },
     { icon: Sword, label: 'Battle', id: 'battle' },
-    { icon: Trophy, label: 'Rewards', id: 'rewards' }
+    { icon: Trophy, label: 'Rewards', id: 'rewards' },
   ];
 
-  // Calculate tier progress if all data is available
+  // Tier Progress Calculation
   const tierProgress = React.useMemo(() => {
     if (playerStake && selectedPool && tiers.length > 0) {
       return calculateTierProgress(
@@ -222,19 +211,6 @@ useEffect(() => {
     return null;
   }, [playerStake, selectedPool, tiers]);
 
-  const canUpgradeTier = React.useMemo(() => {
-    if (playerStake && selectedPool && tiers.length > 0 && tierProgress?.currentTier) {
-      return isTierUpgradeAvailable(
-        playerStake.staked_quantity,
-        selectedPool.total_staked_quantity,
-        tierProgress.currentTier,
-        tiers
-      );
-    }
-    return false;
-  }, [playerStake, selectedPool, tiers, tierProgress]);
-
-  // Main Render
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-slate-950 text-white relative overflow-hidden">
       {/* Background Pattern */}
