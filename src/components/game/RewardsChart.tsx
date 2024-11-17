@@ -1,16 +1,10 @@
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PoolEntity } from '../../lib/types/pool';
 
 interface RewardsChartProps {
-  poolData: {
-    reward_pool: {
-      quantity: string;
-    };
-    emission_unit: number;
-    emission_rate: number;
-    last_emission_updated_at: string;
-  };
+  poolData: Pick<PoolEntity, 'reward_pool' | 'emission_unit' | 'emission_rate' | 'last_emission_updated_at'>;
 }
 
 export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
