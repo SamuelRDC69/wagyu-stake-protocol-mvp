@@ -3,37 +3,67 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, Timer, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
-import { formatEmissionRate } from '../../lib/utils/formatUtils';
 
 interface PoolStatsProps {
   poolData: PoolEntity;
 }
 
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
-  console.log('PoolStats received data:', poolData); // Debug log
+  console.log('PoolStats raw data:', JSON.stringify(poolData, null, 2));
 
   const stats = useMemo(() => {
     try {
-      if (!poolData) throw new Error('No pool data provided');
+      console.log('Processing pool data...');
+      
+      // Verify poolData structure
+      if (!poolData) {
+        console.error('Pool data is undefined');
+        throw new Error('No pool data provided');
+      }
 
-      // Safely parse token quantities
-      const totalStaked = parseTokenString(poolData.total_staked_quantity || '0.00000000 WAX');
-      const totalWeight = parseTokenString(poolData.total_staked_weight || '0.00000000 WAX');
-      const rewards = parseTokenString(poolData.reward_pool?.quantity || '0.00000000 WAX');
+      // Log raw values before processing
+      console.log('Raw values:', {
+        total_staked_quantity: poolData.total_staked_quantity,
+        total_staked_weight: poolData.total_staked_weight,
+        reward_pool: poolData.reward_pool,
+        emission_rate: poolData.emission_rate,
+        emission_unit: poolData.emission_unit
+      });
 
-      // Safely calculate emission rate
-      const emission = poolData.emission_rate && poolData.emission_unit
-        ? `${Number(poolData.emission_rate).toFixed(8)} / ${poolData.emission_unit}s`
-        : '0.00000000 / 0s';
+      // Safely process token quantities
+      const totalStaked = poolData.total_staked_quantity ? 
+        parseTokenString(poolData.total_staked_quantity) : 
+        { formatted: '0.00000000 WAX' };
+      
+      const totalWeight = poolData.total_staked_weight ? 
+        parseTokenString(poolData.total_staked_weight) : 
+        { formatted: '0.00000000 WAX' };
+      
+      const rewards = poolData.reward_pool?.quantity ? 
+        parseTokenString(poolData.reward_pool.quantity) : 
+        { formatted: '0.00000000 WAX' };
+
+      // Safely format emission rate
+      let emissionRate = '0.00000000 / 0s';
+      if (typeof poolData.emission_rate === 'number' && typeof poolData.emission_unit === 'number') {
+        emissionRate = `${poolData.emission_rate.toFixed(8)} / ${poolData.emission_unit}s`;
+      }
+
+      console.log('Processed stats:', {
+        totalStaked: totalStaked.formatted,
+        totalWeight: totalWeight.formatted,
+        rewards: rewards.formatted,
+        emissionRate
+      });
 
       return {
         totalStaked: totalStaked.formatted,
         totalWeight: totalWeight.formatted,
         rewards: rewards.formatted,
-        emissionRate: emission
+        emissionRate
       };
     } catch (error) {
-      console.error('Error processing pool stats:', error);
+      console.error('Error in stats calculation:', error);
       return {
         totalStaked: '0.00000000 WAX',
         totalWeight: '0.00000000 WAX',
@@ -43,6 +73,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
     }
   }, [poolData]);
 
+  // Render with error boundary
   return (
     <Card className="w-full">
       <CardHeader>
