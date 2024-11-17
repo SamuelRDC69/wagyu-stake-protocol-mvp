@@ -1,6 +1,15 @@
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  TooltipProps 
+} from 'recharts';
 import { PoolEntity } from '../../lib/types/pool';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
 import { formatNumber } from '../../lib/utils/formatUtils';
@@ -14,6 +23,29 @@ interface ChartDataPoint {
   rewards: number;
   formatted: string;
 }
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: ChartDataPoint;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 p-2 rounded-lg">
+        <p className="text-sm text-slate-300">{label}</p>
+        <p className="text-sm font-medium text-purple-300">
+          {payload[0].payload.formatted}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
   const chartData = useMemo(() => {
@@ -57,23 +89,9 @@ export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
               <YAxis 
                 stroke="#94a3b8"
                 tick={{ fill: '#94a3b8' }}
-                tickFormatter={(value) => formatNumber(value)}
+                tickFormatter={(value: number) => formatNumber(value)}
               />
-              <Tooltip 
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="bg-slate-800 border border-slate-700 p-2 rounded-lg">
-                        <p className="text-sm text-slate-300">{label}</p>
-                        <p className="text-sm font-medium text-purple-300">
-                          {payload[0].payload.formatted}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Line 
                 type="monotone" 
                 dataKey="rewards" 
