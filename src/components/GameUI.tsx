@@ -386,9 +386,7 @@ const GameUI: React.FC = () => {
                 activeTab === item.id ? 'text-purple-300' : 'text-white/60'
               }`}
             >
-              <item.icon className="w-6 h-6" />
-              <span className="text-xs">{item.label}</span>
-
+              
               <item.icon className="w-6 h-6" />
               <span className="text-xs">{item.label}</span>
             </button>
