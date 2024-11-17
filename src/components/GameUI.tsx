@@ -63,19 +63,51 @@ const GameUI: React.FC = () => {
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch Initial Data
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      if (session) {
-        setIsLoading(true);
-        try {
-          // Fetch pools
-          const poolsResponse = await session.client.v1.chain.get_table_rows({
+useEffect(() => {
+  const fetchInitialData = async () => {
+    if (session) {
+      setIsLoading(true);
+      try {
+        const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+          session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
             limit: 10
-          });
+          }),
+          session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+            limit: 10
+          }),
+          session.client.v1.chain.get_table_rows({
+            code: Name.from(CONTRACTS.STAKING.NAME),
+            scope: Name.from(CONTRACTS.STAKING.NAME),
+            table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+            limit: 1
+          })
+        ]);
+
+        if (poolsResponse.rows && poolsResponse.rows.length > 0) {
+          setPools(poolsResponse.rows as PoolEntity[]);
+        }
+        if (tiersResponse.rows && tiersResponse.rows.length > 0) {
+          setTiers(tiersResponse.rows as TierEntity[]);
+        }
+        if (configResponse.rows && configResponse.rows.length > 0) {
+          setConfig(configResponse.rows[0] as ConfigEntity);
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setError('Failed to load game data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+  fetchInitialData();
+}, [session]);
 
           // Fetch tiers
           const tiersResponse = await session.client.v1.chain.get_table_rows({
@@ -288,45 +320,51 @@ const GameUI: React.FC = () => {
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a kingdom" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {pools.map((pool) => (
-                      <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
-                        {`${parseTokenString(pool.total_staked_quantity).symbol} - Pool #${pool.pool_id}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+<SelectContent>
+  {pools.map((pool) => {
+    // Safely parse token string
+    try {
+      const { symbol } = parseTokenString(pool.total_staked_quantity);
+      return (
+        <SelectItem key={pool.pool_id} value={pool.pool_id.toString()}>
+          {`${symbol} - Pool #${pool.pool_id}`}
+        </SelectItem>
+      );
+    } catch (e) {
+      console.error('Error parsing pool data:', e);
+      return null;
+    }
+  })}
+</SelectContent>
                 </Select>
               </div>
 
-              {/* Selected Pool Content */}
-              {selectedPool && (
-                <div className="space-y-6">
-                  {/* Pool Stats */}
-                  <PoolStats poolData={selectedPool} />
+              /* Selected Pool Content */
+{selectedPool && (
+  <div className="space-y-6">
+    <ErrorBoundary fallback={<div>Error loading pool data</div>}>
+      <PoolStats poolData={selectedPool} />
+      
+      {tierProgress && (
+        <TierDisplay 
+          tierProgress={tierProgress}
+          isUpgradeAvailable={canUpgradeTier}
+        />
+      )}
+      
+      {playerStake && config && (
+        <UserStatus 
+          stakedData={playerStake}
+          config={config}
+          onCooldownComplete={() => setError(null)}
+        />
+      )}
 
-                  {/* Tier Display */}
-                  {tierProgress && (
-                    <TierDisplay 
-                      tierProgress={tierProgress}
-                      isUpgradeAvailable={canUpgradeTier}
-                    />
-                  )}
-
-                  {/* User Status */}
-                  {playerStake && config && (
-                    <UserStatus 
-                      stakedData={playerStake}
-                      config={config}
-                      onCooldownComplete={() => {
-                        // Refresh data when cooldown completes
-                        setError(null);
-                      }}
-                    />
-                  )}
-
-                  {/* Rewards Chart */}
-                  <RewardsChart poolData={selectedPool} />
-
+      <RewardsChart poolData={selectedPool} />
+      ...
+    </ErrorBoundary>
+  </div>
+)}
                   {/* Staking Dialog */}
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
