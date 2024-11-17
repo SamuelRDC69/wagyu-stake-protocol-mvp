@@ -3,8 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, Timer, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 
-interface RewardsChartProps {
-  poolData: Pick<PoolEntity, 'reward_pool' | 'emission_unit' | 'emission_rate' | 'last_emission_updated_at'>;
+interface PoolStatsProps {
+  poolData: Pick<PoolEntity, 'total_staked_quantity' | 'total_staked_weight' | 'reward_pool' | 'emission_unit' | 'emission_rate'>;
 }
 
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
