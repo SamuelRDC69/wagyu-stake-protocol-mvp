@@ -15,18 +15,13 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   tierProgress,
   isUpgradeAvailable
 }) => {
-  // Safe number conversion function
-  const safeNumber = (value: string | number): number => {
-    if (typeof value === 'string') {
-      return parseFloat(value) || 0;
-    }
-    return value || 0;
-  };
+  console.log('TierDisplay props:', { tierProgress, isUpgradeAvailable });
 
-  // Safe percentage formatter
-  const formatPercent = (value: string | number | undefined): string => {
+  // Safe number formatter
+  const formatPercent = (value: number | string | undefined): string => {
     if (value === undefined) return '0.00%';
-    const num = safeNumber(value);
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '0.00%';
     return `${num.toFixed(2)}%`;
   };
 
@@ -52,14 +47,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             variant={tierProgress.currentTier.tier.toLowerCase() as 'bronze' | 'silver' | 'gold'} 
             className="ml-2"
           >
-            {`${safeNumber(tierProgress.currentTier.weight).toFixed(1)}x Weight`}
+            {`${parseFloat(tierProgress.currentTier.weight).toFixed(1)}x Weight`}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Progress 
-            value={safeNumber(tierProgress.progress)} 
+            value={tierProgress.progress} 
             className="h-2" 
             color={tierColor}
           />
