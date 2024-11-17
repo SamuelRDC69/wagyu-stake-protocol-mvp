@@ -3,8 +3,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
 import { Crown } from 'lucide-react';
+import { TierEntity, TierProgress } from '../../lib/types/tier';
 
-interface TierDisplayProps {
+interface TierDisplayProps extends TierProgress {
   currentTier: string;
   tierName: string;
   weight: number;
