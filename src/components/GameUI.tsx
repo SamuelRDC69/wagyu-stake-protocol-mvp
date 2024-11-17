@@ -62,63 +62,98 @@ const GameUI: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-  const fetchInitialData = async () => {
-    if (session) {
-      setIsLoading(true);
-      try {
-        console.log('Fetching data from contract:', CONTRACTS.STAKING.NAME);
-        
-        const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
-          session.client.v1.chain.get_table_rows({
+    const fetchInitialData = async () => {
+      if (session) {
+        setIsLoading(true);
+        try {
+          console.log('Starting data fetch...');
+          
+          // Fetch pools
+          const poolsResponse = await session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
             limit: 10
-          }),
-          session.client.v1.chain.get_table_rows({
+          });
+
+          console.log('Pools response:', poolsResponse);
+          
+          if (!poolsResponse.rows) {
+            throw new Error('No pools data received');
+          }
+
+          // Fetch tiers
+          const tiersResponse = await session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
             limit: 10
-          }),
-          session.client.v1.chain.get_table_rows({
+          });
+          
+          console.log('Tiers response:', tiersResponse);
+          
+          if (!tiersResponse.rows) {
+            throw new Error('No tiers data received');
+          }
+
+          // Fetch config
+          const configResponse = await session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(CONTRACTS.STAKING.NAME),
             table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
             limit: 1
-          })
-        ]);
+          });
+          
+          console.log('Config response:', configResponse);
+          
+          if (!configResponse.rows) {
+            throw new Error('No config data received');
+          }
 
-        console.log('Raw Pools Response:', poolsResponse);
-        console.log('Raw Tiers Response:', tiersResponse);
-        console.log('Raw Config Response:', configResponse);
+          // Set the state with validation
+          if (poolsResponse.rows?.length > 0) {
+            console.log('Setting pools:', poolsResponse.rows[0]);
+            setPools(poolsResponse.rows);
+            // If we have pools but no selected pool, select the first one
+            if (!selectedPool) {
+              setSelectedPool(poolsResponse.rows[0]);
+            }
+          }
 
-        if (poolsResponse.rows?.length > 0) {
-          console.log('Pool Data Structure:', poolsResponse.rows[0]);
-          setPools(poolsResponse.rows as PoolEntity[]);
+          if (tiersResponse.rows?.length > 0) {
+            console.log('Setting tiers:', tiersResponse.rows);
+            setTiers(tiersResponse.rows);
+          }
+
+          if (configResponse.rows?.length > 0) {
+            console.log('Setting config:', configResponse.rows[0]);
+            setConfig(configResponse.rows[0]);
+          }
+
+          setError(null);
+        } catch (error) {
+          console.error('Error in fetchInitialData:', error);
+          setError(error instanceof Error ? error.message : 'Failed to load game data');
+          // Clear potentially invalid data
+          setPools([]);
+          setTiers([]);
+          setConfig(undefined);
+          setSelectedPool(undefined);
+        } finally {
+          setIsLoading(false);
         }
-        if (tiersResponse.rows?.length > 0) {
-          console.log('Tier Data Structure:', tiersResponse.rows[0]);
-          setTiers(tiersResponse.rows as TierEntity[]);
-        }
-        if (configResponse.rows?.length > 0) {
-          console.log('Config Data Structure:', configResponse.rows[0]);
-          setConfig(configResponse.rows[0] as ConfigEntity);
-        }
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-        setError('Failed to load game data. Please try again.');
-      } finally {
-        setIsLoading(false);
       }
-    }
-  };
-  fetchInitialData();
-}, [session]);
+    };
+
+    fetchInitialData();
+  }, [session]);
+
   useEffect(() => {
     const fetchPlayerStake = async () => {
       if (session && selectedPool) {
         try {
+          console.log('Fetching player stake for pool:', selectedPool.pool_id);
+          
           const response = await session.client.v1.chain.get_table_rows({
             code: Name.from(CONTRACTS.STAKING.NAME),
             scope: Name.from(session.actor.toString()),
@@ -127,15 +162,23 @@ const GameUI: React.FC = () => {
             upper_bound: UInt64.from(selectedPool.pool_id),
             limit: 1
           });
+
+          console.log('Player stake response:', response);
+          
           if (response.rows?.length > 0) {
-            setPlayerStake(response.rows[0] as StakedEntity);
+            console.log('Setting player stake:', response.rows[0]);
+            setPlayerStake(response.rows[0]);
+          } else {
+            setPlayerStake(undefined);
           }
         } catch (error) {
           console.error('Error fetching player stake:', error);
           setError('Failed to load stake data');
+          setPlayerStake(undefined);
         }
       }
     };
+
     fetchPlayerStake();
   }, [session, selectedPool]);
 
@@ -262,12 +305,11 @@ const GameUI: React.FC = () => {
 
       {session ? (
         <div className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400">
-              {error}
-            </div>
-          )}
-
+{error && (
+        <div className="fixed top-4 right-4 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg">
+          Error: {error}
+        </div>
+      )}
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
