@@ -6,12 +6,6 @@ import { Crown } from 'lucide-react';
 import { TierEntity, TierProgress } from '../../lib/types/tier';
 
 interface TierDisplayProps extends TierProgress {
-  currentTier: string;
-  tierName: string;
-  weight: number;
-  progress: number;
-  nextTierThreshold?: number;
-  prevTierThreshold?: number;
 }
 
 export const TierDisplay: React.FC<TierDisplayProps> = ({
