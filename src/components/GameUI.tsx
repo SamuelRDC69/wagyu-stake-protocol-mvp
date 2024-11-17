@@ -109,35 +109,11 @@ useEffect(() => {
   fetchInitialData();
 }, [session]);
 
-          // Fetch tiers
-          const tiersResponse = await session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
-            limit: 10
-          });
-
-          // Fetch config
-          const configResponse = await session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
-            limit: 1
-          });
-
-          setPools(poolsResponse.rows as PoolEntity[]);
-          setTiers(tiersResponse.rows as TierEntity[]);
-          setConfig(configResponse.rows[0] as ConfigEntity);
-        } catch (error) {
-          console.error('Error fetching initial data:', error);
-          setError('Failed to load game data. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    fetchInitialData();
-  }, [session]);
+  useEffect(() => {
+  console.log('Selected Pool Changed:', selectedPool);
+  console.log('Current Tiers:', tiers);
+  console.log('Current Config:', config);
+}, [selectedPool, tiers, config]);
 
   // Fetch Player Stake
   useEffect(() => {
