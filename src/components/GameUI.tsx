@@ -323,32 +323,26 @@ const GameUI: React.FC = () => {
     </div>}
   >
     <div className="space-y-6">
-      {console.log('Rendering pool data:', {
-        selectedPool,
-        tierProgress,
-        playerStake,
-        config
-      })}
       <PoolStats poolData={selectedPool} />
 
-                    {tierProgress && (
-                      <TierDisplay 
-                        tierProgress={tierProgress}
-                        isUpgradeAvailable={canUpgradeTier}
-                      />
-                    )}
-                    
-                    {playerStake && config && (
-                      <UserStatus 
-                        stakedData={playerStake}
-                        config={config}
-                        onCooldownComplete={() => setError(null)}
-                      />
-                    )}
+      {tierProgress && (
+        <TierDisplay 
+          tierProgress={tierProgress}
+          isUpgradeAvailable={canUpgradeTier}
+        />
+      )}
+      
+      {playerStake && config && (
+        <UserStatus 
+          stakedData={playerStake}
+          config={config}
+          onCooldownComplete={() => setError(null)}
+        />
+      )}
 
-                    <RewardsChart poolData={selectedPool} />
+      <RewardsChart poolData={selectedPool} />
 
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
                           className="w-full bg-purple-600 hover:bg-purple-700"
