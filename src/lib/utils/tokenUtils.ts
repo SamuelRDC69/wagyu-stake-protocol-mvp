@@ -1,16 +1,10 @@
 export const parseTokenString = (tokenString: string | undefined) => {
   try {
-    if (!tokenString || typeof tokenString !== 'string') {
-      return {
-        amount: 0,
-        symbol: 'WAX',
-        formatted: '0.00000000 WAX',
-        decimals: 8
-      };
-    }
+    console.log('Parsing token string:', tokenString);
     
-    const [amountStr, symbol] = tokenString.trim().split(' ');
-    if (!amountStr || !symbol) {
+    // Return default for undefined/null
+    if (!tokenString) {
+      console.log('Token string is empty, returning default');
       return {
         amount: 0,
         symbol: 'WAX',
@@ -19,49 +13,54 @@ export const parseTokenString = (tokenString: string | undefined) => {
       };
     }
 
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount)) {
+    // Ensure string type and trim
+    const cleanString = String(tokenString).trim();
+    console.log('Cleaned token string:', cleanString);
+
+    // Split and validate parts
+    const parts = cleanString.split(' ');
+    if (parts.length !== 2) {
+      console.log('Invalid token string format');
       return {
         amount: 0,
-        symbol: symbol || 'WAX',
-        formatted: `0.00000000 ${symbol || 'WAX'}`,
+        symbol: 'WAX',
+        formatted: '0.00000000 WAX',
         decimals: 8
       };
     }
 
-    const decimals = amountStr.split('.')[1]?.length || 8;
-    return {
+    const [amountStr, symbol] = parts;
+    
+    // Parse amount with additional safety
+    let amount = 0;
+    try {
+      amount = Number(amountStr);
+      if (!Number.isFinite(amount)) {
+        throw new Error('Amount is not a finite number');
+      }
+    } catch (e) {
+      console.error('Error parsing amount:', e);
+      amount = 0;
+    }
+
+    const decimals = (amountStr.split('.')[1] || '').length || 8;
+
+    const result = {
       amount,
-      symbol,
-      formatted: tokenString,
+      symbol: symbol || 'WAX',
+      formatted: `${amount.toFixed(decimals)} ${symbol || 'WAX'}`,
       decimals
     };
+
+    console.log('Parsed token result:', result);
+    return result;
   } catch (error) {
-    console.error('Error parsing token string:', error, 'Input:', tokenString);
+    console.error('Fatal error parsing token string:', error);
     return {
       amount: 0,
       symbol: 'WAX',
       formatted: '0.00000000 WAX',
       decimals: 8
     };
-  }
-};
-
-export const formatTokenAmount = (
-  amount: number | undefined,
-  symbol: string,
-  decimals: number = 8
-): string => {
-  try {
-    if (amount === undefined || isNaN(amount)) {
-      return `0.${'0'.repeat(decimals)} ${symbol}`;
-    }
-    
-    // Ensure amount is a finite number
-    const safeAmount = Number.isFinite(amount) ? amount : 0;
-    return `${safeAmount.toFixed(decimals)} ${symbol}`;
-  } catch (error) {
-    console.error('Error formatting token amount:', error);
-    return `0.${'0'.repeat(decimals)} ${symbol}`;
   }
 };
