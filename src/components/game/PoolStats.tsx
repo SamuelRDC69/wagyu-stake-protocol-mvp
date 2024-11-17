@@ -1,17 +1,10 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, Timer, TrendingUp } from 'lucide-react';
+import { PoolEntity } from '../../lib/types/pool';
 
-interface PoolStatsProps {
-  poolData: {
-    total_staked_quantity: string;
-    total_staked_weight: string;
-    reward_pool: {
-      quantity: string;
-    };
-    emission_unit: number;
-    emission_rate: number;
-  };
+interface RewardsChartProps {
+  poolData: Pick<PoolEntity, 'reward_pool' | 'emission_unit' | 'emission_rate' | 'last_emission_updated_at'>;
 }
 
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
