@@ -3,7 +3,9 @@ export const CONTRACTS = {
     NAME: 'kekkekkekkek', // Replace with your deployed contract name
     TABLES: {
       POOLS: 'pools',
-      STAKEDS: 'stakeds'
+      STAKEDS: 'stakeds',
+      TIERS: 'tiers',
+      CONFIG: 'config'
     }
   }
 } as const;
