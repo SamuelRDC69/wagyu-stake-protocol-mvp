@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Timer } from 'lucide-react';
 import { Progress } from '../ui/progress';
 import { 
@@ -22,19 +22,21 @@ export const CooldownTimer: React.FC<CooldownTimerProps> = ({
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft(cooldownEndAt));
   const [progress, setProgress] = useState(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTimeLeft = calculateTimeLeft(cooldownEndAt);
-      setTimeLeft(newTimeLeft);
-      setProgress(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
+  const updateTimer = useCallback(() => {
+    const newTimeLeft = calculateTimeLeft(cooldownEndAt);
+    setTimeLeft(newTimeLeft);
+    setProgress(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
 
-      if (newTimeLeft === 0) {
-        onComplete?.();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
+    if (newTimeLeft === 0) {
+      onComplete?.();
+    }
   }, [cooldownEndAt, cooldownSeconds, onComplete]);
+
+  useEffect(() => {
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [updateTimer]);
 
   const ready = isActionReady(cooldownEndAt);
 
