@@ -1,0 +1,156 @@
+/* Game-specific animations */
+@keyframes float-card {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0.5rem var(--glow-color)); }
+  50% { filter: drop-shadow(0 0 2rem var(--glow-color)); }
+}
+
+@keyframes tier-shine {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Tier Badge Styles */
+.tier-badge {
+  --glow-color: theme('colors.purple.500');
+  position: relative;
+  overflow: hidden;
+}
+
+.tier-badge.bronze {
+  --glow-color: theme('colors.amber.500');
+}
+
+.tier-badge.silver {
+  --glow-color: theme('colors.slate.300');
+}
+
+.tier-badge.gold {
+  --glow-color: theme('colors.yellow.500');
+}
+
+.tier-badge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: tier-shine 3s linear infinite;
+}
+
+/* Card Styles */
+.game-card {
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.game-card:hover {
+  animation: float-card 3s ease-in-out infinite;
+}
+
+/* Progress Bar Styles */
+.progress-bar {
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+/* Timer Styles */
+.cooldown-timer {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Chart Styles */
+.rewards-chart {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.rewards-chart path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Status Indicators */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-indicator.active {
+  background: theme('colors.green.500');
+  box-shadow: 0 0 12px theme('colors.green.500');
+}
+
+.status-indicator.cooldown {
+  background: theme('colors.yellow.500');
+  box-shadow: 0 0 12px theme('colors.yellow.500');
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .game-card {
+    margin-bottom: 1rem;
+  }
+  
+  .rewards-chart {
+    height: 200px;
+  }
+  
+  .tier-badge {
+    font-size: 0.75rem;
+  }
+}
+
+/* Dark Mode Enhancements */
+.dark .game-card {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.dark .progress-bar {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.dark .rewards-chart {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+/* Utility Classes */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hover-scale {
+  transition: transform 0.2s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
