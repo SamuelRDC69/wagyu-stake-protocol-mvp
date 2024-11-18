@@ -15,13 +15,13 @@ import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../ui/alert-dialog";
+  AlertDialogTrigger,
+} from "./ui/alert-dialog"
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { TrendingDown, Timer } from 'lucide-react';
