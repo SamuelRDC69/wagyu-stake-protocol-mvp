@@ -11,16 +11,6 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "../ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog";
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { TrendingDown, Timer } from 'lucide-react';
@@ -46,7 +36,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   onUnstake
 }) => {
   const [isUnstakeDialogOpen, setUnstakeDialogOpen] = useState(false);
-  const [isConfirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [unstakeAmount, setUnstakeAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -84,6 +74,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
     try {
       await onUnstake(unstakeAmount);
       setUnstakeDialogOpen(false);
+      setShowConfirmDialog(false);
       setUnstakeAmount('');
     } finally {
       setIsProcessing(false);
@@ -137,8 +128,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
               {isProcessing ? 'Processing...' : 'Claim Rewards'}
             </Button>
 
-            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-              <AlertDialogTrigger asChild>
+            <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+              <DialogTrigger asChild>
                 <Button
                   variant="destructive"
                   className="w-full"
@@ -147,27 +138,33 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                   <TrendingDown className="w-4 h-4 mr-2" />
                   Unstake
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 text-white">
+                <DialogHeader>
+                  <DialogTitle>Are you sure?</DialogTitle>
+                  <DialogDescription>
                     Unstaking will remove your tokens from the pool and may affect your tier status.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex justify-end space-x-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowConfirmDialog(false)}
+                  >
                     Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction onClick={() => {
-                    setConfirmDialogOpen(false);
-                    setUnstakeDialogOpen(true);
-                  }}>
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowConfirmDialog(false);
+                      setUnstakeDialogOpen(true);
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
                     Continue
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
               <DialogContent className="bg-slate-900 text-white">
