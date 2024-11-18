@@ -213,6 +213,80 @@ const GameUI: React.FC = () => {
     }
   };
 
+  const handleClaim = async (): Promise<void> => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('claim'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id
+      }
+    };
+
+    await session.transact({ actions: [action] });
+    
+    // Refresh player stake data after claim
+    const response = await session.client.v1.chain.get_table_rows({
+      code: Name.from(CONTRACTS.STAKING.NAME),
+      scope: Name.from(session.actor.toString()),
+      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+      lower_bound: UInt64.from(selectedPool.pool_id),
+      upper_bound: UInt64.from(selectedPool.pool_id),
+      limit: 1
+    });
+    
+    if (response.rows?.length > 0) {
+      setPlayerStake(response.rows[0] as StakedEntity);
+    }
+  } catch (error) {
+    console.error('Claim error:', error);
+    setError('Failed to claim rewards. Please try again.');
+  }
+};
+
+const handleUnstake = async (amount: string): Promise<void> => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('unstake'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id,
+        quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`
+      }
+    };
+
+    await session.transact({ actions: [action] });
+    
+    // Refresh player stake data after unstake
+    const response = await session.client.v1.chain.get_table_rows({
+      code: Name.from(CONTRACTS.STAKING.NAME),
+      scope: Name.from(session.actor.toString()),
+      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+      lower_bound: UInt64.from(selectedPool.pool_id),
+      upper_bound: UInt64.from(selectedPool.pool_id),
+      limit: 1
+    });
+    
+    if (response.rows?.length > 0) {
+      setPlayerStake(response.rows[0] as StakedEntity);
+    } else {
+      setPlayerStake(undefined);
+    }
+  } catch (error) {
+    console.error('Unstake error:', error);
+    setError('Failed to unstake tokens. Please try again.');
+  }
+};
+
+
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
     { icon: Users, label: 'Guild', id: 'guild' },
@@ -354,12 +428,14 @@ const GameUI: React.FC = () => {
                     )}
                     
                     {playerStake && config && (
-                      <UserStatus 
-                        stakedData={playerStake}
-                        config={config}
-                        onCooldownComplete={() => setError(null)}
-                      />
-                    )}
+  <UserStatus 
+    stakedData={playerStake}
+    config={config}
+    onCooldownComplete={() => setError(null)}
+    onClaim={handleClaim}
+    onUnstake={handleUnstake}
+  />
+)}
 
                     {selectedPool && (
                       <RewardsChart poolData={selectedPool} />
