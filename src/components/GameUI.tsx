@@ -149,6 +149,45 @@ useEffect(() => {
   }
 }, [session]);
 
+  // Add this useEffect right after the first one in GameUI:
+
+// Fetch player stake when pool is selected
+useEffect(() => {
+  const fetchPlayerStake = async () => {
+    if (!session || !selectedPool) {
+      console.log('No session or selected pool for fetching player stake');
+      return;
+    }
+    
+    try {
+      console.log('Fetching player stake for pool:', selectedPool.pool_id);
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
+
+      console.log('Player stake response:', response);
+      
+      if (response.rows?.length > 0) {
+        console.log('Setting player stake:', response.rows[0]);
+        setPlayerStake(response.rows[0]);
+      } else {
+        console.log('No stake found for this pool');
+        setPlayerStake(undefined);
+      }
+    } catch (error) {
+      console.error('Error fetching player stake:', error);
+      setPlayerStake(undefined);
+    }
+  };
+
+  fetchPlayerStake();
+}, [session, selectedPool]); // Depend on both session and selectedPool changes
+
   const handleLogin = async () => {
     try {
       const response = await sessionKit.login();
