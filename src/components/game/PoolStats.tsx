@@ -1,15 +1,14 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Shield, Timer, TrendingUp, Coins } from 'lucide-react';
+import { Shield, Timer, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
-import { parseTokenString } from '../../lib/utils/tokenUtils';
 
 interface PoolStatsProps {
   poolData: PoolEntity;
 }
 
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
-  // Validation check
+  // Validation function
   const isValidPoolData = (data: any): data is PoolEntity => {
     return (
       data &&
@@ -22,6 +21,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
     );
   };
 
+  // Early validation
   if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
@@ -53,12 +53,6 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
     }
   };
 
-  const calculateEmissionRate = () => {
-    const perHour = (3600 / poolData.emission_unit) * poolData.emission_rate;
-    const rewards = parseTokenString(poolData.reward_pool.quantity);
-    return `${perHour.toFixed(8)} ${rewards.symbol}/hr`;
-  };
-
   // Parse values
   const totalStaked = formatTokenString(poolData.total_staked_quantity);
   const totalWeight = formatTokenString(poolData.total_staked_weight);
@@ -70,7 +64,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
         <CardTitle>Pool Statistics</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
             <Shield className="w-8 h-8 text-purple-500" />
             <div>
@@ -90,20 +84,11 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
             </div>
           </div>
           <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
-            <Coins className="w-8 h-8 text-purple-500" />
-            <div>
-              <p className="text-sm text-slate-400">Rewards Pool</p>
-              <p className="text-lg font-medium text-purple-200">
-                {`${rewards.amount} ${rewards.symbol}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
             <TrendingUp className="w-8 h-8 text-purple-500" />
             <div>
-              <p className="text-sm text-slate-400">Emission Rate</p>
+              <p className="text-sm text-slate-400">Rewards</p>
               <p className="text-lg font-medium text-purple-200">
-                {calculateEmissionRate()}
+                {`${rewards.amount} ${rewards.symbol}`}
               </p>
             </div>
           </div>
