@@ -292,11 +292,15 @@ useEffect(() => {
 
   // Add this function alongside handleClaim and handleUnstake in GameUI:
 
+// In GameUI.tsx, update the handleStake and handleUnstake functions:
+
 const handleStake = async (amount: string): Promise<void> => {
   if (!session || !selectedPool) return;
   
   try {
-    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(8); // Ensure 8 decimal places
+    const symbol = 'WAX'; // Hardcode WAX as that's what the contract expects
+    
     const action = {
       account: selectedPool.staked_token_contract,
       name: 'transfer',
@@ -304,7 +308,7 @@ const handleStake = async (amount: string): Promise<void> => {
       data: {
         from: session.actor,
         to: CONTRACTS.STAKING.NAME,
-        quantity: `${amount} ${symbol}`,
+        quantity: `${formattedAmount} ${symbol}`,
         memo: 'stake'
       }
     };
@@ -330,43 +334,46 @@ const handleStake = async (amount: string): Promise<void> => {
   }
 };
 
-  const handleUnstake = async (amount: string): Promise<void> => {
-    if (!session || !selectedPool) return;
+const handleUnstake = async (amount: string): Promise<void> => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const formattedAmount = parseFloat(amount).toFixed(8); // Ensure 8 decimal places
+    const symbol = 'WAX'; // Hardcode WAX as that's what the contract expects
     
-    try {
-      const action = {
-        account: Name.from(CONTRACTS.STAKING.NAME),
-        name: Name.from('unstake'),
-        authorization: [session.permissionLevel],
-        data: {
-          claimer: session.actor,
-          pool_id: selectedPool.pool_id,
-          quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`
-        }
-      };
-
-      await session.transact({ actions: [action] });
-      
-      // Refresh player stake data after unstake
-      const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from(CONTRACTS.STAKING.NAME),
-        scope: Name.from(session.actor.toString()),
-        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-        lower_bound: UInt64.from(selectedPool.pool_id),
-        upper_bound: UInt64.from(selectedPool.pool_id),
-        limit: 1
-      });
-      
-      if (response.rows?.length > 0) {
-        setPlayerStake(response.rows[0] as StakedEntity);
-      } else {
-        setPlayerStake(undefined);
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('unstake'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id,
+        quantity: `${formattedAmount} ${symbol}`
       }
-    } catch (error) {
-      console.error('Unstake error:', error);
-      setError('Failed to unstake tokens. Please try again.');
+    };
+
+    await session.transact({ actions: [action] });
+    
+    // Refresh player stake data after unstake
+    const response = await session.client.v1.chain.get_table_rows({
+      code: Name.from(CONTRACTS.STAKING.NAME),
+      scope: Name.from(session.actor.toString()),
+      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+      lower_bound: UInt64.from(selectedPool.pool_id),
+      upper_bound: UInt64.from(selectedPool.pool_id),
+      limit: 1
+    });
+    
+    if (response.rows?.length > 0) {
+      setPlayerStake(response.rows[0] as StakedEntity);
+    } else {
+      setPlayerStake(undefined);
     }
-  };
+  } catch (error) {
+    console.error('Unstake error:', error);
+    setError('Failed to unstake tokens. Please try again.');
+  }
+};
 
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
