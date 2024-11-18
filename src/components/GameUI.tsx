@@ -240,6 +240,46 @@ useEffect(() => {
     }
   };
 
+  // Add this function alongside handleClaim and handleUnstake in GameUI:
+
+const handleStake = async (amount: string): Promise<void> => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+    const action = {
+      account: selectedPool.staked_token_contract,
+      name: 'transfer',
+      authorization: [session.permissionLevel],
+      data: {
+        from: session.actor,
+        to: CONTRACTS.STAKING.NAME,
+        quantity: `${amount} ${symbol}`,
+        memo: 'stake'
+      }
+    };
+
+    await session.transact({ actions: [action] });
+    
+    // Refresh player stake data after stake
+    const response = await session.client.v1.chain.get_table_rows({
+      code: Name.from(CONTRACTS.STAKING.NAME),
+      scope: Name.from(session.actor.toString()),
+      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+      lower_bound: UInt64.from(selectedPool.pool_id),
+      upper_bound: UInt64.from(selectedPool.pool_id),
+      limit: 1
+    });
+    
+    if (response.rows?.length > 0) {
+      setPlayerStake(response.rows[0] as StakedEntity);
+    }
+  } catch (error) {
+    console.error('Staking error:', error);
+    setError('Failed to stake tokens. Please try again.');
+  }
+};
+
   const handleUnstake = async (amount: string): Promise<void> => {
     if (!session || !selectedPool) return;
     
