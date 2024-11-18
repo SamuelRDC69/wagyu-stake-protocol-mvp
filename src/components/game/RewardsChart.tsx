@@ -60,12 +60,11 @@ export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
       const emissionTime = (timePoint - lastUpdate) / 1000; // seconds
       const newEmissions = (emissionTime / poolData.emission_unit) * poolData.emission_rate;
       const projectedRewards = currentRewards + newEmissions;
-
-      data.push({
-        time: new Date(timePoint).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        rewards: projectedRewards,
-        formatted: `${formatNumber(projectedRewards)} ${symbol}`
-      });
+data.push({
+  time: new Date(timePoint).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  rewards: projectedRewards,
+  formatted: `${projectedRewards.toFixed(8)} ${symbol}`
+});
     }
     
     return data;
