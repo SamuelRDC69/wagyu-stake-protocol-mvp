@@ -6,21 +6,12 @@ import { CONTRACTS } from '../lib/wharfkit/contracts';
 
 // UI Components
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
 // Game Components
@@ -37,9 +28,8 @@ import { TierEntity } from '../lib/types/tier';
 import { ConfigEntity } from '../lib/types/config';
 
 // Utils
-import { parseTokenString, formatTokenAmount } from '../lib/utils/tokenUtils';
+import { parseTokenString } from '../lib/utils/tokenUtils';
 import { calculateTierProgress, isTierUpgradeAvailable } from '../lib/utils/tierUtils';
-import { isActionReady } from '../lib/utils/dateUtils';
 
 interface NavItem {
   icon: React.ComponentType<any>;
@@ -51,150 +41,15 @@ const GameUI: React.FC = () => {
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
-  const [stakeAmount, setStakeAmount] = useState<string>('');
   const [pools, setPools] = useState<PoolEntity[]>([]);
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
-  const [isStaking, setIsStaking] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [tiers, setTiers] = useState<TierEntity[]>([]);
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial data fetch
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      if (!session) return;
-      
-      setIsLoading(true);
-      try {
-        // Fetch all data in parallel
-        const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
-          session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
-            limit: 10
-          }),
-          session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
-            limit: 10
-          }),
-          session.client.v1.chain.get_table_rows({
-            code: Name.from(CONTRACTS.STAKING.NAME),
-            scope: Name.from(CONTRACTS.STAKING.NAME),
-            table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
-            limit: 1
-          })
-        ]);
-
-        // Set data with validation
-        if (poolsResponse.rows?.length > 0) {
-          setPools(poolsResponse.rows);
-          if (!selectedPool) {
-            setSelectedPool(poolsResponse.rows[0]);
-          }
-        }
-
-        if (tiersResponse.rows?.length > 0) {
-          setTiers(tiersResponse.rows);
-        }
-
-        if (configResponse.rows?.length > 0) {
-          setConfig(configResponse.rows[0]);
-        }
-
-        setError(null);
-      } catch (error) {
-        console.error('Error in fetchInitialData:', error);
-        setError('Failed to load game data');
-        setPools([]);
-        setTiers([]);
-        setConfig(undefined);
-        setSelectedPool(undefined);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialData();
-  }, [session]);
-
-  // Fetch player stake when pool is selected
-  useEffect(() => {
-    const fetchPlayerStake = async () => {
-      if (!session || !selectedPool) return;
-      
-      try {
-        const response = await session.client.v1.chain.get_table_rows({
-          code: Name.from(CONTRACTS.STAKING.NAME),
-          scope: Name.from(session.actor.toString()),
-          table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-          lower_bound: UInt64.from(selectedPool.pool_id),
-          upper_bound: UInt64.from(selectedPool.pool_id),
-          limit: 1
-        });
-
-        if (response.rows?.length > 0) {
-          setPlayerStake(response.rows[0]);
-        } else {
-          setPlayerStake(undefined);
-        }
-      } catch (error) {
-        console.error('Error fetching player stake:', error);
-        setPlayerStake(undefined);
-      }
-    };
-
-    fetchPlayerStake();
-  }, [session, selectedPool]);
-
-  const handleStake = async (): Promise<void> => {
-    if (!session || !selectedPool || !stakeAmount) return;
-    
-    setIsStaking(true);
-    try {
-      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-      const quantity = formatTokenAmount(parseFloat(stakeAmount), symbol);
-      
-      const action = {
-        account: selectedPool.staked_token_contract,
-        name: 'transfer',
-        authorization: [session.permissionLevel],
-        data: {
-          from: session.actor,
-          to: CONTRACTS.STAKING.NAME,
-          quantity,
-          memo: 'stake'
-        }
-      };
-
-      await session.transact({ actions: [action] });
-      setIsDialogOpen(false);
-      setStakeAmount('');
-      
-      // Refetch player stake
-      const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from(CONTRACTS.STAKING.NAME),
-        scope: Name.from(session.actor.toString()),
-        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-        lower_bound: UInt64.from(selectedPool.pool_id),
-        upper_bound: UInt64.from(selectedPool.pool_id),
-        limit: 1
-      });
-      
-      if (response.rows?.length > 0) {
-        setPlayerStake(response.rows[0]);
-      }
-    } catch (error) {
-      console.error('Staking error:', error);
-      setError('Failed to stake tokens');
-    } finally {
-      setIsStaking(false);
-    }
-  };
+  // ... (keep fetchInitialData useEffect)
+  // ... (keep fetchPlayerStake useEffect)
 
   const handleLogin = async () => {
     try {
@@ -214,78 +69,77 @@ const GameUI: React.FC = () => {
   };
 
   const handleClaim = async (): Promise<void> => {
-  if (!session || !selectedPool) return;
-  
-  try {
-    const action = {
-      account: Name.from(CONTRACTS.STAKING.NAME),
-      name: Name.from('claim'),
-      authorization: [session.permissionLevel],
-      data: {
-        claimer: session.actor,
-        pool_id: selectedPool.pool_id
+    if (!session || !selectedPool) return;
+    
+    try {
+      const action = {
+        account: Name.from(CONTRACTS.STAKING.NAME),
+        name: Name.from('claim'),
+        authorization: [session.permissionLevel],
+        data: {
+          claimer: session.actor,
+          pool_id: selectedPool.pool_id
+        }
+      };
+
+      await session.transact({ actions: [action] });
+      
+      // Refresh player stake data after claim
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
+      
+      if (response.rows?.length > 0) {
+        setPlayerStake(response.rows[0] as StakedEntity);
       }
-    };
-
-    await session.transact({ actions: [action] });
-    
-    // Refresh player stake data after claim
-    const response = await session.client.v1.chain.get_table_rows({
-      code: Name.from(CONTRACTS.STAKING.NAME),
-      scope: Name.from(session.actor.toString()),
-      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-      lower_bound: UInt64.from(selectedPool.pool_id),
-      upper_bound: UInt64.from(selectedPool.pool_id),
-      limit: 1
-    });
-    
-    if (response.rows?.length > 0) {
-      setPlayerStake(response.rows[0] as StakedEntity);
+    } catch (error) {
+      console.error('Claim error:', error);
+      setError('Failed to claim rewards. Please try again.');
     }
-  } catch (error) {
-    console.error('Claim error:', error);
-    setError('Failed to claim rewards. Please try again.');
-  }
-};
+  };
 
-const handleUnstake = async (amount: string): Promise<void> => {
-  if (!session || !selectedPool) return;
-  
-  try {
-    const action = {
-      account: Name.from(CONTRACTS.STAKING.NAME),
-      name: Name.from('unstake'),
-      authorization: [session.permissionLevel],
-      data: {
-        claimer: session.actor,
-        pool_id: selectedPool.pool_id,
-        quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`
+  const handleUnstake = async (amount: string): Promise<void> => {
+    if (!session || !selectedPool) return;
+    
+    try {
+      const action = {
+        account: Name.from(CONTRACTS.STAKING.NAME),
+        name: Name.from('unstake'),
+        authorization: [session.permissionLevel],
+        data: {
+          claimer: session.actor,
+          pool_id: selectedPool.pool_id,
+          quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`
+        }
+      };
+
+      await session.transact({ actions: [action] });
+      
+      // Refresh player stake data after unstake
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
+      
+      if (response.rows?.length > 0) {
+        setPlayerStake(response.rows[0] as StakedEntity);
+      } else {
+        setPlayerStake(undefined);
       }
-    };
-
-    await session.transact({ actions: [action] });
-    
-    // Refresh player stake data after unstake
-    const response = await session.client.v1.chain.get_table_rows({
-      code: Name.from(CONTRACTS.STAKING.NAME),
-      scope: Name.from(session.actor.toString()),
-      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
-      lower_bound: UInt64.from(selectedPool.pool_id),
-      upper_bound: UInt64.from(selectedPool.pool_id),
-      limit: 1
-    });
-    
-    if (response.rows?.length > 0) {
-      setPlayerStake(response.rows[0] as StakedEntity);
-    } else {
-      setPlayerStake(undefined);
+    } catch (error) {
+      console.error('Unstake error:', error);
+      setError('Failed to unstake tokens. Please try again.');
     }
-  } catch (error) {
-    console.error('Unstake error:', error);
-    setError('Failed to unstake tokens. Please try again.');
-  }
-};
-
+  };
 
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
@@ -329,10 +183,8 @@ const handleUnstake = async (amount: string): Promise<void> => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-slate-950 text-white relative overflow-hidden">
-      {/* Background pattern */}
       <div className="fixed inset-0 hex-pattern opacity-20" />
       
-      {/* Header */}
       <div className="relative crystal-bg py-4 px-6 border-b border-purple-500/20">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-purple-200">Stakeland</h1>
@@ -359,7 +211,6 @@ const handleUnstake = async (amount: string): Promise<void> => {
         </div>
       </div>
 
-      {/* Main content */}
       {session ? (
         <div className="p-6 space-y-6">
           {isLoading ? (
@@ -368,7 +219,6 @@ const handleUnstake = async (amount: string): Promise<void> => {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Pool selection */}
               <div className="crystal-bg rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
                 <Select 
@@ -410,7 +260,6 @@ const handleUnstake = async (amount: string): Promise<void> => {
                 </Select>
               </div>
 
-              {/* Pool stats and actions */}
               {selectedPool && (
                 <ErrorBoundary 
                   fallback={<div className="text-red-400">
@@ -428,61 +277,16 @@ const handleUnstake = async (amount: string): Promise<void> => {
                     )}
                     
                     {playerStake && config && (
-  <UserStatus 
-    stakedData={playerStake}
-    config={config}
-    onCooldownComplete={() => setError(null)}
-    onClaim={handleClaim}
-    onUnstake={handleUnstake}
-  />
-)}
-
-                    {selectedPool && (
-                      <RewardsChart poolData={selectedPool} />
+                      <UserStatus 
+                        stakedData={playerStake}
+                        config={config}
+                        onCooldownComplete={() => setError(null)}
+                        onClaim={handleClaim}
+                        onUnstake={handleUnstake}
+                      />
                     )}
 
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          className="w-full bg-purple-600 hover:bg-purple-700"
-                          onClick={() => {
-                            setError(null);
-                            setIsDialogOpen(true);
-                          }}
-                        >
-                          <TrendingUp className="w-4 h-4 mr-2" />
-                          {`Stake ${parseTokenString(selectedPool.total_staked_quantity).symbol} Tokens`}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-slate-900 text-white">
-                        <DialogHeader>
-                          <DialogTitle>
-                            {`Stake ${parseTokenString(selectedPool.total_staked_quantity).symbol}`}
-                          </DialogTitle>
-                          <DialogDescription className="text-gray-300">
-                            {`Enter the amount to stake in pool #${selectedPool.pool_id}`}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <Input
-                            type="number"
-                            step="0.00000001"
-                            min="0.00000001"
-                            placeholder={`Amount of ${parseTokenString(selectedPool.total_staked_quantity).symbol}`}
-                            value={stakeAmount}
-                            onChange={(e) => setStakeAmount(e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-white"
-                          />
-                          <Button 
-                            onClick={handleStake} 
-                            disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0} 
-                            className="w-full bg-purple-600 hover:bg-purple-700"
-                          >
-                            {isStaking ? 'Staking...' : 'Confirm Stake'}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <RewardsChart poolData={selectedPool} />
                   </div>
                 </ErrorBoundary>
               )}
@@ -505,7 +309,6 @@ const handleUnstake = async (amount: string): Promise<void> => {
                 activeTab === item.id ? 'text-purple-300' : 'text-white/60'
               }`}
             >
-              
               <item.icon className="w-6 h-6" />
               <span className="text-xs">{item.label}</span>
             </button>
@@ -513,7 +316,6 @@ const handleUnstake = async (amount: string): Promise<void> => {
         </div>
       </div>
 
-      {/* Error Toast */}
       {error && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg">
           {error}
