@@ -24,7 +24,7 @@ import {
 } from "../ui/alert-dialog";
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { TrendingDown, Timer } from 'lucide-react';
+import { TrendingDown, Timer, TrendingUp } from 'lucide-react';
 import { StakedEntity } from '../../lib/types/staked';
 import { ConfigEntity } from '../../lib/types/config';
 import { formatLastAction } from '../../lib/utils/dateUtils';
@@ -37,6 +37,8 @@ interface UserStatusProps {
   onCooldownComplete?: () => void;
   onClaim: () => Promise<void>;
   onUnstake: (amount: string) => Promise<void>;
+  onStake: (amount: string) => Promise<void>;
+  poolSymbol: string;
 }
 
 export const UserStatus: React.FC<UserStatusProps> = ({
@@ -44,11 +46,15 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   config,
   onCooldownComplete,
   onClaim,
-  onUnstake
+  onUnstake,
+  onStake,
+  poolSymbol
 }) => {
   const [isUnstakeDialogOpen, setUnstakeDialogOpen] = useState(false);
+  const [isStakeDialogOpen, setStakeDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [unstakeAmount, setUnstakeAmount] = useState('');
+  const [stakeAmount, setStakeAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { amount: stakedAmount, symbol } = parseTokenString(stakedData.staked_quantity);
@@ -91,6 +97,17 @@ export const UserStatus: React.FC<UserStatusProps> = ({
     }
   };
 
+  const handleStake = async () => {
+    setIsProcessing(true);
+    try {
+      await onStake(stakeAmount);
+      setStakeDialogOpen(false);
+      setStakeAmount('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -128,14 +145,23 @@ export const UserStatus: React.FC<UserStatusProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4">
+          <div className="grid grid-cols-3 gap-4 pt-4">
+            <Button
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              onClick={() => setStakeDialogOpen(true)}
+              disabled={isProcessing}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Stake
+            </Button>
+
             <Button
               className="w-full bg-purple-600 hover:bg-purple-700"
               onClick={handleClaim}
               disabled={isProcessing}
             >
               <Timer className="w-4 h-4 mr-2" />
-              {isProcessing ? 'Processing...' : 'Claim Rewards'}
+              {isProcessing ? 'Processing...' : 'Claim'}
             </Button>
 
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -149,7 +175,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                   Unstake
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-slate-900 text-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -169,6 +195,43 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            <Dialog open={isStakeDialogOpen} onOpenChange={setStakeDialogOpen}>
+              <DialogContent className="bg-slate-900 text-white">
+                <DialogHeader>
+                  <DialogTitle>Stake Tokens</DialogTitle>
+                  <DialogDescription>
+                    Enter the amount you want to stake
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    type="number"
+                    step="0.00000001"
+                    min="0.00000001"
+                    placeholder={`Amount of ${poolSymbol}`}
+                    value={stakeAmount}
+                    onChange={(e) => setStakeAmount(e.target.value)}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                  <DialogFooter>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setStakeDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleStake}
+                      disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {isProcessing ? 'Processing...' : 'Confirm Stake'}
+                    </Button>
+                  </DialogFooter>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
               <DialogContent className="bg-slate-900 text-white">
