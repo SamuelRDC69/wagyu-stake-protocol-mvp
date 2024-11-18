@@ -43,13 +43,115 @@ const GameUI: React.FC = () => {
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
   const [pools, setPools] = useState<PoolEntity[]>([]);
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Start with false
   const [tiers, setTiers] = useState<TierEntity[]>([]);
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
-  // ... (keep fetchInitialData useEffect)
-  // ... (keep fetchPlayerStake useEffect)
+// Add this inside your GameUI component, right after the state declarations:
+
+useEffect(() => {
+  const fetchInitialData = async () => {
+    if (!session) {
+      setIsLoading(false);
+      return;
+    }
+      
+    setIsLoading(true);
+    console.log('Starting data fetch with session:', session.actor.toString());
+      
+    try {
+      // Fetch all data in parallel with better error handling
+      const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
+          limit: 10
+        }).catch(error => {
+          console.error('Error fetching pools:', error);
+          return { rows: [] };
+        }),
+
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+          limit: 10
+        }).catch(error => {
+          console.error('Error fetching tiers:', error);
+          return { rows: [] };
+        }),
+
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+          limit: 1
+        }).catch(error => {
+          console.error('Error fetching config:', error);
+          return { rows: [] };
+        })
+      ]);
+
+      console.log('Data fetch responses:', {
+        pools: poolsResponse.rows,
+        tiers: tiersResponse.rows,
+        config: configResponse.rows
+      });
+
+      // Set data with validation
+      if (poolsResponse.rows?.length > 0) {
+        setPools(poolsResponse.rows);
+        if (!selectedPool) {
+          setSelectedPool(poolsResponse.rows[0]);
+        }
+      } else {
+        console.log('No pools data received');
+      }
+
+      if (tiersResponse.rows?.length > 0) {
+        setTiers(tiersResponse.rows);
+      } else {
+        console.log('No tiers data received');
+      }
+
+      if (configResponse.rows?.length > 0) {
+        setConfig(configResponse.rows[0]);
+      } else {
+        console.log('No config data received');
+      }
+
+      setError(null);
+    } catch (error) {
+      console.error('Error in fetchInitialData:', error);
+      setError('Failed to load game data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add condition to prevent unnecessary fetches
+  if (session && isLoading) {
+    fetchInitialData();
+  } else if (!session) {
+    setIsLoading(false);
+  }
+
+}, [session]); // Only re-run when session changes
+
+// Also, let's add this useEffect to handle session state changes
+useEffect(() => {
+  if (!session) {
+    // Clear all data when session is gone
+    setPools([]);
+    setTiers([]);
+    setConfig(undefined);
+    setSelectedPool(undefined);
+    setPlayerStake(undefined);
+    setError(null);
+  }
+}, [session]);
 
   const handleLogin = async () => {
     try {
