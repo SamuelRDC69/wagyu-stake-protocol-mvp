@@ -5,12 +5,12 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": true,  // Changed to true for better compatibility
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "bundler",  // Changed to "bundler" for better Vite compatibility
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -18,32 +18,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "types": [
-      "node",
-      "react",
-      "react-dom"
-    ],
-    "plugins": [
-      {
-        "name": "typescript-plugin-css-modules"
-      }
-    ],
-    "incremental": true,  // Added for faster subsequent builds
-    "noUnusedLocals": true,  // Added for better code quality
-    "noUnusedParameters": true,  // Added for better code quality
-    "noFallthroughCasesInSwitch": true  // Added for better code quality
+    }
   },
-  "include": [
-    "src",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "build",
-    "dist"
-  ],
+  "include": ["src"],
+  "exclude": ["node_modules"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
