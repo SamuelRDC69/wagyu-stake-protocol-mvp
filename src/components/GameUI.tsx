@@ -131,15 +131,11 @@ useEffect(() => {
     }
   };
 
-  // Add condition to prevent unnecessary fetches
-  if (session && isLoading) {
+  // If we have a session, fetch the data
+  if (session) {
     fetchInitialData();
-  } else if (!session) {
-    setIsLoading(false);
   }
-
-}, [session]); // Only re-run when session changes
-
+}, [session, selectedPool]); // Add selectedPool to dependencies if you want to refetch when it changes
 // Also, let's add this useEffect to handle session state changes
 useEffect(() => {
   if (!session) {
