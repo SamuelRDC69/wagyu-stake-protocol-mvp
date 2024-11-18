@@ -414,14 +414,16 @@ useEffect(() => {
                     )}
                     
                     {playerStake && config && (
-                      <UserStatus 
-                        stakedData={playerStake}
-                        config={config}
-                        onCooldownComplete={() => setError(null)}
-                        onClaim={handleClaim}
-                        onUnstake={handleUnstake}
-                      />
-                    )}
+  <UserStatus 
+    stakedData={playerStake}
+    config={config}
+    onCooldownComplete={() => setError(null)}
+    onClaim={handleClaim}
+    onUnstake={handleUnstake}
+    onStake={handleStake}
+    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+  />
+)}
 
                     <RewardsChart poolData={selectedPool} />
                   </div>
