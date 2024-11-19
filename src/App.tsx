@@ -1,27 +1,59 @@
-import { useState } from 'react'
-import { Session, SessionKit, Chains } from '@wharfkit/session'
-import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
-import WebRenderer from '@wharfkit/web-renderer'
+import { useEffect, useState } from 'react'
+import { Session } from '@wharfkit/session'
 import GameUI from './components/GameUI'
 import { NotificationContainer } from './components/NotificationContainer'
 import { WharfkitContext } from './lib/wharfkit/context'
-import './index.css'  // For Tailwind and shadcn/ui styles
-import './App.css'    // For your custom styles
-
-const sessionKit = new SessionKit({
-  appName: 'Stakeland',
-  chains: [Chains.WAXTestnet],
-  ui: new WebRenderer(),
-  walletPlugins: [
-    new WalletPluginAnchor(),
-  ],
-})
+import { sessionService } from './lib/services/session.service'
+import { chainService } from './lib/services/chain.service'
+import './index.css'
+import './App.css'
 
 function App() {
-  const [session, setSession] = useState<Session | undefined>()
+  const [session, setSession] = useState<Session | undefined>();
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const restoredSession = await sessionService.restoreSession();
+        if (restoredSession) {
+          setSession(restoredSession);
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeSession();
+
+    // Cleanup handler for page unload
+    const handleUnload = () => {
+      chainService.clearCache();
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      chainService.clearCache();
+    };
+  }, []);
+
+  if (isInitializing) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
 
   return (
-    <WharfkitContext.Provider value={{ session, setSession, sessionKit }}>
+    <WharfkitContext.Provider value={{ 
+      session, 
+      setSession, 
+      sessionKit: sessionService.getSessionKit() 
+    }}>
       <div className="App">
         <GameUI />
         <NotificationContainer />
