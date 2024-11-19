@@ -1,3 +1,4 @@
+// src/lib/hooks/usePolling.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface PollingOptions {
@@ -18,13 +19,14 @@ export function usePolling<T>(
 
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start with true
+  const previousData = useRef<T | null>(null);
   const timeoutRef = useRef<number>();
 
   const fetch = useCallback(async () => {
     try {
-      setIsLoading(true);
       const result = await fetchFn();
+      previousData.current = result;
       setData(result);
       setError(null);
     } catch (err) {
@@ -66,5 +68,13 @@ export function usePolling<T>(
     };
   }, [enabled, startPolling]);
 
-  return { data, error, isLoading, refresh };
+  // Return the previous data while loading new data
+  const currentData = isLoading && previousData.current ? previousData.current : data;
+
+  return { 
+    data: currentData, 
+    error, 
+    isLoading: isLoading && !previousData.current, // Only true on initial load
+    refresh 
+  };
 }
