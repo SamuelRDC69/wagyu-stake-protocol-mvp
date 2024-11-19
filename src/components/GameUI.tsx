@@ -201,7 +201,7 @@ const GameUI: React.FC = () => {
         variant: 'success',
         message: 'Successfully staked tokens',
         amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        txid: result.transaction.id,
+        txid: result.resolved.transaction_id,
         position: 'bottom-center'
       });
 
@@ -245,7 +245,7 @@ const GameUI: React.FC = () => {
       addNotification({
         variant: 'success',
         message: 'Successfully claimed rewards',
-        txid: result.transaction.id,
+        txid: result.resolved.transaction_id,
         position: 'bottom-center'
       });
 
@@ -291,7 +291,7 @@ const GameUI: React.FC = () => {
         variant: 'success',
         message: 'Successfully unstaked tokens',
         amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        txid: result.transaction.id,
+        txid: result.resolved.transaction_id,
         position: 'bottom-center'
       });
 
