@@ -52,8 +52,6 @@ const GameUI: React.FC = () => {
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  true);
-
   // Polling for pools data
   const { 
     data: poolsData, 
