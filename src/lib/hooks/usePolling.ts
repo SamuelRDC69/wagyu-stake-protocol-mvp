@@ -4,7 +4,7 @@ interface PollingOptions {
   interval?: number;
   enabled?: boolean;
   onError?: (error: unknown) => void;
-  skipInitialLoad?: boolean;  // Added this option
+  skipInitialLoad?: boolean;
 }
 
 export function usePolling<T>(
@@ -21,85 +21,66 @@ export function usePolling<T>(
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(!skipInitialLoad);
-  const previousData = useRef<T | null>(null);
   const timeoutRef = useRef<number>();
   const isMounted = useRef(true);
-  const lastFetchTime = useRef(0);
 
-  const fetch = useCallback(async (isInitial = false) => {
-    const now = Date.now();
-    if (!isInitial && now - lastFetchTime.current < interval) {
-      return;
-    }
+  const fetch = useCallback(async () => {
+    if (!enabled) return;
 
     try {
-      if (isInitial) setIsLoading(true);
-
       const result = await fetchFn();
-      
-      if (!isMounted.current) return;
-
-      if (JSON.stringify(result) !== JSON.stringify(previousData.current)) {
-        previousData.current = result;
+      if (isMounted.current) {
         setData(result);
+        setError(null);
+        setIsLoading(false);
       }
-      
-      setError(null);
-      lastFetchTime.current = Date.now();
     } catch (err) {
-      if (!isMounted.current) return;
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error);
-      onError?.(error);
-    } finally {
-      if (isMounted.current && isInitial) {
+      if (isMounted.current) {
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        setError(error);
+        onError?.(error);
         setIsLoading(false);
       }
     }
-  }, [fetchFn, interval, onError]);
+  }, [fetchFn, enabled, onError]);
 
   const refresh = useCallback(async (delay = 2000) => {
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
     }
-    
     await new Promise(resolve => setTimeout(resolve, delay));
-    await fetch(false);
-    
-    if (enabled && isMounted.current) {
-      timeoutRef.current = window.setTimeout(() => startPolling(), interval);
-    }
-  }, [fetch, interval, enabled]);
-
-  const startPolling = useCallback(() => {
-    if (!enabled || !isMounted.current) return;
-    
-    fetch(false);
-    timeoutRef.current = window.setTimeout(() => startPolling(), interval);
-  }, [fetch, interval, enabled]);
+    await fetch();
+  }, [fetch]);
 
   useEffect(() => {
-    if (enabled && !skipInitialLoad) {
-      fetch(true);
+    isMounted.current = true;
+
+    if (enabled) {
+      fetch();
     }
-    
-    const timer = window.setTimeout(() => {
-      if (enabled) startPolling();
-    }, interval);
 
     return () => {
       isMounted.current = false;
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
       }
-      window.clearTimeout(timer);
     };
-  }, [enabled, fetch, interval, startPolling, skipInitialLoad]);
+  }, [enabled, fetch]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const timer = setInterval(() => {
+      fetch();
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [fetch, interval, enabled]);
 
   return { 
-    data: data || previousData.current, 
+    data, 
     error, 
-    isLoading: isLoading && !previousData.current,
+    isLoading,
     refresh 
   };
 }
