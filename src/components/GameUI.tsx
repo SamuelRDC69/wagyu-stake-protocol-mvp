@@ -50,6 +50,9 @@ const GameUI: React.FC = () => {
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
   const [tiers, setTiers] = useState<TierEntity[]>([]);
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  true);
 
   // Polling for pools data
   const { 
@@ -151,12 +154,16 @@ const GameUI: React.FC = () => {
     }
   );
 
-  // Effect to update states when polling data changes
+    // Effect to handle initial loading state and data updates
   React.useEffect(() => {
     if (poolsData) {
       setPools(poolsData);
       if (!selectedPool && poolsData.length > 0) {
         setSelectedPool(poolsData[0]);
+      }
+      // Set initial load to false once we have data
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
       }
     }
     if (tiersData) {
@@ -170,7 +177,7 @@ const GameUI: React.FC = () => {
     } else {
       setPlayerStake(undefined);
     }
-  }, [poolsData, tiersData, configData, playerStakeData]);
+  }, [poolsData, tiersData, configData, playerStakeData, isInitialLoad]);
 
   const handleStake = async (amount: string): Promise<void> => {
     if (!session || !selectedPool) return;
@@ -421,7 +428,7 @@ const GameUI: React.FC = () => {
 
       {session ? (
         <div className="p-6 space-y-6">
-          {poolsLoading ? (
+          {isInitialLoad ? ( // Changed from poolsLoading to isInitialLoad
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
