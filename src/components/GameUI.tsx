@@ -58,13 +58,13 @@ const GameUI: React.FC = () => {
   const [isDataInitialized, setIsDataInitialized] = useState(false);
   const previousPoolId = useRef<number | null>(null);
 
-    // Fetch pools data
+  // Fetch pools data
   const { 
     data: poolsData, 
-    isLoading,  // renamed from isInitialLoading
+    isLoading,
     refresh: refreshPools 
   } = useChainQuery<PoolEntity>(session, {
-    code: CONTRACTS.STAKING.NAME,
+    code: Name.from(CONTRACTS.STAKING.NAME),
     table: CONTRACTS.STAKING.TABLES.POOLS,
     enabled: !!session,
     refreshInterval: 6000
@@ -75,7 +75,7 @@ const GameUI: React.FC = () => {
     data: tiersData,
     refresh: refreshTiers
   } = useChainQuery<TierEntity>(session, {
-    code: CONTRACTS.STAKING.NAME,
+    code: Name.from(CONTRACTS.STAKING.NAME),
     table: CONTRACTS.STAKING.TABLES.TIERS,
     enabled: !!session,
     refreshInterval: 6000
@@ -86,7 +86,7 @@ const GameUI: React.FC = () => {
     data: configData,
     refresh: refreshConfig
   } = useChainQuery<ConfigEntity>(session, {
-    code: CONTRACTS.STAKING.NAME,
+    code: Name.from(CONTRACTS.STAKING.NAME),
     table: CONTRACTS.STAKING.TABLES.CONFIG,
     enabled: !!session,
     refreshInterval: 6000
@@ -97,23 +97,23 @@ const GameUI: React.FC = () => {
     data: playerStakeData,
     refresh: refreshPlayerStake
   } = useChainQuery<StakedEntity>(session, {
-    code: CONTRACTS.STAKING.NAME,
+    code: Name.from(CONTRACTS.STAKING.NAME),
     table: CONTRACTS.STAKING.TABLES.STAKEDS,
     scope: session?.actor.toString(),
     enabled: !!session && !!selectedPool,
     refreshInterval: 6000,
-    lowerBound: selectedPool?.pool_id?.toString(),
-    upperBound: selectedPool?.pool_id?.toString()
+    lowerBound: UInt64.from(selectedPool?.pool_id),
+    upperBound: UInt64.from(selectedPool?.pool_id)
   });
 
   // Effect to update state with fetched data
   React.useEffect(() => {
-    if (poolsData) setPools(poolsData);
-    if (tiersData) setTiers(tiersData);
-    if (configData && configData.length > 0) setConfig(configData[0]);
+    if (poolsData) setPools(poolsData.rows);
+    if (tiersData) setTiers(tiersData.rows);
+    if (configData && configData.rows.length > 0) setConfig(configData.rows[0]);
     
-    if (!selectedPool && poolsData && poolsData.length > 0) {
-      setSelectedPool(poolsData[0]);
+    if (!selectedPool && poolsData && poolsData.rows.length > 0) {
+      setSelectedPool(poolsData.rows[0]);
     }
 
     if (poolsData && tiersData && configData) {
@@ -123,8 +123,8 @@ const GameUI: React.FC = () => {
 
   // Effect to update player stake
   React.useEffect(() => {
-    if (playerStakeData && playerStakeData.length > 0) {
-      setPlayerStake(playerStakeData[0]);
+    if (playerStakeData && playerStakeData.rows.length > 0) {
+      setPlayerStake(playerStakeData.rows[0]);
     } else {
       setPlayerStake(undefined);
     }
@@ -159,20 +159,19 @@ const GameUI: React.FC = () => {
       });
 
       const action = {
-        account: selectedPool.staked_token_contract,
-        name: 'transfer',
+        account: Name.from(selectedPool.staked_token_contract),
+        name: Name.from('transfer'),
         authorization: [session.permissionLevel],
         data: {
           from: session.actor,
-          to: CONTRACTS.STAKING.NAME,
+          to: Name.from(CONTRACTS.STAKING.NAME),
           quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
           memo: 'stake'
         }
       };
 
       const result = await session.transact({ actions: [action] });
-      const txid = result.resolved.transaction_id;  // Use transaction_id instead of id
-
+      const txid = result.resolved.transaction_id;
 
       addNotification({
         variant: 'success',
@@ -209,12 +208,12 @@ const GameUI: React.FC = () => {
         authorization: [session.permissionLevel],
         data: {
           claimer: session.actor,
-          pool_id: selectedPool.pool_id
+          pool_id: UInt64.from(selectedPool.pool_id)
         }
       };
 
       const result = await session.transact({ actions: [action] });
-      const txid = result.resolved.transaction_id;  // Use transaction_id instead of id
+      const txid = result.resolved.transaction_id;
 
       addNotification({
         variant: 'success',
@@ -251,13 +250,13 @@ const GameUI: React.FC = () => {
         authorization: [session.permissionLevel],
         data: {
           claimer: session.actor,
-          pool_id: selectedPool.pool_id,
+          pool_id: UInt64.from(selectedPool.pool_id),
           quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`
         }
       };
 
       const result = await session.transact({ actions: [action] });
-      const txid = result.resolved.transaction_id;  // Use transaction_id instead of id
+      const txid = result.resolved.transaction_id;
 
       addNotification({
         variant: 'success',
