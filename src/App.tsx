@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Session, SessionKit, Chains } from '@wharfkit/session'
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
-import WebRenderer from '@wharfkit/web-renderer'
+import { WebRenderer } from '@wharfkit/web-renderer'
 import GameUI from './components/GameUI'
 import { NotificationContainer } from './components/NotificationContainer'
 import { WharfkitContext } from './lib/wharfkit/context'
@@ -12,8 +12,7 @@ const sessionKit = new SessionKit({
   appName: 'Stakeland',
   chains: [Chains.WAXTestnet],
   ui: new WebRenderer(),
-  walletPlugins: [new WalletPluginAnchor()],
-  storage: localStorage
+  walletPlugins: [new WalletPluginAnchor()]
 });
 
 function App() {
