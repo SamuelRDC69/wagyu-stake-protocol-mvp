@@ -1,24 +1,30 @@
-import { useEffect, useState } from 'react'
-import { Session } from '@wharfkit/session'
+import { useState, useEffect } from 'react'
+import { Session, SessionKit, Chains } from '@wharfkit/session'
+import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
+import WebRenderer from '@wharfkit/web-renderer'
 import GameUI from './components/GameUI'
 import { NotificationContainer } from './components/NotificationContainer'
 import { WharfkitContext } from './lib/wharfkit/context'
-import { sessionService } from './lib/services/session.service'
-import { chainService } from './lib/services/chain.service'
 import './index.css'
 import './App.css'
+
+const sessionKit = new SessionKit({
+  appName: 'Stakeland',
+  chains: [Chains.WAXTestnet],
+  ui: new WebRenderer(),
+  walletPlugins: [new WalletPluginAnchor()],
+  storage: localStorage
+});
 
 function App() {
   const [session, setSession] = useState<Session | undefined>();
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    const initializeSession = async () => {
+    const restoreSession = async () => {
       try {
-        const restoredSession = await sessionService.restoreSession();
-        if (restoredSession) {
-          setSession(restoredSession);
-        }
+        const restored = await sessionKit.restore();
+        if (restored) setSession(restored);
       } catch (error) {
         console.error('Failed to restore session:', error);
       } finally {
@@ -26,18 +32,7 @@ function App() {
       }
     };
 
-    initializeSession();
-
-    // Cleanup handler for page unload
-    const handleUnload = () => {
-      chainService.clearCache();
-    };
-    window.addEventListener('beforeunload', handleUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleUnload);
-      chainService.clearCache();
-    };
+    restoreSession();
   }, []);
 
   if (isInitializing) {
@@ -52,14 +47,14 @@ function App() {
     <WharfkitContext.Provider value={{ 
       session, 
       setSession, 
-      sessionKit: sessionService.getSessionKit() 
+      sessionKit 
     }}>
       <div className="App">
         <GameUI />
         <NotificationContainer />
       </div>
     </WharfkitContext.Provider>
-  )
+  );
 }
 
-export default App
+export default App;
