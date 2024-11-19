@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useState, useRef } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
-import { Name, UInt64, TransactResult } from '@wharfkit/session';
+import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useChainQuery } from '../lib/hooks/useChainQuery';
@@ -58,10 +58,10 @@ const GameUI: React.FC = () => {
   const [isDataInitialized, setIsDataInitialized] = useState(false);
   const previousPoolId = useRef<number | null>(null);
 
-  // Fetch pools data
+    // Fetch pools data
   const { 
     data: poolsData, 
-    isLoading: poolsLoading,
+    isLoading,  // renamed from isInitialLoading
     refresh: refreshPools 
   } = useChainQuery<PoolEntity>(session, {
     code: CONTRACTS.STAKING.NAME,
@@ -171,12 +171,14 @@ const GameUI: React.FC = () => {
       };
 
       const result = await session.transact({ actions: [action] });
+      const txid = result.resolved.transaction_id;  // Use transaction_id instead of id
+
 
       addNotification({
         variant: 'success',
         message: 'Successfully staked tokens',
         amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        txid: result.transaction.id.toString(),
+        txid,
         position: 'bottom-center'
       });
 
@@ -212,11 +214,12 @@ const GameUI: React.FC = () => {
       };
 
       const result = await session.transact({ actions: [action] });
+      const txid = result.resolved.transaction_id;  // Use transaction_id instead of id
 
       addNotification({
         variant: 'success',
         message: 'Successfully claimed rewards',
-        txid: result.transaction.id.toString(),
+        txid,
         position: 'bottom-center'
       });
 
@@ -254,12 +257,13 @@ const GameUI: React.FC = () => {
       };
 
       const result = await session.transact({ actions: [action] });
+      const txid = result.resolved.transaction_id;  // Use transaction_id instead of id
 
       addNotification({
         variant: 'success',
         message: 'Successfully unstaked tokens',
         amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        txid: result.transaction.id.toString(),
+        txid,
         position: 'bottom-center'
       });
 
@@ -393,7 +397,7 @@ const GameUI: React.FC = () => {
 
       {session ? (
         <div className="p-6 space-y-6">
-          {isInitialLoading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
