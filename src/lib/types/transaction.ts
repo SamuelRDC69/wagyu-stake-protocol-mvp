@@ -1,11 +1,7 @@
-import { Transaction } from '@wharfkit/session';
+import { TransactResult } from '@wharfkit/session';
 
-export interface TransactionResult {
-  transaction: {
-    id: string;
+export type WaxTransactionResult = TransactResult & {
+  resolved: {
+    transaction_id: string;
   };
-}
-
-export type WaxTransactionResult = {
-  resolved: TransactionResult;
-} & Transaction;
+};
