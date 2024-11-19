@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Session, Name, GetTableRowsResponse } from '@wharfkit/session';
+import { Session, Name, GetTableRowsParams } from '@wharfkit/session';
 
 interface UseChainQueryOptions {
   code: string;
@@ -27,15 +27,22 @@ export function useChainQuery<T>(
     if (!session || !options.enabled) return;
 
     try {
-      const result = await session.client.v1.chain.get_table_rows({
+      const params: GetTableRowsParams = {
         code: Name.from(options.code),
         scope: Name.from(options.scope || options.code),
         table: Name.from(options.table),
-        lower_bound: options.lowerBound ? Name.from(options.lowerBound) : undefined,
-        upper_bound: options.upperBound ? Name.from(options.upperBound) : undefined,
         limit: options.limit || 100,
         json: true
-      });
+      };
+
+      if (options.lowerBound) {
+        params.lower_bound = options.lowerBound;
+      }
+      if (options.upperBound) {
+        params.upper_bound = options.upperBound;
+      }
+
+      const result = await session.client.v1.chain.get_table_rows(params);
       
       if (isMounted.current) {
         setData(result.rows as T[]);
@@ -62,6 +69,7 @@ export function useChainQuery<T>(
 
   useEffect(() => {
     isMounted.current = true;
+    
     if (!session || !options.enabled) {
       setIsLoading(false);
       return;
