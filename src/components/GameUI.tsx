@@ -147,6 +147,19 @@ const GameUI: React.FC = () => {
     ]);
   };
 
+  const handleTransact = async (actions: any[]): Promise<string | undefined> => {
+    try {
+      const result = await session?.transact({ actions });
+      if (result?.resolved?.transaction_id) {
+        return result.resolved.transaction_id;
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Transaction error:', error);
+      return undefined;
+    }
+  };
+
   const handleStake = async (amount: string): Promise<void> => {
     if (!session || !selectedPool) return;
     
@@ -170,18 +183,23 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] });
-      const txid = result.resolved.transaction_id;
-
-      addNotification({
-        variant: 'success',
-        message: 'Successfully staked tokens',
-        amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        txid,
-        position: 'bottom-center'
-      });
-
-      await refreshAllData();
+      const txid = await handleTransact([action]);
+      if (txid) {
+        addNotification({
+          variant: 'success',
+          message: 'Successfully staked tokens',
+          amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
+          txid,
+          position: 'bottom-center'
+        });
+        await refreshAllData();
+      } else {
+        addNotification({
+          variant: 'error',
+          message: 'Failed to stake tokens',
+          position: 'bottom-center'
+        });
+      }
     } catch (error) {
       console.error('Staking error:', error);
       addNotification({
@@ -212,17 +230,22 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] });
-      const txid = result.resolved.transaction_id;
-
-      addNotification({
-        variant: 'success',
-        message: 'Successfully claimed rewards',
-        txid,
-        position: 'bottom-center'
-      });
-
-      await refreshAllData();
+      const txid = await handleTransact([action]);
+      if (txid) {
+        addNotification({
+          variant: 'success',
+          message: 'Successfully claimed rewards',
+          txid,
+          position: 'bottom-center'
+        });
+        await refreshAllData();
+      } else {
+        addNotification({
+          variant: 'error',
+          message: 'Failed to claim rewards',
+          position: 'bottom-center'
+        });
+      }
     } catch (error) {
       console.error('Claim error:', error);
       addNotification({
@@ -255,18 +278,23 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] });
-      const txid = result.resolved.transaction_id;
-
-      addNotification({
-        variant: 'success',
-        message: 'Successfully unstaked tokens',
-        amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        txid,
-        position: 'bottom-center'
-      });
-
-      await refreshAllData();
+      const txid = await handleTransact([action]);
+      if (txid) {
+        addNotification({
+          variant: 'success',
+          message: 'Successfully unstaked tokens',
+          amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
+          txid,
+          position: 'bottom-center'
+        });
+        await refreshAllData();
+      } else {
+        addNotification({
+          variant: 'error',
+          message: 'Failed to unstake tokens',
+          position: 'bottom-center'
+        });
+      }
     } catch (error) {
       console.error('Unstake error:', error);
       addNotification({
@@ -276,7 +304,6 @@ const GameUI: React.FC = () => {
       });
     }
   };
-
   const handleLogin = async () => {
     try {
       setIsDataInitialized(false);
