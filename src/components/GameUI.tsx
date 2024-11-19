@@ -39,6 +39,12 @@ interface NavItem {
   id: string;
 }
 
+interface GameData {
+  pools: PoolEntity[];
+  tiers: TierEntity[];
+  config: ConfigEntity;
+}
+
 const GameUI: React.FC = () => {
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const { addNotification } = useNotifications();
@@ -52,56 +58,77 @@ const GameUI: React.FC = () => {
   const [isDataInitialized, setIsDataInitialized] = useState(false);
   const previousPoolId = useRef<number | null>(null);
 
-  // Use the chain query hook for data fetching
+  // Fetch pools data
   const { 
-    data: gameData,
-    isLoading: isInitialLoading,
-    refresh: refreshGameData
-  } = useChainQuery(session, {
+    data: poolsData, 
+    isLoading: poolsLoading,
+    refresh: refreshPools 
+  } = useChainQuery<PoolEntity>(session, {
     code: CONTRACTS.STAKING.NAME,
     table: CONTRACTS.STAKING.TABLES.POOLS,
     enabled: !!session,
-    refreshInterval: 6000,
-    onError: (error) => {
-      console.error('Error fetching game data:', error);
-      addNotification({
-        variant: 'error',
-        message: 'Failed to fetch game data',
-        position: 'bottom-center'
-      });
-    }
+    refreshInterval: 6000
   });
 
-  // Separate query for player stake data
+  // Fetch tiers data
+  const {
+    data: tiersData,
+    refresh: refreshTiers
+  } = useChainQuery<TierEntity>(session, {
+    code: CONTRACTS.STAKING.NAME,
+    table: CONTRACTS.STAKING.TABLES.TIERS,
+    enabled: !!session,
+    refreshInterval: 6000
+  });
+
+  // Fetch config data
+  const {
+    data: configData,
+    refresh: refreshConfig
+  } = useChainQuery<ConfigEntity>(session, {
+    code: CONTRACTS.STAKING.NAME,
+    table: CONTRACTS.STAKING.TABLES.CONFIG,
+    enabled: !!session,
+    refreshInterval: 6000
+  });
+
+  // Fetch player stake data
   const {
     data: playerStakeData,
     refresh: refreshPlayerStake
-  } = useChainQuery(session, {
+  } = useChainQuery<StakedEntity>(session, {
     code: CONTRACTS.STAKING.NAME,
     table: CONTRACTS.STAKING.TABLES.STAKEDS,
     scope: session?.actor.toString(),
     enabled: !!session && !!selectedPool,
     refreshInterval: 6000,
     lowerBound: selectedPool?.pool_id?.toString(),
-    upperBound: selectedPool?.pool_id?.toString(),
+    upperBound: selectedPool?.pool_id?.toString()
   });
 
-  // Effect to handle consolidated data updates
+  // Effect to update state with fetched data
   React.useEffect(() => {
-    if (gameData) {
-      setPools(gameData.pools || []);
-      setTiers(gameData.tiers || []);
-      setConfig(gameData.config);
-      
-      if (!selectedPool && gameData.pools?.length > 0) {
-        setSelectedPool(gameData.pools[0]);
-      }
-      
-      if (gameData.pools && gameData.tiers && gameData.config) {
-        setIsDataInitialized(true);
-      }
+    if (poolsData) setPools(poolsData);
+    if (tiersData) setTiers(tiersData);
+    if (configData && configData.length > 0) setConfig(configData[0]);
+    
+    if (!selectedPool && poolsData && poolsData.length > 0) {
+      setSelectedPool(poolsData[0]);
     }
-  }, [gameData]);
+
+    if (poolsData && tiersData && configData) {
+      setIsDataInitialized(true);
+    }
+  }, [poolsData, tiersData, configData]);
+
+  // Effect to update player stake
+  React.useEffect(() => {
+    if (playerStakeData && playerStakeData.length > 0) {
+      setPlayerStake(playerStakeData[0]);
+    } else {
+      setPlayerStake(undefined);
+    }
+  }, [playerStakeData]);
 
   // Effect to handle pool changes
   React.useEffect(() => {
@@ -111,12 +138,14 @@ const GameUI: React.FC = () => {
     }
   }, [selectedPool, refreshPlayerStake]);
 
-  // Effect to update player stake data
-  React.useEffect(() => {
-    if (playerStakeData) {
-      setPlayerStake(playerStakeData[0] || undefined);
-    }
-  }, [playerStakeData]);
+  const refreshAllData = async () => {
+    await Promise.all([
+      refreshPools(),
+      refreshTiers(),
+      refreshConfig(),
+      refreshPlayerStake()
+    ]);
+  };
 
   const handleStake = async (amount: string): Promise<void> => {
     if (!session || !selectedPool) return;
@@ -141,7 +170,7 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] }) as TransactResult;
+      const result = await session.transact({ actions: [action] });
 
       addNotification({
         variant: 'success',
@@ -151,10 +180,7 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      await Promise.all([
-        refreshGameData(),
-        refreshPlayerStake()
-      ]);
+      await refreshAllData();
     } catch (error) {
       console.error('Staking error:', error);
       addNotification({
@@ -185,7 +211,7 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] }) as TransactResult;
+      const result = await session.transact({ actions: [action] });
 
       addNotification({
         variant: 'success',
@@ -194,10 +220,7 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      await Promise.all([
-        refreshGameData(),
-        refreshPlayerStake()
-      ]);
+      await refreshAllData();
     } catch (error) {
       console.error('Claim error:', error);
       addNotification({
@@ -230,7 +253,7 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] }) as TransactResult;
+      const result = await session.transact({ actions: [action] });
 
       addNotification({
         variant: 'success',
@@ -240,10 +263,7 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      await Promise.all([
-        refreshGameData(),
-        refreshPlayerStake()
-      ]);
+      await refreshAllData();
     } catch (error) {
       console.error('Unstake error:', error);
       addNotification({
