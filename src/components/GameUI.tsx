@@ -1,10 +1,8 @@
-import React, { useCallback, useContext, useState, useRef } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
 import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
-import { useChainQuery } from '../lib/hooks/useChainQuery';
-import { useNotifications } from '../lib/hooks/useNotifications';
 
 // UI Components
 import {
@@ -39,174 +37,171 @@ interface NavItem {
   id: string;
 }
 
-interface GameData {
-  pools: PoolEntity[];
-  tiers: TierEntity[];
-  config: ConfigEntity;
-}
-
 const GameUI: React.FC = () => {
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
-  const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<string>('kingdom');
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
   const [pools, setPools] = useState<PoolEntity[]>([]);
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Start with false
   const [tiers, setTiers] = useState<TierEntity[]>([]);
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
-  const [isDataInitialized, setIsDataInitialized] = useState(false);
-  const previousPoolId = useRef<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch pools data
-  const { 
-    data: poolsData, 
-    isLoading,
-    refresh: refreshPools 
-  } = useChainQuery<PoolEntity>(session, {
-    code: Name.from(CONTRACTS.STAKING.NAME),
-    table: CONTRACTS.STAKING.TABLES.POOLS,
-    enabled: !!session,
-    refreshInterval: 6000
-  });
+// Add this inside your GameUI component, right after the state declarations:
 
-  // Fetch tiers data
-  const {
-    data: tiersData,
-    refresh: refreshTiers
-  } = useChainQuery<TierEntity>(session, {
-    code: Name.from(CONTRACTS.STAKING.NAME),
-    table: CONTRACTS.STAKING.TABLES.TIERS,
-    enabled: !!session,
-    refreshInterval: 6000
-  });
+useEffect(() => {
+  const fetchInitialData = async () => {
+    if (!session) {
+      setIsLoading(false);
+      return;
+    }
+      
+    setIsLoading(true);
+    console.log('Starting data fetch with session:', session.actor.toString());
+      
+    try {
+      // Fetch all data in parallel with better error handling
+      const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
+          limit: 10
+        }).catch(error => {
+          console.error('Error fetching pools:', error);
+          return { rows: [] };
+        }),
 
-  // Fetch config data
-  const {
-    data: configData,
-    refresh: refreshConfig
-  } = useChainQuery<ConfigEntity>(session, {
-    code: Name.from(CONTRACTS.STAKING.NAME),
-    table: CONTRACTS.STAKING.TABLES.CONFIG,
-    enabled: !!session,
-    refreshInterval: 6000
-  });
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+          limit: 10
+        }).catch(error => {
+          console.error('Error fetching tiers:', error);
+          return { rows: [] };
+        }),
 
-  // Fetch player stake data
-  const {
-    data: playerStakeData,
-    refresh: refreshPlayerStake
-  } = useChainQuery<StakedEntity>(session, {
-    code: Name.from(CONTRACTS.STAKING.NAME),
-    table: CONTRACTS.STAKING.TABLES.STAKEDS,
-    scope: session?.actor.toString(),
-    enabled: !!session && !!selectedPool,
-    refreshInterval: 6000,
-    lowerBound: UInt64.from(selectedPool?.pool_id),
-    upperBound: UInt64.from(selectedPool?.pool_id)
-  });
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+          limit: 1
+        }).catch(error => {
+          console.error('Error fetching config:', error);
+          return { rows: [] };
+        })
+      ]);
 
-  // Effect to update state with fetched data
-  React.useEffect(() => {
-    if (poolsData) setPools(poolsData.rows);
-    if (tiersData) setTiers(tiersData.rows);
-    if (configData && configData.rows.length > 0) setConfig(configData.rows[0]);
+      console.log('Data fetch responses:', {
+        pools: poolsResponse.rows,
+        tiers: tiersResponse.rows,
+        config: configResponse.rows
+      });
+
+      // Set data with validation
+      if (poolsResponse.rows?.length > 0) {
+        setPools(poolsResponse.rows);
+        if (!selectedPool) {
+          setSelectedPool(poolsResponse.rows[0]);
+        }
+      } else {
+        console.log('No pools data received');
+      }
+
+      if (tiersResponse.rows?.length > 0) {
+        setTiers(tiersResponse.rows);
+      } else {
+        console.log('No tiers data received');
+      }
+
+      if (configResponse.rows?.length > 0) {
+        setConfig(configResponse.rows[0]);
+      } else {
+        console.log('No config data received');
+      }
+
+      setError(null);
+    } catch (error) {
+      console.error('Error in fetchInitialData:', error);
+      setError('Failed to load game data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // If we have a session, fetch the data
+  if (session) {
+    fetchInitialData();
+  }
+}, [session, selectedPool]); // Add selectedPool to dependencies if you want to refetch when it changes
+// Also, let's add this useEffect to handle session state changes
+useEffect(() => {
+  if (!session) {
+    // Clear all data when session is gone
+    setPools([]);
+    setTiers([]);
+    setConfig(undefined);
+    setSelectedPool(undefined);
+    setPlayerStake(undefined);
+    setError(null);
+  }
+}, [session]);
+
+  // Add this useEffect right after the first one in GameUI:
+
+// Fetch player stake when pool is selected
+useEffect(() => {
+  const fetchPlayerStake = async () => {
+    if (!session || !selectedPool) {
+      console.log('No session or selected pool for fetching player stake');
+      return;
+    }
     
-    if (!selectedPool && poolsData && poolsData.rows.length > 0) {
-      setSelectedPool(poolsData.rows[0]);
-    }
+    try {
+      console.log('Fetching player stake for pool:', selectedPool.pool_id);
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
 
-    if (poolsData && tiersData && configData) {
-      setIsDataInitialized(true);
-    }
-  }, [poolsData, tiersData, configData]);
-
-  // Effect to update player stake
-  React.useEffect(() => {
-    if (playerStakeData && playerStakeData.rows.length > 0) {
-      setPlayerStake(playerStakeData.rows[0]);
-    } else {
+      console.log('Player stake response:', response);
+      
+      if (response.rows?.length > 0) {
+        console.log('Setting player stake:', response.rows[0]);
+        setPlayerStake(response.rows[0]);
+      } else {
+        console.log('No stake found for this pool');
+        setPlayerStake(undefined);
+      }
+    } catch (error) {
+      console.error('Error fetching player stake:', error);
       setPlayerStake(undefined);
     }
-  }, [playerStakeData]);
-
-  // Effect to handle pool changes
-  React.useEffect(() => {
-    if (selectedPool?.pool_id !== previousPoolId.current) {
-      previousPoolId.current = selectedPool?.pool_id ?? null;
-      refreshPlayerStake();
-    }
-  }, [selectedPool, refreshPlayerStake]);
-
-  const refreshAllData = async () => {
-    await Promise.all([
-      refreshPools(),
-      refreshTiers(),
-      refreshConfig(),
-      refreshPlayerStake()
-    ]);
   };
 
-  const handleTransact = async (actions: any[]): Promise<string | undefined> => {
+  fetchPlayerStake();
+}, [session, selectedPool]); // Depend on both session and selectedPool changes
+
+  const handleLogin = async () => {
     try {
-      const result = await session?.transact({ actions });
-      if (result?.resolved?.transaction_id) {
-        return result.resolved.transaction_id;
-      }
-      return undefined;
+      const response = await sessionKit.login();
+      setSession(response.session);
     } catch (error) {
-      console.error('Transaction error:', error);
-      return undefined;
+      console.error('Login error:', error);
+      setError('Failed to connect wallet');
     }
   };
 
-  const handleStake = async (amount: string): Promise<void> => {
-    if (!session || !selectedPool) return;
-    
-    try {
-      addNotification({
-        variant: 'pending',
-        message: 'Staking tokens...',
-        amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        position: 'bottom-center'
-      });
-
-      const action = {
-        account: Name.from(selectedPool.staked_token_contract),
-        name: Name.from('transfer'),
-        authorization: [session.permissionLevel],
-        data: {
-          from: session.actor,
-          to: Name.from(CONTRACTS.STAKING.NAME),
-          quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-          memo: 'stake'
-        }
-      };
-
-      const txid = await handleTransact([action]);
-      if (txid) {
-        addNotification({
-          variant: 'success',
-          message: 'Successfully staked tokens',
-          amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-          txid,
-          position: 'bottom-center'
-        });
-        await refreshAllData();
-      } else {
-        addNotification({
-          variant: 'error',
-          message: 'Failed to stake tokens',
-          position: 'bottom-center'
-        });
-      }
-    } catch (error) {
-      console.error('Staking error:', error);
-      addNotification({
-        variant: 'error',
-        message: 'Failed to stake tokens',
-        position: 'bottom-center'
-      });
+  const handleLogout = async () => {
+    if (session) {
+      await sessionKit.logout(session);
+      setSession(undefined);
     }
   };
 
@@ -214,140 +209,112 @@ const GameUI: React.FC = () => {
     if (!session || !selectedPool) return;
     
     try {
-      addNotification({
-        variant: 'pending',
-        message: 'Claiming rewards...',
-        position: 'bottom-center'
-      });
-
       const action = {
         account: Name.from(CONTRACTS.STAKING.NAME),
         name: Name.from('claim'),
         authorization: [session.permissionLevel],
         data: {
           claimer: session.actor,
-          pool_id: UInt64.from(selectedPool.pool_id)
+          pool_id: selectedPool.pool_id
         }
       };
 
-      const txid = await handleTransact([action]);
-      if (txid) {
-        addNotification({
-          variant: 'success',
-          message: 'Successfully claimed rewards',
-          txid,
-          position: 'bottom-center'
-        });
-        await refreshAllData();
-      } else {
-        addNotification({
-          variant: 'error',
-          message: 'Failed to claim rewards',
-          position: 'bottom-center'
-        });
+      await session.transact({ actions: [action] });
+      
+      // Refresh player stake data after claim
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
+      
+      if (response.rows?.length > 0) {
+        setPlayerStake(response.rows[0] as StakedEntity);
       }
     } catch (error) {
       console.error('Claim error:', error);
-      addNotification({
-        variant: 'error',
-        message: 'Failed to claim rewards',
-        position: 'bottom-center'
-      });
+      setError('Failed to claim rewards. Please try again.');
     }
   };
+
+  // Add this function alongside handleClaim and handleUnstake in GameUI:
+
+const handleStake = async (amount: string): Promise<void> => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+    const action = {
+      account: selectedPool.staked_token_contract,
+      name: 'transfer',
+      authorization: [session.permissionLevel],
+      data: {
+        from: session.actor,
+        to: CONTRACTS.STAKING.NAME,
+        quantity: `${amount} ${symbol}`,
+        memo: 'stake'
+      }
+    };
+
+    await session.transact({ actions: [action] });
+    
+    // Refresh player stake data after stake
+    const response = await session.client.v1.chain.get_table_rows({
+      code: Name.from(CONTRACTS.STAKING.NAME),
+      scope: Name.from(session.actor.toString()),
+      table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+      lower_bound: UInt64.from(selectedPool.pool_id),
+      upper_bound: UInt64.from(selectedPool.pool_id),
+      limit: 1
+    });
+    
+    if (response.rows?.length > 0) {
+      setPlayerStake(response.rows[0] as StakedEntity);
+    }
+  } catch (error) {
+    console.error('Staking error:', error);
+    setError('Failed to stake tokens. Please try again.');
+  }
+};
 
   const handleUnstake = async (amount: string): Promise<void> => {
     if (!session || !selectedPool) return;
     
     try {
-      addNotification({
-        variant: 'pending',
-        message: 'Unstaking tokens...',
-        amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-        position: 'bottom-center'
-      });
-
       const action = {
         account: Name.from(CONTRACTS.STAKING.NAME),
         name: Name.from('unstake'),
         authorization: [session.permissionLevel],
         data: {
           claimer: session.actor,
-          pool_id: UInt64.from(selectedPool.pool_id),
+          pool_id: selectedPool.pool_id,
           quantity: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`
         }
       };
 
-      const txid = await handleTransact([action]);
-      if (txid) {
-        addNotification({
-          variant: 'success',
-          message: 'Successfully unstaked tokens',
-          amount: `${amount} ${parseTokenString(selectedPool.total_staked_quantity).symbol}`,
-          txid,
-          position: 'bottom-center'
-        });
-        await refreshAllData();
+      await session.transact({ actions: [action] });
+      
+      // Refresh player stake data after unstake
+      const response = await session.client.v1.chain.get_table_rows({
+        code: Name.from(CONTRACTS.STAKING.NAME),
+        scope: Name.from(session.actor.toString()),
+        table: Name.from(CONTRACTS.STAKING.TABLES.STAKEDS),
+        lower_bound: UInt64.from(selectedPool.pool_id),
+        upper_bound: UInt64.from(selectedPool.pool_id),
+        limit: 1
+      });
+      
+      if (response.rows?.length > 0) {
+        setPlayerStake(response.rows[0] as StakedEntity);
       } else {
-        addNotification({
-          variant: 'error',
-          message: 'Failed to unstake tokens',
-          position: 'bottom-center'
-        });
+        setPlayerStake(undefined);
       }
     } catch (error) {
       console.error('Unstake error:', error);
-      addNotification({
-        variant: 'error',
-        message: 'Failed to unstake tokens',
-        position: 'bottom-center'
-      });
-    }
-  };
-  const handleLogin = async () => {
-    try {
-      setIsDataInitialized(false);
-      const response = await sessionKit.login();
-      setSession(response.session);
-      addNotification({
-        variant: 'success',
-        message: `Welcome ${response.session.actor.toString()}!`,
-        position: 'bottom-center'
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      addNotification({
-        variant: 'error',
-        message: 'Failed to connect wallet',
-        position: 'bottom-center'
-      });
-    }
-  };
-
-  const handleLogout = async () => {
-    if (session) {
-      try {
-        await sessionKit.logout(session);
-        setSession(undefined);
-        setIsDataInitialized(false);
-        setPools([]);
-        setTiers([]);
-        setConfig(undefined);
-        setSelectedPool(undefined);
-        setPlayerStake(undefined);
-        addNotification({
-          variant: 'success',
-          message: 'Successfully logged out',
-          position: 'bottom-center'
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-        addNotification({
-          variant: 'error',
-          message: 'Failed to logout',
-          position: 'bottom-center'
-        });
-      }
+      setError('Failed to unstake tokens. Please try again.');
     }
   };
 
@@ -358,7 +325,7 @@ const GameUI: React.FC = () => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
-  // Calculate tier progress
+  // Calculate tier progress only when all required data is available
   const tierProgress = React.useMemo(() => {
     if (!playerStake || !selectedPool || !tiers.length) return null;
 
@@ -374,7 +341,7 @@ const GameUI: React.FC = () => {
     }
   }, [playerStake, selectedPool, tiers]);
 
-  // Calculate upgrade availability
+  // Calculate upgrade availability only when tier progress is available
   const canUpgradeTier = React.useMemo(() => {
     if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
 
@@ -487,16 +454,16 @@ const GameUI: React.FC = () => {
                     )}
                     
                     {playerStake && config && (
-                      <UserStatus 
-                        stakedData={playerStake}
-                        config={config}
-                        onCooldownComplete={() => setError(null)}
-                        onClaim={handleClaim}
-                        onUnstake={handleUnstake}
-                        onStake={handleStake}
-                        poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                      />
-                    )}
+  <UserStatus 
+    stakedData={playerStake}
+    config={config}
+    onCooldownComplete={() => setError(null)}
+    onClaim={handleClaim}
+    onUnstake={handleUnstake}
+    onStake={handleStake}
+    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+  />
+)}
 
                     <RewardsChart poolData={selectedPool} />
                   </div>
