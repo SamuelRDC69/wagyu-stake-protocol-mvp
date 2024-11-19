@@ -1,10 +1,12 @@
 import { createContext } from 'react';
 import { Session, SessionKit } from '@wharfkit/session';
 
-interface WharfkitContextType {
+export const WharfkitContext = createContext<{
   session: Session | undefined;
   setSession: (session: Session | undefined) => void;
   sessionKit: SessionKit;
-}
-
-export const WharfkitContext = createContext<WharfkitContextType>({} as WharfkitContextType);
+}>({
+  session: undefined,
+  setSession: () => {},
+  sessionKit: {} as SessionKit,
+});
