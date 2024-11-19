@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useCallback, useContext, useState, useRef } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
 import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
@@ -50,85 +50,66 @@ const GameUI: React.FC = () => {
   const [playerStake, setPlayerStake] = useState<StakedEntity | undefined>(undefined);
   const [tiers, setTiers] = useState<TierEntity[]>([]);
   const [config, setConfig] = useState<ConfigEntity | undefined>(undefined);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isDataInitialized, setIsDataInitialized] = useState(false);
+  const previousPoolId = useRef<number | null>(null);
 
-  // Polling for pools data
+  // Consolidated data fetching function
+  const fetchGameData = useCallback(async () => {
+    if (!session) return null;
+    
+    try {
+      const [poolsResponse, tiersResponse, configResponse] = await Promise.all([
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
+          limit: 10
+        }),
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
+          limit: 10
+        }),
+        session.client.v1.chain.get_table_rows({
+          code: Name.from(CONTRACTS.STAKING.NAME),
+          scope: Name.from(CONTRACTS.STAKING.NAME),
+          table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
+          limit: 1
+        })
+      ]);
+
+      return {
+        pools: poolsResponse.rows,
+        tiers: tiersResponse.rows,
+        config: configResponse.rows[0]
+      };
+    } catch (error) {
+      console.error('Error fetching game data:', error);
+      throw error;
+    }
+  }, [session]);
+
+  // Use a single polling hook for all static data
   const { 
-    data: poolsData, 
-    isLoading: poolsLoading,
-    refresh: refreshPools 
-  } = usePolling(
-    async () => {
-      if (!session) return null;
-      const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from(CONTRACTS.STAKING.NAME),
-        scope: Name.from(CONTRACTS.STAKING.NAME),
-        table: Name.from(CONTRACTS.STAKING.TABLES.POOLS),
-        limit: 10
+    data: gameData,
+    isLoading: isInitialLoading,
+    refresh: refreshGameData
+  } = usePolling(fetchGameData, {
+    interval: 3000,
+    enabled: !!session,
+    onError: (error) => {
+      console.error('Error fetching game data:', error);
+      addNotification({
+        variant: 'error',
+        message: 'Failed to fetch game data',
+        position: 'bottom-center'
       });
-      return response.rows;
-    },
-    {
-      enabled: !!session,
-      onError: (error) => {
-        console.error('Error fetching pools:', error);
-        addNotification({
-          variant: 'error',
-          message: 'Failed to fetch pool data',
-          position: 'bottom-center'
-        });
-      }
     }
-  );
+  });
 
-  // Polling for tiers data
-  const {
-    data: tiersData,
-    refresh: refreshTiers
-  } = usePolling(
-    async () => {
-      if (!session) return null;
-      const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from(CONTRACTS.STAKING.NAME),
-        scope: Name.from(CONTRACTS.STAKING.NAME),
-        table: Name.from(CONTRACTS.STAKING.TABLES.TIERS),
-        limit: 10
-      });
-      return response.rows;
-    },
-    {
-      enabled: !!session,
-      onError: (error) => {
-        console.error('Error fetching tiers:', error);
-      }
-    }
-  );
-
-  // Polling for config data
-  const {
-    data: configData,
-    refresh: refreshConfig
-  } = usePolling(
-    async () => {
-      if (!session) return null;
-      const response = await session.client.v1.chain.get_table_rows({
-        code: Name.from(CONTRACTS.STAKING.NAME),
-        scope: Name.from(CONTRACTS.STAKING.NAME),
-        table: Name.from(CONTRACTS.STAKING.TABLES.CONFIG),
-        limit: 1
-      });
-      return response.rows[0] || null;
-    },
-    {
-      enabled: !!session,
-      onError: (error) => {
-        console.error('Error fetching config:', error);
-      }
-    }
-  );
-
-  // Polling for player stake data
-  const {
+  // Separate polling for player stake data as it depends on selectedPool
+  const { 
     data: playerStakeData,
     refresh: refreshPlayerStake
   } = usePolling(
@@ -145,37 +126,43 @@ const GameUI: React.FC = () => {
       return response.rows[0] || null;
     },
     {
+      interval: 3000,
       enabled: !!session && !!selectedPool,
-      onError: (error) => {
-        console.error('Error fetching player stake:', error);
-      }
+      skipInitialLoad: true
     }
   );
 
-    // Effect to handle initial loading state and data updates
+  // Effect to handle consolidated data updates
   React.useEffect(() => {
-    if (poolsData) {
-      setPools(poolsData);
-      if (!selectedPool && poolsData.length > 0) {
-        setSelectedPool(poolsData[0]);
+    if (gameData) {
+      setPools(gameData.pools);
+      setTiers(gameData.tiers);
+      setConfig(gameData.config);
+      
+      if (!selectedPool && gameData.pools.length > 0) {
+        setSelectedPool(gameData.pools[0]);
       }
-      // Set initial load to false once we have data
-      if (isInitialLoad) {
-        setIsInitialLoad(false);
+      
+      if (!isDataInitialized) {
+        setIsDataInitialized(true);
       }
     }
-    if (tiersData) {
-      setTiers(tiersData);
+  }, [gameData, isDataInitialized]);
+
+  // Effect to handle pool changes
+  React.useEffect(() => {
+    if (selectedPool?.pool_id !== previousPoolId.current) {
+      previousPoolId.current = selectedPool?.pool_id ?? null;
+      refreshPlayerStake();
     }
-    if (configData) {
-      setConfig(configData);
+  }, [selectedPool, refreshPlayerStake]);
+
+  // Effect to update player stake data
+  React.useEffect(() => {
+    if (playerStakeData !== undefined) {
+      setPlayerStake(playerStakeData || undefined);
     }
-    if (playerStakeData) {
-      setPlayerStake(playerStakeData);
-    } else {
-      setPlayerStake(undefined);
-    }
-  }, [poolsData, tiersData, configData, playerStakeData, isInitialLoad]);
+  }, [playerStakeData]);
 
   const handleStake = async (amount: string): Promise<void> => {
     if (!session || !selectedPool) return;
@@ -210,9 +197,8 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      // Refresh data after transaction
       await Promise.all([
-        refreshPools(2000),
+        refreshGameData(2000),
         refreshPlayerStake(2000)
       ]);
     } catch (error) {
@@ -255,7 +241,7 @@ const GameUI: React.FC = () => {
       });
 
       await Promise.all([
-        refreshPools(2000),
+        refreshGameData(2000),
         refreshPlayerStake(2000)
       ]);
     } catch (error) {
@@ -301,7 +287,7 @@ const GameUI: React.FC = () => {
       });
 
       await Promise.all([
-        refreshPools(2000),
+        refreshGameData(2000),
         refreshPlayerStake(2000)
       ]);
     } catch (error) {
@@ -338,6 +324,7 @@ const GameUI: React.FC = () => {
       try {
         await sessionKit.logout(session);
         setSession(undefined);
+        setIsDataInitialized(false); // Reset initialization state
         addNotification({
           variant: 'success',
           message: 'Successfully logged out',
@@ -426,7 +413,7 @@ const GameUI: React.FC = () => {
 
       {session ? (
         <div className="p-6 space-y-6">
-          {isInitialLoad ? ( // Changed from poolsLoading to isInitialLoad
+          {!isDataInitialized && isInitialLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
@@ -445,7 +432,7 @@ const GameUI: React.FC = () => {
                       setError('Error selecting pool');
                     }
                   }}
-                  value={selectedPool?.pool_id?.toString()}
+                      value={selectedPool?.pool_id?.toString()}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a kingdom" />
