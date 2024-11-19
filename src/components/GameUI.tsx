@@ -28,6 +28,7 @@ import { PoolEntity } from '../lib/types/pool';
 import { StakedEntity } from '../lib/types/staked';
 import { TierEntity } from '../lib/types/tier';
 import { ConfigEntity } from '../lib/types/config';
+import { WaxTransactionResult } from '../lib/types/transaction';
 
 // Utils
 import { parseTokenString } from '../lib/utils/tokenUtils';
@@ -194,7 +195,7 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] });
+      const result = await session.transact({ actions: [action] }) as WaxTransactionResult;
 
       addNotification({
         variant: 'success',
@@ -239,7 +240,7 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] });
+      const result = await session.transact({ actions: [action] }) as WaxTransactionResult;
 
       addNotification({
         variant: 'success',
@@ -284,7 +285,7 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] });
+      const result = await session.transact({ actions: [action] }) as WaxTransactionResult;
 
       addNotification({
         variant: 'success',
