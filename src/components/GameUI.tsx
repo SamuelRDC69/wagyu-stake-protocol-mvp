@@ -5,8 +5,6 @@ import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useChainQuery } from '../lib/hooks/useChainQuery';
 import { useNotifications } from '../lib/hooks/useNotifications';
-import { sessionService } from '../lib/services/session.service';
-import { chainService } from '../lib/services/chain.service';
 
 // UI Components
 import {
@@ -42,7 +40,7 @@ interface NavItem {
 }
 
 const GameUI: React.FC = () => {
-  const { session, setSession } = useContext(WharfkitContext);
+  const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<string>('kingdom');
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>(undefined);
@@ -110,7 +108,6 @@ const GameUI: React.FC = () => {
     if (selectedPool?.pool_id !== previousPoolId.current) {
       previousPoolId.current = selectedPool?.pool_id ?? null;
       refreshPlayerStake();
-      chainService.clearCache(); // Clear cache on pool change
     }
   }, [selectedPool, refreshPlayerStake]);
 
@@ -154,7 +151,6 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      chainService.clearCache(); // Clear cache after transaction
       await Promise.all([
         refreshGameData(),
         refreshPlayerStake()
@@ -198,7 +194,6 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      chainService.clearCache(); // Clear cache after transaction
       await Promise.all([
         refreshGameData(),
         refreshPlayerStake()
@@ -245,7 +240,6 @@ const GameUI: React.FC = () => {
         position: 'bottom-center'
       });
 
-      chainService.clearCache(); // Clear cache after transaction
       await Promise.all([
         refreshGameData(),
         refreshPlayerStake()
@@ -263,11 +257,11 @@ const GameUI: React.FC = () => {
   const handleLogin = async () => {
     try {
       setIsDataInitialized(false);
-      const newSession = await sessionService.login();
-      setSession(newSession);
+      const response = await sessionKit.login();
+      setSession(response.session);
       addNotification({
         variant: 'success',
-        message: `Welcome ${newSession.actor.toString()}!`,
+        message: `Welcome ${response.session.actor.toString()}!`,
         position: 'bottom-center'
       });
     } catch (error) {
@@ -283,7 +277,7 @@ const GameUI: React.FC = () => {
   const handleLogout = async () => {
     if (session) {
       try {
-        await sessionService.logout(session);
+        await sessionKit.logout(session);
         setSession(undefined);
         setIsDataInitialized(false);
         setPools([]);
@@ -291,7 +285,6 @@ const GameUI: React.FC = () => {
         setConfig(undefined);
         setSelectedPool(undefined);
         setPlayerStake(undefined);
-        chainService.clearCache();
         addNotification({
           variant: 'success',
           message: 'Successfully logged out',
@@ -307,7 +300,6 @@ const GameUI: React.FC = () => {
       }
     }
   };
-
 
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
@@ -380,94 +372,94 @@ const GameUI: React.FC = () => {
       </div>
 
       {session ? (
-  <div className="p-6 space-y-6">
-    {isInitialLoading ? (
-      <div className="flex justify-center items-center h-64">
-        <div className="loading-spinner" />
-      </div>
-    ) : (
-      <div className="space-y-6">
-        <div className="crystal-bg rounded-2xl p-6">
-          <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-          <Select 
-            onValueChange={(value) => {
-              try {
-                const pool = pools.find(p => p.pool_id === parseInt(value));
-                setSelectedPool(pool);
-                setError(null);
-              } catch (error) {
-                console.error('Error selecting pool:', error);
-                setError('Error selecting pool');
-              }
-            }}
-            value={selectedPool?.pool_id?.toString()}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose a kingdom" />
-            </SelectTrigger>
-            <SelectContent>
-              <div>
-                {pools.map((pool) => {
-                  try {
-                    const { symbol } = parseTokenString(pool.total_staked_quantity);
-                    return (
-                      <SelectItem 
-                        key={pool.pool_id} 
-                        value={pool.pool_id.toString()}
-                      >
-                        {`${symbol} - Pool #${pool.pool_id}`}
-                      </SelectItem>
-                    );
-                  } catch (e) {
-                    console.error('Error parsing pool data:', e);
-                    return null;
-                  }
-                })}
-              </div>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selectedPool && (
-          <ErrorBoundary 
-            fallback={<div className="text-red-400">
-              Error loading pool data. Check console for details.
-            </div>}
-          >
-            <div className="space-y-6">
-              <PoolStats poolData={selectedPool} />
-
-              {tierProgress && (
-                <TierDisplay 
-                  tierProgress={tierProgress}
-                  isUpgradeAvailable={canUpgradeTier}
-                />
-              )}
-              
-              {playerStake && config && (
-                <UserStatus 
-                  stakedData={playerStake}
-                  config={config}
-                  onCooldownComplete={() => setError(null)}
-                  onClaim={handleClaim}
-                  onUnstake={handleUnstake}
-                  onStake={handleStake}
-                  poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                />
-              )}
-
-              <RewardsChart poolData={selectedPool} />
+        <div className="p-6 space-y-6">
+          {isInitialLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="loading-spinner" />
             </div>
-          </ErrorBoundary>
-        )}
-      </div>
-    )}
-  </div>
-) : (
-  <div className="flex justify-center items-center h-64">
-    <p className="text-purple-200">Connect your wallet to start playing</p>
-  </div>
-)}
+          ) : (
+            <div className="space-y-6">
+              <div className="crystal-bg rounded-2xl p-6">
+                <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+                <Select 
+                  onValueChange={(value) => {
+                    try {
+                      const pool = pools.find(p => p.pool_id === parseInt(value));
+                      setSelectedPool(pool);
+                      setError(null);
+                    } catch (error) {
+                      console.error('Error selecting pool:', error);
+                      setError('Error selecting pool');
+                    }
+                  }}
+                  value={selectedPool?.pool_id?.toString()}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a kingdom" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div>
+                      {pools.map((pool) => {
+                        try {
+                          const { symbol } = parseTokenString(pool.total_staked_quantity);
+                          return (
+                            <SelectItem 
+                              key={pool.pool_id} 
+                              value={pool.pool_id.toString()}
+                            >
+                              {`${symbol} - Pool #${pool.pool_id}`}
+                            </SelectItem>
+                          );
+                        } catch (e) {
+                          console.error('Error parsing pool data:', e);
+                          return null;
+                        }
+                      })}
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedPool && (
+                <ErrorBoundary 
+                  fallback={<div className="text-red-400">
+                    Error loading pool data. Check console for details.
+                  </div>}
+                >
+                  <div className="space-y-6">
+                    <PoolStats poolData={selectedPool} />
+
+                    {tierProgress && (
+                      <TierDisplay 
+                        tierProgress={tierProgress}
+                        isUpgradeAvailable={canUpgradeTier}
+                      />
+                    )}
+                    
+                    {playerStake && config && (
+                      <UserStatus 
+                        stakedData={playerStake}
+                        config={config}
+                        onCooldownComplete={() => setError(null)}
+                        onClaim={handleClaim}
+                        onUnstake={handleUnstake}
+                        onStake={handleStake}
+                        poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+                      />
+                    )}
+
+                    <RewardsChart poolData={selectedPool} />
+                  </div>
+                </ErrorBoundary>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-purple-200">Connect your wallet to start playing</p>
+        </div>
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
         <div className="flex justify-around p-4 max-w-lg mx-auto">
