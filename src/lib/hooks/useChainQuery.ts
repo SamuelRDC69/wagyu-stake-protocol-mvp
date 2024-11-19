@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Session, Name } from '@wharfkit/session';
+import { Session, Name, GetTableRowsResponse } from '@wharfkit/session';
 
 interface UseChainQueryOptions {
   code: string;
@@ -13,17 +13,11 @@ interface UseChainQueryOptions {
   onError?: (error: Error) => void;
 }
 
-interface TableResult<T> {
-  more: boolean;
-  next_key: string;
-  rows: T[];
-}
-
 export function useChainQuery<T>(
   session: Session | undefined,
   options: UseChainQueryOptions
 ) {
-  const [data, setData] = useState<TableResult<T> | null>(null);
+  const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const timerRef = useRef<number>();
@@ -37,14 +31,14 @@ export function useChainQuery<T>(
         code: Name.from(options.code),
         scope: Name.from(options.scope || options.code),
         table: Name.from(options.table),
-        lower_bound: options.lowerBound,
-        upper_bound: options.upperBound,
+        lower_bound: options.lowerBound ? Name.from(options.lowerBound) : undefined,
+        upper_bound: options.upperBound ? Name.from(options.upperBound) : undefined,
         limit: options.limit || 100,
         json: true
       });
       
       if (isMounted.current) {
-        setData(result);
+        setData(result.rows as T[]);
         setError(null);
         setIsLoading(false);
       }
@@ -88,7 +82,7 @@ export function useChainQuery<T>(
   }, [fetchData, options.enabled, options.refreshInterval, session]);
 
   return { 
-    data: data?.rows || [], 
+    data, 
     error, 
     isLoading, 
     refresh 
