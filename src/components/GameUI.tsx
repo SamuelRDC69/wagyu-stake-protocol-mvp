@@ -92,21 +92,22 @@ const GameUI: React.FC = () => {
 
   // Use a single polling hook for all static data
   const { 
-    data: gameData,
-    isLoading: isInitialLoading,
-    refresh: refreshGameData
-  } = usePolling(fetchGameData, {
-    interval: 3000,
-    enabled: !!session,
-    onError: (error) => {
-      console.error('Error fetching game data:', error);
-      addNotification({
-        variant: 'error',
-        message: 'Failed to fetch game data',
-        position: 'bottom-center'
-      });
-    }
-  });
+  data: gameData,
+  isLoading: isInitialLoading,
+  refresh: refreshGameData
+} = usePolling(fetchGameData, {
+  interval: 3000,
+  enabled: !!session,
+  onError: (error) => {
+    console.error('Error fetching game data:', error);
+    addNotification({
+      variant: 'error',
+      message: 'Failed to fetch game data',
+      position: 'bottom-center'
+    });
+  }
+});
+
 
   // Separate polling for player stake data as it depends on selectedPool
   const { 
@@ -134,20 +135,19 @@ const GameUI: React.FC = () => {
 
   // Effect to handle consolidated data updates
   React.useEffect(() => {
-    if (gameData) {
-      setPools(gameData.pools);
-      setTiers(gameData.tiers);
-      setConfig(gameData.config);
-      
-      if (!selectedPool && gameData.pools.length > 0) {
-        setSelectedPool(gameData.pools[0]);
-      }
-      
-      if (!isDataInitialized) {
-        setIsDataInitialized(true);
-      }
+  if (gameData) {
+    setPools(gameData.pools || []);
+    setTiers(gameData.tiers || []);
+    setConfig(gameData.config);
+    
+    // Set initial pool if we have pools and no selected pool
+    if (!selectedPool && gameData.pools?.length > 0) {
+      setSelectedPool(gameData.pools[0]);
     }
-  }, [gameData, isDataInitialized]);
+    
+    setIsDataInitialized(true);
+  }
+}, [gameData, selectedPool]);
 
   // Effect to handle pool changes
   React.useEffect(() => {
@@ -320,26 +320,31 @@ const GameUI: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (session) {
-      try {
-        await sessionKit.logout(session);
-        setSession(undefined);
-        setIsDataInitialized(false); // Reset initialization state
-        addNotification({
-          variant: 'success',
-          message: 'Successfully logged out',
-          position: 'bottom-center'
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-        addNotification({
-          variant: 'error',
-          message: 'Failed to logout',
-          position: 'bottom-center'
-        });
-      }
+  if (session) {
+    try {
+      await sessionKit.logout(session);
+      setSession(undefined);
+      setIsDataInitialized(false);
+      setPools([]);
+      setTiers([]);
+      setConfig(undefined);
+      setSelectedPool(undefined);
+      setPlayerStake(undefined);
+      addNotification({
+        variant: 'success',
+        message: 'Successfully logged out',
+        position: 'bottom-center'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      addNotification({
+        variant: 'error',
+        message: 'Failed to logout',
+        position: 'bottom-center'
+      });
     }
-  };
+  }
+};
 
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
@@ -412,12 +417,12 @@ const GameUI: React.FC = () => {
       </div>
 
       {session ? (
-        <div className="p-6 space-y-6">
-          {!isDataInitialized && isInitialLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="loading-spinner" />
-            </div>
-          ) : (
+  <div className="p-6 space-y-6">
+    {(!isDataInitialized || isInitialLoading) ? (
+      <div className="flex justify-center items-center h-64">
+        <div className="loading-spinner" />
+      </div>
+    ) : (
             <div className="space-y-6">
               <div className="crystal-bg rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
