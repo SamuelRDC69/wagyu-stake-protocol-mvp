@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Session } from '@wharfkit/session';
-import { chainService } from '../services/chain.service';
 
 interface UseChainQueryOptions {
   code: string;
@@ -18,7 +17,7 @@ export function useChainQuery<T>(
   session: Session | undefined,
   options: UseChainQueryOptions
 ) {
-  const [data, setData] = useState<T[]>([]);
+  const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const timerRef = useRef<number>();
@@ -28,20 +27,18 @@ export function useChainQuery<T>(
     if (!session || !options.enabled) return;
 
     try {
-      const result = await chainService.getTableRows<T>(
-        session,
-        options.code,
-        options.table,
-        {
-          scope: options.scope,
-          lowerBound: options.lowerBound,
-          upperBound: options.upperBound,
-          limit: options.limit
-        }
-      );
+      const result = await session.client.v1.chain.get_table_rows({
+        code: options.code,
+        scope: options.scope || options.code,
+        table: options.table,
+        lower_bound: options.lowerBound,
+        upper_bound: options.upperBound,
+        limit: options.limit || 100,
+        json: true
+      });
       
       if (isMounted.current) {
-        setData(result);
+        setData(result.rows);
         setError(null);
         setIsLoading(false);
       }
@@ -55,6 +52,13 @@ export function useChainQuery<T>(
       console.error('Chain query error:', err);
     }
   }, [session, options]);
+
+  const refresh = useCallback(async () => {
+    if (isMounted.current) {
+      setIsLoading(true);
+    }
+    await fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -77,17 +81,5 @@ export function useChainQuery<T>(
     };
   }, [fetchData, options.enabled, options.refreshInterval, session]);
 
-  const refresh = useCallback(async () => {
-    if (isMounted.current) {
-      setIsLoading(true);
-    }
-    await fetchData();
-  }, [fetchData]);
-
-  return {
-    data,
-    isLoading,
-    error,
-    refresh
-  };
+  return { data, error, isLoading, refresh };
 }
