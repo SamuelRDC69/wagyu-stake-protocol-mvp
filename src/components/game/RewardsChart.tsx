@@ -15,7 +15,8 @@ import { parseTokenString } from '../../lib/utils/tokenUtils';
 import { formatNumber } from '../../lib/utils/formatUtils';
 
 interface RewardsChartProps {
-  poolData: Pick<PoolEntity, 'reward_pool' | 'emission_unit' | 'emission_rate' | 'last_emission_updated_at'>;
+  poolData?: Pick<PoolEntity, 'reward_pool' | 'emission_unit' | 'emission_rate' | 'last_emission_updated_at'>;
+  isLoading?: boolean;
 }
 
 interface ChartDataPoint {
@@ -47,8 +48,10 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   return null;
 };
 
-export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
+export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData, isLoading }) => {
   const chartData = useMemo(() => {
+    if (!poolData) return [];
+
     const data: ChartDataPoint[] = [];
     const currentTime = new Date().getTime();
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
@@ -60,15 +63,46 @@ export const RewardsChart: React.FC<RewardsChartProps> = ({ poolData }) => {
       const emissionTime = (timePoint - lastUpdate) / 1000; // seconds
       const newEmissions = (emissionTime / poolData.emission_unit) * poolData.emission_rate;
       const projectedRewards = currentRewards + newEmissions;
-data.push({
-  time: new Date(timePoint).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  rewards: projectedRewards,
-  formatted: `${projectedRewards.toFixed(8)} ${symbol}`
-});
+
+      data.push({
+        time: new Date(timePoint).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        rewards: projectedRewards,
+        formatted: `${projectedRewards.toFixed(8)} ${symbol}`
+      });
     }
     
     return data;
   }, [poolData]);
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Rewards Pool Projection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full bg-slate-800/30 rounded animate-pulse flex items-center justify-center">
+            <span className="text-slate-500">Loading chart data...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!poolData || !chartData.length) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Rewards Pool Projection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full flex items-center justify-center">
+            <span className="text-slate-400">No reward data available</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
