@@ -279,7 +279,7 @@ const GameUI: React.FC = () => {
                 </Select>
               </div>
 
-{selectedPool && (
+              {selectedPool && (
                 <ErrorBoundary 
                   fallback={<div className="text-red-400">
                     Error loading pool data. Check console for details.
