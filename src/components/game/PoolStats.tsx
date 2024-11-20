@@ -4,11 +4,12 @@ import { Shield, Timer, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 
 interface PoolStatsProps {
-  poolData: PoolEntity;
+  poolData?: PoolEntity;
+  isLoading?: boolean;
 }
 
-export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
-  // Validation function
+export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => {
+  // Validation function from project knowledge
   const isValidPoolData = (data: any): data is PoolEntity => {
     return (
       data &&
@@ -21,7 +22,30 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
     );
   };
 
-  // Early validation
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Pool Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
+                <div className="w-8 h-8 bg-purple-500/20 rounded animate-pulse" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-slate-700 rounded w-1/2 animate-pulse" />
+                  <div className="h-4 bg-slate-700 rounded w-3/4 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Early validation from project knowledge
   if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
@@ -36,7 +60,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData }) => {
     );
   }
 
-  // Format token string safely
+  // Format token string safely from project knowledge
   const formatTokenString = (value: string): { amount: string; symbol: string } => {
     try {
       const [amount, symbol = 'WAX'] = value.split(' ');
