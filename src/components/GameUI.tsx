@@ -236,7 +236,7 @@ const GameUI: React.FC = () => {
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
-          ) : (
+          ): (
             <div className="space-y-6">
               <div className="crystal-bg rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
@@ -314,7 +314,7 @@ const GameUI: React.FC = () => {
             </div>
           )}
         </div>
-      ) : (
+      ): (
         <div className="flex justify-center items-center h-64">
           <p className="text-purple-200">Connect your wallet to start playing</p>
         </div>
