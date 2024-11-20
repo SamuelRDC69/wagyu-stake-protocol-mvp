@@ -279,30 +279,38 @@ const GameUI: React.FC = () => {
                 </Select>
               </div>
 
-              {selectedPool && (
-                <ErrorBoundary 
-                  fallback={<div className="text-red-400">
-                    Error loading pool data. Check console for details.
-                  </div>}
-                >
-                  <div className="space-y-6">
-                                  <PoolStats poolData={selectedPool} />
-              <TierDisplay 
-                tierProgress={calculateTierProgress(playerStake, selectedPool, tiers)}
-                isUpgradeAvailable={false}
-              />
-              <UserStatus 
-                stakedData={playerStake}
-                config={config}
-                onClaim={handleClaim}
-                onUnstake={handleUnstake}
-                onStake={handleStake}
-              />
-              <RewardsChart poolData={selectedPool} />
-
-                  </div>
-                </ErrorBoundary>
-              )}
+{selectedPool && (
+  <ErrorBoundary 
+    fallback={<div className="text-red-400">
+      Error loading pool data. Check console for details.
+    </div>}
+  >
+    <div className="space-y-6">
+      <PoolStats 
+        poolData={selectedPool} 
+        isLoading={loading} 
+      />
+      <TierDisplay 
+        tierProgress={tierProgress}
+        isUpgradeAvailable={canUpgradeTier}
+        isLoading={loading}
+      />
+      <UserStatus 
+        stakedData={playerStake}
+        config={config}
+        onClaim={handleClaim}
+        onUnstake={handleUnstake}
+        onStake={handleStake}
+        poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+        isLoading={loading}
+      />
+      <RewardsChart 
+        poolData={selectedPool} 
+        isLoading={loading}
+      />
+    </div>
+  </ErrorBoundary>
+)}
             </div>
           )}
         </div>
