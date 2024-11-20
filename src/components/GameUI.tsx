@@ -3,6 +3,7 @@ import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } f
 import { Name, UInt64 } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
+import { useContractData } from '../lib/hooks/useContractData';
 
 // UI Components
 import {
