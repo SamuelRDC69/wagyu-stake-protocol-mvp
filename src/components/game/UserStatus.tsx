@@ -32,13 +32,14 @@ import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils'
 import { getTierColor } from '../../lib/utils/tierUtils';
 
 interface UserStatusProps {
-  stakedData: StakedEntity;
-  config: Pick<ConfigEntity, 'cooldown_seconds_per_claim'>;
+  stakedData?: StakedEntity;
+  config?: ConfigEntity;
   onCooldownComplete?: () => void;
   onClaim: () => Promise<void>;
   onUnstake: (amount: string) => Promise<void>;
   onStake: (amount: string) => Promise<void>;
   poolSymbol: string;
+  isLoading?: boolean;
 }
 
 export const UserStatus: React.FC<UserStatusProps> = ({
@@ -48,7 +49,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   onClaim,
   onUnstake,
   onStake,
-  poolSymbol
+  poolSymbol,
+  isLoading
 }) => {
   const [isUnstakeDialogOpen, setUnstakeDialogOpen] = useState(false);
   const [isStakeDialogOpen, setStakeDialogOpen] = useState(false);
@@ -56,6 +58,30 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   const [unstakeAmount, setUnstakeAmount] = useState('');
   const [stakeAmount, setStakeAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-slate-700 rounded w-1/4"></div>
+            <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+            <div className="h-4 bg-slate-700 rounded w-1/3"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!stakedData || !config) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <p className="text-center text-slate-400">No active stake found. Start staking to see your position.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const { amount: stakedAmount, symbol } = parseTokenString(stakedData.staked_quantity);
 
