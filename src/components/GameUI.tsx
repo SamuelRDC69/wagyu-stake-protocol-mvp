@@ -232,7 +232,7 @@ const GameUI: React.FC = () => {
 
 {session ? (
         <div className="p-6 space-y-6">
-          {isLoading ? (
+          {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
