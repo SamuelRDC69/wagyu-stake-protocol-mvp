@@ -7,17 +7,17 @@ import { TierProgress } from '../../lib/types/tier';
 import { getTierColor } from '../../lib/utils/tierUtils';
 
 interface TierDisplayProps {
-  tierProgress: TierProgress;
+  tierProgress?: TierProgress;
   isUpgradeAvailable: boolean;
+  isLoading?: boolean;
 }
 
 export const TierDisplay: React.FC<TierDisplayProps> = ({
   tierProgress,
-  isUpgradeAvailable
+  isUpgradeAvailable,
+  isLoading
 }) => {
-  console.log('TierDisplay props:', { tierProgress, isUpgradeAvailable });
-
-  // Safe number formatter
+  // Safe number formatter from project knowledge
   const formatPercent = (value: number | string | undefined): string => {
     if (value === undefined) return '0.00%';
     const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -26,9 +26,39 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   };
 
   const tierColor = useMemo(() => 
-    getTierColor(tierProgress.currentTier.tier), 
-    [tierProgress.currentTier.tier]
+    tierProgress ? getTierColor(tierProgress.currentTier.tier) : 'text-slate-500', 
+    [tierProgress]
   );
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="h-6 bg-slate-700 rounded w-1/4 animate-pulse" />
+            <div className="h-6 bg-slate-700 rounded w-1/6 animate-pulse" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-2 bg-slate-700 rounded animate-pulse" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-12 bg-slate-700 rounded animate-pulse" />
+            <div className="h-12 bg-slate-700 rounded animate-pulse" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!tierProgress) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <p className="text-center text-slate-400">No tier data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full hover:scale-in">
