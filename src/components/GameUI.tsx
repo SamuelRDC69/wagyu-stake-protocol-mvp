@@ -311,8 +311,6 @@ const GameUI: React.FC = () => {
     </div>
   </ErrorBoundary>
 )}
-            </div>
-          )}
         </div>
       ) : (
         <div className="flex justify-center items-center h-64">
