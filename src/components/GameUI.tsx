@@ -1,6 +1,6 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
-import { Name, UInt64 } from '@wharfkit/session';
+import { Name } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
@@ -139,6 +139,7 @@ const GameUI: React.FC = () => {
     try {
       const response = await sessionKit.login();
       setSession(response.session);
+      await refreshData();
     } catch (error) {
       console.error('Login error:', error);
       setError('Failed to connect wallet');
@@ -151,7 +152,6 @@ const GameUI: React.FC = () => {
       setSession(undefined);
     }
   };
-
 
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
@@ -217,7 +217,7 @@ const GameUI: React.FC = () => {
                   Logout
                 </Button>
               </>
-            ) : (
+            ): (
               <Button 
                 variant="outline" 
                 className="text-purple-200 border-purple-500" 
