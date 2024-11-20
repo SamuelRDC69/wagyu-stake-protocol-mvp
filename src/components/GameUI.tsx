@@ -230,9 +230,9 @@ const GameUI: React.FC = () => {
         </div>
       </div>
 
-      {session && (
+{session ? (
         <div className="p-6 space-y-6">
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="loading-spinner" />
             </div>
@@ -286,28 +286,28 @@ const GameUI: React.FC = () => {
                   </div>}
                 >
                   <div className="space-y-6">
-                    <PoolStats 
-                      poolData={selectedPool} 
-                      isLoading={loading} 
-                    />
-                    <TierDisplay 
-                      tierProgress={tierProgress}
-                      isUpgradeAvailable={canUpgradeTier}
-                      isLoading={loading}
-                    />
-                    <UserStatus 
-                      stakedData={playerStake}
-                      config={config}
-                      onClaim={handleClaim}
-                      onUnstake={handleUnstake}
-                      onStake={handleStake}
-                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                      isLoading={loading}
-                    />
-                    <RewardsChart 
-                      poolData={selectedPool} 
-                      isLoading={loading}
-                    />
+                    <PoolStats poolData={selectedPool} />
+
+                    {tierProgress && (
+                      <TierDisplay 
+                        tierProgress={tierProgress}
+                        isUpgradeAvailable={canUpgradeTier}
+                      />
+                    )}
+                    
+                    {playerStake && config && (
+                      <UserStatus 
+                        stakedData={playerStake}
+                        config={config}
+                        onCooldownComplete={() => setError(null)}
+                        onClaim={handleClaim}
+                        onUnstake={handleUnstake}
+                        onStake={handleStake}
+                        poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+                      />
+                    )}
+
+                    <RewardsChart poolData={selectedPool} />
                   </div>
                 </ErrorBoundary>
               )}
