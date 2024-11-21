@@ -37,19 +37,19 @@ export function useContractData() {
 
       // Transform pools data
       const pools: PoolEntity[] = poolsData.map(pool => ({
-        pool_id: Number(pool.pool_id?.toString() || 0),
-        staked_token_contract: pool.staked_token_contract?.toString() || '',
-        total_staked_quantity: pool.total_staked_quantity?.toString() || '0.00000000 WAX',
-        total_staked_weight: pool.total_staked_weight?.toString() || '0.00000000 WAX',
-        reward_pool: {
-          quantity: pool.reward_pool?.quantity?.toString() || '0.00000000 WAX',
-          contract: pool.reward_pool?.contract?.toString() || ''
-        },
-        emission_unit: Number(pool.emission_unit?.toString() || 0),
-        emission_rate: Number(pool.emission_rate?.toString() || 0),
-        last_emission_updated_at: pool.last_emission_updated_at?.toString() || new Date().toISOString(),
-        is_active: Boolean(pool.is_active)
-      }));
+  pool_id: Number(pool.pool_id?.toString() || 0),
+  staked_token_contract: pool.staked_token_contract?.toString() || '',
+  total_staked_quantity: pool.total_staked_quantity?.toString() || '0.00000000 WAX',
+  total_staked_weight: pool.total_staked_weight?.toString() || '0.00000000 WAX',
+  reward_pool: {
+    quantity: pool.reward_pool?.quantity?.toString() || '0.00000000 WAX',
+    contract: pool.reward_pool?.contract?.toString() || ''
+  },
+  emission_unit: Number(pool.emission_unit?.toString() || 0),
+  emission_rate: Number(pool.emission_rate?.toString() || 0),
+  last_emission_updated_at: pool.last_emission_updated_at?.toString() || new Date().toISOString(),
+  is_active: Number(pool.is_active ? 1 : 0)  // Convert boolean to number
+}));
 
       // Transform stakes data
       const stakes: StakedEntity[] = stakesData.map(stake => ({
@@ -70,10 +70,10 @@ export function useContractData() {
 
       // Transform config data
       const config: ConfigEntity = {
-        maintenance: Boolean(configData?.maintenance),
-        cooldown_seconds_per_claim: Number(configData?.cooldown_seconds_per_claim?.toString() || 60),
-        vault_account: configData?.vault_account?.toString() || ''
-      };
+  maintenance: Number(configData?.maintenance ? 1 : 0),  // Convert boolean to number
+  cooldown_seconds_per_claim: Number(configData?.cooldown_seconds_per_claim?.toString() || 60),
+  vault_account: configData?.vault_account?.toString() || ''
+};
 
       console.log('Transformed data:', { pools, stakes, tiers, config });
 
