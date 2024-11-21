@@ -1,6 +1,6 @@
 export const CONTRACTS = {
   STAKING: {
-    NAME: 'stakingdappp', // Replace with your deployed contract name
+    NAME: 'stakingdappp',
     TABLES: {
       POOLS: 'pools',
       STAKEDS: 'stakeds',
