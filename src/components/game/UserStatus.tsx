@@ -8,7 +8,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "../ui/dialog";
 import {
@@ -77,7 +76,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
     return (
       <Card className="w-full">
         <CardContent className="p-6">
-          <div className="text-center text-slate-400">Loading configuration...</div>
+          <p className="text-center text-slate-400">Loading configuration...</p>
         </CardContent>
       </Card>
     );
@@ -236,83 +235,83 @@ export const UserStatus: React.FC<UserStatusProps> = ({
               </>
             )}
           </div>
+
+          <Dialog open={isStakeDialogOpen} onOpenChange={setStakeDialogOpen}>
+            <DialogContent className="bg-slate-900 text-white">
+              <DialogHeader>
+                <DialogTitle>Stake Tokens</DialogTitle>
+                <DialogDescription>
+                  Enter the amount you want to stake
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  type="number"
+                  step="0.00000001"
+                  min="0.00000001"
+                  placeholder={`Amount of ${poolSymbol}`}
+                  value={stakeAmount}
+                  onChange={(e) => setStakeAmount(e.target.value)}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStakeDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleStake}
+                    disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isProcessing ? 'Processing...' : 'Confirm Stake'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
+            <DialogContent className="bg-slate-900 text-white">
+              <DialogHeader>
+                <DialogTitle>Unstake Tokens</DialogTitle>
+                <DialogDescription>
+                  Enter the amount you want to unstake
+                  {stakedData && ` (Max: ${formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)})`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  type="number"
+                  step="0.00000001"
+                  min="0.00000001"
+                  max={stakedData ? parseTokenString(stakedData.staked_quantity).amount : 0}
+                  placeholder={`Amount of ${poolSymbol}`}
+                  value={unstakeAmount}
+                  onChange={handleUnstakeAmountChange}
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setUnstakeDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleUnstake}
+                    disabled={isProcessing || !unstakeAmount || parseFloat(unstakeAmount) <= 0}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isProcessing ? 'Processing...' : 'Confirm Unstake'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-
-        <Dialog open={isStakeDialogOpen} onOpenChange={setStakeDialogOpen}>
-          <DialogContent className="bg-slate-900 text-white">
-            <DialogHeader>
-              <DialogTitle>Stake Tokens</DialogTitle>
-              <DialogDescription>
-                Enter the amount you want to stake
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                type="number"
-                step="0.00000001"
-                min="0.00000001"
-                placeholder={`Amount of ${poolSymbol}`}
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white"
-              />
-              <DialogFooter>
-                <Button
-                  variant="ghost"
-                  onClick={() => setStakeDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleStake}
-                  disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {isProcessing ? 'Processing...' : 'Confirm Stake'}
-                </Button>
-              </DialogFooter>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
-          <DialogContent className="bg-slate-900 text-white">
-            <DialogHeader>
-              <DialogTitle>Unstake Tokens</DialogTitle>
-              <DialogDescription>
-                Enter the amount you want to unstake
-                {stakedData && ` (Max: ${formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)})`}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                type="number"
-                step="0.00000001"
-                min="0.00000001"
-                max={stakedData ? parseTokenString(stakedData.staked_quantity).amount : 0}
-                placeholder={`Amount of ${poolSymbol}`}
-                value={unstakeAmount}
-                onChange={handleUnstakeAmountChange}
-                className="bg-slate-800 border-slate-700 text-white"
-              />
-              <DialogFooter>
-                <Button
-                  variant="ghost"
-                  onClick={() => setUnstakeDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleUnstake}
-                  disabled={isProcessing || !unstakeAmount || parseFloat(unstakeAmount) <= 0}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {isProcessing ? 'Processing...' : 'Confirm Unstake'}
-                </Button>
-              </DialogFooter>
-            </div>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
