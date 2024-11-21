@@ -89,33 +89,37 @@ const GameUI: React.FC = () => {
   };
 
   const handleStake = async (amount: string) => {
-    if (!session || !selectedPool) return;
-    
-    try {
-      const action = {
-        account: selectedPool.staked_token_contract,
-        name: Name.from('transfer'),
-        authorization: [session.permissionLevel],
-        data: {
-          from: session.actor,
-          to: CONTRACTS.STAKING.NAME,
-          quantity: amount,
-          memo: 'stake'
-        }
-      };
+ if (!session || !selectedPool) return;
+ 
+ try {
+   const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+   const formattedAmount = parseFloat(amount).toFixed(8); // Forces 8 decimals
+   const action = {
+     account: Name.from(selectedPool.staked_token_contract),
+     name: Name.from('transfer'),
+     authorization: [session.permissionLevel],
+     data: {
+       from: session.actor,
+       to: CONTRACTS.STAKING.NAME,
+       quantity: `${formattedAmount} ${symbol}`,
+       memo: 'stake'
+     }
+   };
 
-      await session.transact({ actions: [action] });
-      await refreshData();
-    } catch (error) {
-      console.error('Stake error:', error);
-      setError('Failed to stake tokens');
-    }
-  };
+   await session.transact({ actions: [action] });
+   await refreshData();
+ } catch (error) {
+   console.error('Stake error:', error);
+   setError('Failed to stake tokens');
+ }
+};
 
   const handleUnstake = async (amount: string) => {
     if (!session || !selectedPool) return;
     
     try {
+      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+      const formattedAmount = parseFloat(amount).toFixed(8); // Forces 8 decimals
       const action = {
         account: Name.from(CONTRACTS.STAKING.NAME),
         name: Name.from('unstake'),
@@ -123,7 +127,7 @@ const GameUI: React.FC = () => {
         data: {
           claimer: session.actor,
           pool_id: selectedPool.pool_id,
-          quantity: amount
+          quantity: `${formattedAmount} ${symbol}`,
         }
       };
 
