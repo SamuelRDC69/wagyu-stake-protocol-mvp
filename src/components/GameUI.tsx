@@ -295,17 +295,17 @@ const GameUI: React.FC = () => {
                       />
                     )}
                     
-                    {playerStake && config && (
-                      <UserStatus 
-                        stakedData={playerStake}
-                        config={config}
-                        onCooldownComplete={() => setError(null)}
-                        onClaim={handleClaim}
-                        onUnstake={handleUnstake}
-                        onStake={handleStake}
-                        poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                      />
-                    )}
+{config && (  // Only check for config, not playerStake
+  <UserStatus 
+    stakedData={playerStake}  // Can be undefined for new users
+    config={config}
+    onClaim={handleClaim}
+    onUnstake={handleUnstake}
+    onStake={handleStake}
+    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+    isLoading={loading}
+  />
+)}
 
                     <RewardsChart poolData={selectedPool} />
                   </div>
