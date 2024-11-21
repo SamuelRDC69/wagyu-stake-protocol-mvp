@@ -73,15 +73,16 @@ export const UserStatus: React.FC<UserStatusProps> = ({
     );
   }
 
-  if (!stakedData || !config) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6">
-          <p className="text-center text-slate-400">No active stake found. Start staking to see your position.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!config) {
+  return (
+    <Card className="w-full">
+      <CardContent className="p-6">
+        <p className="text-center text-slate-400">Loading configuration...</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 
   const { amount: stakedAmount, symbol } = parseTokenString(stakedData.staked_quantity);
 
@@ -135,72 +136,84 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Your Status</CardTitle>
+  <Card className="w-full">
+    <CardHeader>
+      <div className="flex items-center justify-between">
+        <CardTitle>Your Status</CardTitle>
+        {stakedData && (
           <Badge 
             variant={stakedData.tier.toLowerCase() as 'bronze' | 'silver' | 'gold'}
             className={`${getTierColor(stakedData.tier)} animate-pulse`}
           >
             {stakedData.tier}
           </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-slate-400">Staked Amount</span>
-            <span className="text-purple-200 font-medium">
-              {formatTokenAmount(stakedAmount, symbol)}
-            </span>
+        )}
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        {stakedData ? (
+          <>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Staked Amount</span>
+              <span className="text-purple-200 font-medium">
+                {formatTokenAmount(parseFloat(stakedData.staked_quantity), symbol)}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Last Claim</span>
+              <span className="text-purple-200 font-medium">
+                {formatLastAction(stakedData.last_claimed_at)}
+              </span>
+            </div>
+            
+            <div className="border-t border-slate-800 pt-4">
+              <CooldownTimer 
+                cooldownEndAt={stakedData.cooldown_end_at}
+                cooldownSeconds={config.cooldown_seconds_per_claim}
+                onComplete={onCooldownComplete}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-slate-400 mb-4">
+            No active stake. Start staking to earn rewards!
           </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-slate-400">Last Claim</span>
-            <span className="text-purple-200 font-medium">
-              {formatLastAction(stakedData.last_claimed_at)}
-            </span>
-          </div>
-          
-          <div className="border-t border-slate-800 pt-4">
-            <CooldownTimer 
-              cooldownEndAt={stakedData.cooldown_end_at}
-              cooldownSeconds={config.cooldown_seconds_per_claim}
-              onComplete={onCooldownComplete}
-            />
-          </div>
+        )}
 
-          <div className="grid grid-cols-3 gap-4 pt-4">
-            <Button
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={() => setStakeDialogOpen(true)}
-              disabled={isProcessing}
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Stake
-            </Button>
+        <div className="grid grid-cols-3 gap-4 pt-4">
+          <Button
+            className="w-full bg-purple-600 hover:bg-purple-700"
+            onClick={() => setStakeDialogOpen(true)}
+            disabled={isProcessing}
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Stake
+          </Button>
 
-            <Button
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={handleClaim}
-              disabled={isProcessing}
-            >
-              <Timer className="w-4 h-4 mr-2" />
-              {isProcessing ? 'Processing...' : 'Claim'}
-            </Button>
+          {stakedData && (
+            <>
+              <Button
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={handleClaim}
+                disabled={isProcessing}
+              >
+                <Timer className="w-4 h-4 mr-2" />
+                {isProcessing ? 'Processing...' : 'Claim'}
+              </Button>
 
-            <AlertDialog open={isConfirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  disabled={isProcessing}
-                >
-                  <TrendingDown className="w-4 h-4 mr-2" />
-                  Unstake
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialog open={isConfirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    disabled={isProcessing}
+                  >
+                    <TrendingDown className="w-4 h-4 mr-2" />
+                    Unstake
+                  </Button>
+                </AlertDialogTrigger>
               <AlertDialogContent className="bg-slate-900 text-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
