@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Layers, Plus, Trash2, AlertTriangle } from 'lucide-react';
-import { TierEntity } from '../config/types'; // Changed from contract
+import { Layers, Plus, Trash2 } from 'lucide-react';
+import { TierEntity } from '../config/types';
 
 interface TierManagementProps {
   tiers: TierEntity[];
@@ -13,18 +13,84 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
   const [newTier, setNewTier] = useState({
     tier: '',
     tier_name: '',
-    weight: 1.0,
-    staked_up_to_percent: 0
+    weight: '1.00000000',
+    staked_up_to_percent: '0.00000000'
   });
+
+  const [errors, setErrors] = useState({
+    weight: '',
+    staked_up_to_percent: ''
+  });
+
+  const validateDecimalInput = (value: string, field: 'weight' | 'staked_up_to_percent'): boolean => {
+    const decimalRegex = /^\d*\.?\d{0,8}$/;
+    if (!decimalRegex.test(value)) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: 'Please enter a valid number with up to 8 decimal places'
+      }));
+      return false;
+    }
+
+    const numValue = parseFloat(value);
+    if (field === 'weight' && (numValue <= 0 || numValue > 10)) {
+      setErrors(prev => ({
+        ...prev,
+        weight: 'Weight must be between 0 and 10'
+      }));
+      return false;
+    }
+
+    if (field === 'staked_up_to_percent' && (numValue < 0 || numValue > 100)) {
+      setErrors(prev => ({
+        ...prev,
+        staked_up_to_percent: 'Percentage must be between 0 and 100'
+      }));
+      return false;
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [field]: ''
+    }));
+    return true;
+  };
+
+  const handleDecimalInput = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'weight' | 'staked_up_to_percent'
+  ) => {
+    const value = e.target.value;
+    if (validateDecimalInput(value, field)) {
+      setNewTier(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  const formatDecimalValue = (value: string): string => {
+    const numValue = parseFloat(value);
+    return isNaN(numValue) ? '0.00000000' : numValue.toFixed(8);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onAddTier(newTier);
+    
+    // Format decimal values before submission
+    const formattedTier = {
+      ...newTier,
+      weight: formatDecimalValue(newTier.weight),
+      staked_up_to_percent: formatDecimalValue(newTier.staked_up_to_percent)
+    };
+
+    await onAddTier(formattedTier);
+    
     setNewTier({
       tier: '',
       tier_name: '',
-      weight: 1.0,
-      staked_up_to_percent: 0
+      weight: '1.00000000',
+      staked_up_to_percent: '0.00000000'
     });
   };
 
@@ -35,7 +101,6 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
         <h2 className="text-lg font-medium">Tier Management</h2>
       </div>
 
-      {/* New Tier Form */}
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -74,18 +139,23 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
               Weight Multiplier
             </label>
             <input
-              type="number"
-              step="0.1"
-              min="0"
+              type="text"
+              inputMode="decimal"
               value={newTier.weight}
-              onChange={(e) => setNewTier({ ...newTier, weight: parseFloat(e.target.value) })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 1.0"
+              onChange={(e) => handleDecimalInput(e, 'weight')}
+              className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
+                errors.weight ? 'border border-red-500' : ''
+              }`}
+              placeholder="e.g., 1.00000000"
               required
             />
-            <p className="mt-1 text-xs text-slate-500">
-              1.0 = base rate, 1.5 = 50% bonus
-            </p>
+            {errors.weight ? (
+              <p className="mt-1 text-xs text-red-400">{errors.weight}</p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500">
+                Enter a value between 0 and 10 with up to 8 decimal places
+              </p>
+            )}
           </div>
 
           <div>
@@ -93,32 +163,40 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
               Staked Up To %
             </label>
             <input
-              type="number"
-              min="0"
-              max="100"
+              type="text"
+              inputMode="decimal"
               value={newTier.staked_up_to_percent}
-              onChange={(e) => setNewTier({ ...newTier, staked_up_to_percent: parseFloat(e.target.value) })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              placeholder="e.g., 25"
+              onChange={(e) => handleDecimalInput(e, 'staked_up_to_percent')}
+              className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
+                errors.staked_up_to_percent ? 'border border-red-500' : ''
+              }`}
+              placeholder="e.g., 25.00000000"
               required
             />
-            <p className="mt-1 text-xs text-slate-500">
-              Percentage of total pool stake required
-            </p>
+            {errors.staked_up_to_percent ? (
+              <p className="mt-1 text-xs text-red-400">{errors.staked_up_to_percent}</p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500">
+                Enter a percentage between 0 and 100 with up to 8 decimal places
+              </p>
+            )}
           </div>
         </div>
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center gap-2"
+          disabled={loading || !!errors.weight || !!errors.staked_up_to_percent}
+          className={`w-full px-4 py-2 bg-purple-600 rounded-lg flex items-center justify-center gap-2 ${
+            loading || !!errors.weight || !!errors.staked_up_to_percent
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:bg-purple-700'
+          }`}
         >
           <Plus className="w-4 h-4"/>
           Add Tier
         </button>
       </form>
 
-      {/* Existing Tiers */}
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-3">Active Tiers</h3>
         <div className="space-y-2">
@@ -130,7 +208,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
               <div>
                 <p className="font-medium">{tier.tier_name}</p>
                 <p className="text-sm text-slate-400">
-                  Weight: {tier.weight}x | Up to {tier.staked_up_to_percent}%
+                  Weight: {formatDecimalValue(tier.weight)}x | Up to {formatDecimalValue(tier.staked_up_to_percent)}%
                 </p>
               </div>
               <button
