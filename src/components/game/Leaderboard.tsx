@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import {
   Table,
@@ -8,16 +8,17 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
+import { Badge } from '../ui/badge';
 import {
   Building2,
   Store,
   TrendingUp,
   BarChart3,
 } from 'lucide-react';
+import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
-import { StakedEntity } from '../../lib/types/staked';
-import { CooldownTimer } from './CooldownTimer';
 import { useContractData } from '../../lib/hooks/useContractData';
+import { StakedEntity } from '../../lib/types/staked';
 
 const TIER_CONFIG = {
   supplier: {
@@ -47,25 +48,50 @@ const TIER_CONFIG = {
   },
 } as const;
 
-interface LeaderboardProps {
-  data: StakedEntity[];
-  isLoading?: boolean;
-  error?: Error | null;
-  cooldownPeriod: number;
-}
+export const Leaderboard: React.FC = () => {
+  const { fetchData, loading, error } = useContractData();
+  const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({
-  data,
-  isLoading,
-  error,
-  cooldownPeriod
-}) => {
+  const loadLeaderboardData = async () => {
+    const data = await fetchData();
+    if (data?.stakes) {
+      const sortedStakes = [...data.stakes].sort((a, b) => {
+        const amountA = parseTokenString(a.staked_quantity).amount;
+        const amountB = parseTokenString(b.staked_quantity).amount;
+        return amountB - amountA;
+      });
+      setLeaderboardData(sortedStakes);
+    }
+  };
+
+  useEffect(() => {
+    loadLeaderboardData();
+    const interval = setInterval(loadLeaderboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const getTierConfig = (tier: string) => {
     const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
     return TIER_CONFIG[tierKey] || TIER_CONFIG.supplier;
   };
 
-  if (isLoading) {
+  const renderClaimStatus = (cooldownEnd: string) => {
+    const timeLeft = calculateTimeLeft(cooldownEnd);
+    if (timeLeft <= 0) {
+      return (
+        <Badge variant="default" className="bg-green-500/20 text-green-500 animate-pulse">
+          Ready to Claim
+        </Badge>
+      );
+    }
+    return (
+      <span className="text-slate-400">
+        {formatTimeLeft(timeLeft)}
+      </span>
+    );
+  };
+
+  if (loading) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -112,13 +138,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((entry, index) => {
+            {leaderboardData.map((entry, index) => {
               const tierConfig = getTierConfig(entry.tier);
               const TierIcon = tierConfig.icon;
               const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
               return (
-                <TableRow key={`${entry.owner}-${entry.pool_id}`}>
+                <TableRow key={`${entry.pool_id}-${index}`}>
                   <TableCell className="font-medium">#{index + 1}</TableCell>
                   <TableCell>{entry.owner}</TableCell>
                   <TableCell>
@@ -133,10 +159,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                     {`${Number(amount).toFixed(8)} ${symbol}`}
                   </TableCell>
                   <TableCell className="text-right">
-                    <CooldownTimer 
-                      cooldownEndAt={entry.cooldown_end_at}
-                      cooldownSeconds={cooldownPeriod}
-                    />
+                    {renderClaimStatus(entry.cooldown_end_at)}
                   </TableCell>
                 </TableRow>
               );
