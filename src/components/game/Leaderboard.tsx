@@ -1,28 +1,28 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { WharfkitContext } from '../../lib/wharfkit/context';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '../ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '../ui/badge';
 import {
-  Buildings2,
+  Building2,
   Store,
   TrendingUp,
   BarChart3,
-  Building2
 } from 'lucide-react';
 import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
+import { Name } from '@wharfkit/session';
 
 // Types
 interface LeaderboardEntry {
-  account: string;
+  account: Name;
   pool_id: number;
   staked_quantity: string;
   tier: string;
@@ -40,7 +40,7 @@ const TIER_CONFIG = {
   merchant: {
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
-    icon: Buildings2,
+    icon: Building2,
   },
   trader: {
     color: 'text-purple-500',
@@ -59,7 +59,7 @@ const TIER_CONFIG = {
   },
 } as const;
 
-const Leaderboard: React.FC = () => {
+export const Leaderboard: React.FC = () => {
   const { session } = useContext(WharfkitContext);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,12 +76,12 @@ const Leaderboard: React.FC = () => {
         limit: 100
       });
 
-      const accounts = response.rows.map(row => row.scope);
+      const accounts = response.rows.map(row => Name.from(row.scope));
       
       const stakesPromises = accounts.map(account =>
         session.client.v1.chain.get_table_rows({
           code: 'stakingcontract',  // Replace with your actual contract name
-          scope: account,
+          scope: account.toString(),
           table: 'stakeds',
           limit: 1
         })
@@ -95,7 +95,7 @@ const Leaderboard: React.FC = () => {
           const stake = response.rows[0];
           return {
             account: accounts[index],
-            pool_id: stake.pool_id,
+            pool_id: Number(stake.pool_id),
             staked_quantity: stake.staked_quantity,
             tier: stake.tier,
             cooldown_end_at: stake.cooldown_end_at,
@@ -133,7 +133,7 @@ const Leaderboard: React.FC = () => {
     const timeLeft = calculateTimeLeft(cooldownEnd);
     if (timeLeft <= 0) {
       return (
-        <Badge variant="success" className="animate-pulse">
+        <Badge variant="default" className="bg-green-500/20 text-green-500 animate-pulse">
           Ready to Claim
         </Badge>
       );
@@ -201,9 +201,9 @@ const Leaderboard: React.FC = () => {
               const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
               return (
-                <TableRow key={entry.account}>
+                <TableRow key={entry.account.toString()}>
                   <TableCell className="font-medium">#{index + 1}</TableCell>
-                  <TableCell>{entry.account}</TableCell>
+                  <TableCell>{entry.account.toString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
