@@ -306,7 +306,6 @@ const canUpgradeTier = useMemo(() => {
         if (!config) return null;
         return (
           <Leaderboard 
-            data={playerStake ? [playerStake] : []} 
             isLoading={loading} 
             error={handleError(error)}
             cooldownPeriod={config.cooldown_seconds_per_claim}
