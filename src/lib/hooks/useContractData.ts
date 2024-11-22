@@ -7,6 +7,22 @@ import { StakedEntity } from '../types/staked';
 import { TierEntity } from '../types/tier';
 import { ConfigEntity } from '../types/config';
 
+interface RawStakeData {
+  pool_id: number;
+  staked_quantity: string;
+  tier: string;
+  last_claimed_at: string;
+  cooldown_end_at: string;
+}
+
+interface TableScope {
+  code: string;
+  scope: string;
+  table: string;
+  payer: string;
+  count: number;
+}
+
 export function useContractData() {
   const { session } = useContext(WharfkitContext);
   const [loading, setLoading] = useState(false);
@@ -40,12 +56,16 @@ export function useContractData() {
       ]);
 
       // Fetch stakes for all users
-      const allStakesPromises = scopes.map(async (scope) => {
+      const allStakesPromises = scopes.map(async (scope: TableScope) => {
         const userStakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope);
         const userStakes = await userStakesTable.get();
-        return userStakes.map(stake => ({
-          ...stake,
-          owner: scope.scope // Add owner field to each stake
+        return userStakes.map((stake: RawStakeData): StakedEntity => ({
+          pool_id: Number(stake.pool_id),
+          staked_quantity: stake.staked_quantity,
+          tier: stake.tier,
+          last_claimed_at: stake.last_claimed_at,
+          cooldown_end_at: stake.cooldown_end_at,
+          owner: scope.scope
         }));
       });
 
@@ -68,16 +88,6 @@ export function useContractData() {
         is_active: Number(pool.is_active ? 1 : 0)
       }));
 
-      // Transform stakes data with owner information
-      const stakes: StakedEntity[] = allStakes.map(stake => ({
-        pool_id: Number(stake.pool_id?.toString() || 0),
-        staked_quantity: stake.staked_quantity?.toString() || '0.00000000 WAX',
-        tier: stake.tier?.toString() || 'bronze',
-        last_claimed_at: stake.last_claimed_at?.toString() || new Date().toISOString(),
-        cooldown_end_at: stake.cooldown_end_at?.toString() || new Date().toISOString(),
-        owner: stake.owner // Include owner in the transformed data
-      }));
-
       // Transform tiers data
       const tiers: TierEntity[] = tiersData.map(tier => ({
         tier: tier.tier?.toString() || '',
@@ -93,11 +103,11 @@ export function useContractData() {
         vault_account: configData?.vault_account?.toString() || ''
       };
 
-      console.log('Transformed data:', { pools, stakes, tiers, config });
+      console.log('Transformed data:', { pools, allStakes, tiers, config });
 
       return {
         pools,
-        stakes,
+        stakes: allStakes,
         tiers,
         config
       };
