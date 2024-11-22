@@ -206,10 +206,6 @@ const canUpgradeTier = useMemo(() => {
   }
 }, [tierProgress, selectedPool, playerStake, tiers]);
 
-  const handleError = (err: string | null): Error | null => {
-    if (!err) return null;
-    return new Error(err);
-  };
 
 
   // Render appropriate content based on active tab
@@ -303,14 +299,7 @@ const canUpgradeTier = useMemo(() => {
         );
 
       case 'leaderboard':
-        if (!config) return null;
-        return (
-          <Leaderboard
-            data={stakes}
-            isLoading={loading} 
-            error={handleError(error)}
-            cooldownPeriod={config.cooldown_seconds_per_claim}
-          />
+        return <Leaderboard />;
         );
 
       case 'guild':
