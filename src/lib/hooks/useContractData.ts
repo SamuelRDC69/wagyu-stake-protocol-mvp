@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { ContractKit } from '@wharfkit/contract';
 import { Name } from '@wharfkit/session';
-import { Serializer, Asset } from '@wharfkit/antelope';
+import { Serializer } from '@wharfkit/antelope';
 import { WharfkitContext } from '../wharfkit/context';
 import { CONTRACTS } from '../wharfkit/contracts';
 import { PoolEntity } from '../types/pool';
@@ -11,7 +11,7 @@ import { ConfigEntity } from '../types/config';
 
 interface RawStakeData {
   pool_id: Name;
-  staked_quantity: Asset;
+  staked_quantity: { quantity: string } | { toString(): string };
   tier: Name;
   last_claimed_at: string;
   cooldown_end_at: string;
@@ -28,10 +28,12 @@ export function useContractData() {
     setLoading(true);
     
     try {
+      console.log('Creating ContractKit instance...');
       const contractKit = new ContractKit({
         client: session.client
       });
       
+      console.log('Loading contract:', CONTRACTS.STAKING.NAME);
       const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
       
       // Get all table instances
@@ -50,9 +52,15 @@ export function useContractData() {
         const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString());
         const stakes = await table.all();
         return stakes.map((stake: RawStakeData) => {
+          // Convert the complex Asset object to string using Serializer
+          const objectified = Serializer.objectify(stake.staked_quantity);
+          const stakedQuantity = typeof objectified === 'string' 
+            ? objectified 
+            : objectified.quantity || stake.staked_quantity.toString();
+
           return {
             pool_id: Number(stake.pool_id.toString()),
-            staked_quantity: stake.staked_quantity.toString(),
+            staked_quantity: stakedQuantity,
             tier: stake.tier.toString(),
             last_claimed_at: stake.last_claimed_at,
             cooldown_end_at: stake.cooldown_end_at,
@@ -70,20 +78,25 @@ export function useContractData() {
       ]);
 
       // Transform pools data
-      const pools: PoolEntity[] = poolsData.map(pool => ({
-        pool_id: Number(pool.pool_id.toString()),
-        staked_token_contract: pool.staked_token_contract.toString(),
-        total_staked_quantity: pool.total_staked_quantity.toString(),
-        total_staked_weight: pool.total_staked_weight.toString(),
-        reward_pool: {
-          quantity: pool.reward_pool.quantity.toString(),
-          contract: pool.reward_pool.contract.toString()
-        },
-        emission_unit: Number(pool.emission_unit),
-        emission_rate: Number(pool.emission_rate),
-        last_emission_updated_at: pool.last_emission_updated_at.toString(),
-        is_active: Number(pool.is_active)
-      }));
+      const pools: PoolEntity[] = poolsData.map(pool => {
+        const poolQuantity = Serializer.objectify(pool.total_staked_quantity);
+        const rewardQuantity = Serializer.objectify(pool.reward_pool);
+        
+        return {
+          pool_id: Number(pool.pool_id.toString()),
+          staked_token_contract: pool.staked_token_contract.toString(),
+          total_staked_quantity: typeof poolQuantity === 'string' ? poolQuantity : poolQuantity.quantity,
+          total_staked_weight: pool.total_staked_weight.toString(),
+          reward_pool: {
+            quantity: typeof rewardQuantity === 'string' ? rewardQuantity : rewardQuantity.quantity,
+            contract: pool.reward_pool.contract.toString()
+          },
+          emission_unit: Number(pool.emission_unit),
+          emission_rate: Number(pool.emission_rate),
+          last_emission_updated_at: pool.last_emission_updated_at.toString(),
+          is_active: Number(pool.is_active)
+        };
+      });
 
       // Transform tiers data
       const tiers: TierEntity[] = tiersData.map(tier => ({
