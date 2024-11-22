@@ -26,6 +26,14 @@ interface LeaderboardEntry extends StakedEntity {
   account: string;
 }
 
+interface TableScope {
+  code: string;
+  scope: string;
+  table: string;
+  payer: string;
+  count: number;
+}
+
 const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -71,21 +79,21 @@ export const Leaderboard: React.FC = () => {
       
       const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
       const stakedTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
-      const scopes = await stakedTable.getScopes();
+      const scopes = await stakedTable.scopes();
       
       const allStakes = await Promise.all(
-        scopes.map(async (scope) => {
-          const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope);
+        scopes.map(async (scope: TableScope) => {
+          const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope);
           const stakes = await table.get();
-          return stakes.map(stake => ({
+          return stakes.map((stake: StakedEntity) => ({
             ...stake,
-            account: scope
+            account: scope.scope
           }));
         })
       );
 
       const flattenedStakes = allStakes.flat();
-      const sortedStakes = flattenedStakes.sort((a, b) => {
+      const sortedStakes = flattenedStakes.sort((a: LeaderboardEntry, b: LeaderboardEntry) => {
         const amountA = parseTokenString(a.staked_quantity).amount;
         const amountB = parseTokenString(b.staked_quantity).amount;
         return amountB - amountA;
