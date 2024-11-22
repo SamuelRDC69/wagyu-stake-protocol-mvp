@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { WharfkitContext } from '../../lib/wharfkit/context';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import {
   Table,
@@ -8,7 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '../ui/table';
 import { Badge } from '../ui/badge';
 import {
   Building2,
@@ -18,17 +17,9 @@ import {
 } from 'lucide-react';
 import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
+import { useContractData } from '../../lib/hooks/useContractData';
+import { StakedEntity } from '../../lib/types/staked';
 import { Name } from '@wharfkit/session';
-
-// Types
-interface LeaderboardEntry {
-  account: Name;
-  pool_id: number;
-  staked_quantity: string;
-  tier: string;
-  cooldown_end_at: string;
-  last_claimed_at: string;
-}
 
 // Tier configurations
 const TIER_CONFIG = {
@@ -60,69 +51,26 @@ const TIER_CONFIG = {
 } as const;
 
 export const Leaderboard: React.FC = () => {
-  const { session } = useContext(WharfkitContext);
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
+  const { fetchData, loading, error } = useContractData();
 
-  const fetchLeaderboardData = async () => {
-    if (!session) return;
-    
-    try {
-      setLoading(true);
-      const response = await session.client.v1.chain.get_table_by_scope({
-        code: 'stakingcontract',  // Replace with your actual contract name
-        table: 'stakeds',
-        limit: 100
+  const loadLeaderboardData = async () => {
+    const data = await fetchData();
+    if (data?.stakes) {
+      const sortedStakes = [...data.stakes].sort((a, b) => {
+        const amountA = parseTokenString(a.staked_quantity).amount;
+        const amountB = parseTokenString(b.staked_quantity).amount;
+        return amountB - amountA;
       });
-
-      const accounts = response.rows.map(row => Name.from(row.scope));
-      
-      const stakesPromises = accounts.map(account =>
-        session.client.v1.chain.get_table_rows({
-          code: 'stakingcontract',  // Replace with your actual contract name
-          scope: account.toString(),
-          table: 'stakeds',
-          limit: 1
-        })
-      );
-
-      const stakesResponses = await Promise.all(stakesPromises);
-      
-      const entries: LeaderboardEntry[] = stakesResponses
-        .map((response, index) => {
-          if (response.rows.length === 0) return null;
-          const stake = response.rows[0];
-          return {
-            account: accounts[index],
-            pool_id: Number(stake.pool_id),
-            staked_quantity: stake.staked_quantity,
-            tier: stake.tier,
-            cooldown_end_at: stake.cooldown_end_at,
-            last_claimed_at: stake.last_claimed_at
-          };
-        })
-        .filter((entry): entry is LeaderboardEntry => entry !== null)
-        .sort((a, b) => {
-          const amountA = parseTokenString(a.staked_quantity).amount;
-          const amountB = parseTokenString(b.staked_quantity).amount;
-          return amountB - amountA;
-        });
-
-      setLeaderboardData(entries);
-    } catch (err) {
-      console.error('Error fetching leaderboard data:', err);
-      setError('Failed to load leaderboard data');
-    } finally {
-      setLoading(false);
+      setLeaderboardData(sortedStakes);
     }
   };
 
   useEffect(() => {
-    fetchLeaderboardData();
-    const interval = setInterval(fetchLeaderboardData, 30000); // Refresh every 30 seconds
+    loadLeaderboardData();
+    const interval = setInterval(loadLeaderboardData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, [session]);
+  }, []);
 
   const getTierConfig = (tier: string) => {
     const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
@@ -172,7 +120,7 @@ export const Leaderboard: React.FC = () => {
           <CardTitle>Leaderboard</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400 text-center">{error}</div>
+          <div className="text-red-400 text-center">{error.message}</div>
         </CardContent>
       </Card>
     );
@@ -201,9 +149,9 @@ export const Leaderboard: React.FC = () => {
               const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
               return (
-                <TableRow key={entry.account.toString()}>
+                <TableRow key={`${entry.pool_id}-${index}`}>
                   <TableCell className="font-medium">#{index + 1}</TableCell>
-                  <TableCell>{entry.account.toString()}</TableCell>
+                  <TableCell>{entry.pool_id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
