@@ -160,12 +160,43 @@ const GameUI: React.FC = () => {
   };
 
   const navItems: NavItem[] = [
-    { icon: Crown, label: 'Kingdom', id: 'kingdom' },
-    { icon: Users, label: 'Guild', id: 'guild' },
-    { icon: BarChart, label: 'Leaderboard', id: 'leaderboard' },
-    { icon: Sword, label: 'Battle', id: 'battle' },
-    { icon: Trophy, label: 'Rewards', id: 'rewards' }
-  ];
+  { icon: Crown, label: 'Kingdom', id: 'kingdom' },
+  { icon: Users, label: 'Guild', id: 'guild' },
+  { icon: BarChart3, label: 'Leaderboard', id: 'leaderboard' }, // Fixed BarChart to BarChart3
+  { icon: Sword, label: 'Battle', id: 'battle' },
+  { icon: Trophy, label: 'Rewards', id: 'rewards' }
+];
+
+// Calculate tier progress and upgrade availability
+const tierProgress = useMemo(() => {
+  if (!playerStake || !selectedPool || !tiers.length) return null;
+  try {
+    return calculateTierProgress(
+      playerStake.staked_quantity,
+      selectedPool.total_staked_quantity,
+      tiers
+    );
+  } catch (error) {
+    console.error('Error calculating tier progress:', error);
+    return null;
+  }
+}, [playerStake, selectedPool, tiers]);
+
+const canUpgradeTier = useMemo(() => {
+  if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
+  try {
+    return isTierUpgradeAvailable(
+      playerStake.staked_quantity,
+      selectedPool.total_staked_quantity,
+      tierProgress.currentTier,
+      tiers
+    );
+  } catch (error) {
+    console.error('Error calculating upgrade availability:', error);
+    return false;
+  }
+}, [tierProgress, selectedPool, playerStake, tiers]);
+
 
   // Render appropriate content based on active tab
   const renderContent = () => {
