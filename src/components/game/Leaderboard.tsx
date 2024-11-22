@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import {
   Table,
@@ -15,13 +15,17 @@ import {
   TrendingUp,
   BarChart3,
 } from 'lucide-react';
+import { WharfkitContext } from '../../lib/wharfkit/context';
 import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
-import { useContractData } from '../../lib/hooks/useContractData';
+import { ContractKit } from '@wharfkit/contract';
+import { CONTRACTS } from '../../lib/wharfkit/contracts';
 import { StakedEntity } from '../../lib/types/staked';
-import { Name } from '@wharfkit/session';
 
-// Tier configurations
+interface LeaderboardEntry extends StakedEntity {
+  account: string;
+}
+
 const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -51,26 +55,57 @@ const TIER_CONFIG = {
 } as const;
 
 export const Leaderboard: React.FC = () => {
-  const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
-  const { fetchData, loading, error } = useContractData();
+  const { session } = useContext(WharfkitContext);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadLeaderboardData = async () => {
-    const data = await fetchData();
-    if (data?.stakes) {
-      const sortedStakes = [...data.stakes].sort((a, b) => {
+  const fetchAllStakes = async () => {
+    if (!session) return;
+    
+    try {
+      setLoading(true);
+      const contractKit = new ContractKit({
+        client: session.client
+      });
+      
+      const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
+      const stakedTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
+      const scopes = await stakedTable.getScopes();
+      
+      const allStakes = await Promise.all(
+        scopes.map(async (scope) => {
+          const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope);
+          const stakes = await table.get();
+          return stakes.map(stake => ({
+            ...stake,
+            account: scope
+          }));
+        })
+      );
+
+      const flattenedStakes = allStakes.flat();
+      const sortedStakes = flattenedStakes.sort((a, b) => {
         const amountA = parseTokenString(a.staked_quantity).amount;
         const amountB = parseTokenString(b.staked_quantity).amount;
         return amountB - amountA;
       });
+
       setLeaderboardData(sortedStakes);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching stakes:', err);
+      setError('Failed to load leaderboard data');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadLeaderboardData();
-    const interval = setInterval(loadLeaderboardData, 30000); // Refresh every 30 seconds
+    fetchAllStakes();
+    const interval = setInterval(fetchAllStakes, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session]);
 
   const getTierConfig = (tier: string) => {
     const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
@@ -102,10 +137,7 @@ export const Leaderboard: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="h-16 bg-slate-800/30 rounded animate-pulse"
-              />
+              <div key={i} className="h-16 bg-slate-800/30 rounded animate-pulse" />
             ))}
           </div>
         </CardContent>
@@ -120,7 +152,7 @@ export const Leaderboard: React.FC = () => {
           <CardTitle>Leaderboard</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400 text-center">{error.message}</div>
+          <div className="text-red-400 text-center">{error}</div>
         </CardContent>
       </Card>
     );
@@ -149,17 +181,15 @@ export const Leaderboard: React.FC = () => {
               const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
               return (
-                <TableRow key={`${entry.pool_id}-${index}`}>
+                <TableRow key={`${entry.account}-${entry.pool_id}`}>
                   <TableCell className="font-medium">#{index + 1}</TableCell>
-                  <TableCell>{entry.pool_id}</TableCell>
+                  <TableCell>{entry.account}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
                         <TierIcon className={`w-4 h-4 ${tierConfig.color}`} />
                       </div>
-                      <span className={tierConfig.color}>
-                        {entry.tier}
-                      </span>
+                      <span className={tierConfig.color}>{entry.tier}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium">
