@@ -79,10 +79,11 @@ export const Leaderboard: React.FC = () => {
       
       const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
       const stakedTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
-      const scopes = await stakedTable.scopes();
+      const scopesCursor = await stakedTable.scopes();
+      const scopesData = await scopesCursor.all();
       
       const allStakes = await Promise.all(
-        scopes.map(async (scope: TableScope) => {
+        scopesData.map(async (scope: TableScope) => {
           const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope);
           const stakes = await table.get();
           return stakes.map((stake: StakedEntity) => ({
