@@ -4,6 +4,7 @@ export interface StakedEntity {
   tier: string;              // "bronze" | "silver" | "gold"
   last_claimed_at: string;   // ISO date string
   cooldown_end_at: string;   // ISO date string
+  owner: string;             // Account name
 }
 
 export interface StakedStatus {
