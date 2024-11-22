@@ -206,6 +206,11 @@ const canUpgradeTier = useMemo(() => {
   }
 }, [tierProgress, selectedPool, playerStake, tiers]);
 
+  const handleError = (err: string | null): Error | null => {
+    if (!err) return null;
+    return new Error(err);
+  };
+
 
   // Render appropriate content based on active tab
   const renderContent = () => {
@@ -303,7 +308,7 @@ const canUpgradeTier = useMemo(() => {
           <Leaderboard 
             data={playerStake ? [playerStake] : []} 
             isLoading={loading} 
-            error={error}
+            error={handleError(error)}
             cooldownPeriod={config.cooldown_seconds_per_claim}
           />
         );
