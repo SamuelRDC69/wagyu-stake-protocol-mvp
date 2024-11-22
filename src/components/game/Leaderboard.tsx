@@ -17,6 +17,7 @@ import {
 import { parseTokenString } from '../../lib/utils/tokenUtils';
 import { StakedEntity } from '../../lib/types/staked';
 import { CooldownTimer } from './CooldownTimer';
+import { useContractData } from '../../lib/hooks/useContractData';
 
 const TIER_CONFIG = {
   supplier: {
