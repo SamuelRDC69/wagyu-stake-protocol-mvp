@@ -1,5 +1,14 @@
-import React, { useContext, useState } from 'react';
-import { Crown, Sword, Shield, Star, Trophy, Timer, TrendingUp, Gauge, Users } from 'lucide-react';
+import React, { useContext, useState, useMemo } from 'react';
+import { Crown, 
+  Sword, 
+  Shield, 
+  Star, 
+  Trophy, 
+  Timer, 
+  TrendingUp, 
+  Gauge, 
+  Users, 
+  BarChart3 } from 'lucide-react';
 import { Name } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
