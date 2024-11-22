@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Session, SessionKit, Chains } from '@wharfkit/session'
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
 import WebRenderer from '@wharfkit/web-renderer'
@@ -18,13 +18,42 @@ const sessionKit = new SessionKit({
 
 function App() {
   const [session, setSession] = useState<Session | undefined>()
+  const [isRestoring, setIsRestoring] = useState(true)
+
+  // Attempt to restore session on component mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const restored = await sessionKit.restore()
+        if (restored) {
+          console.log('Session restored successfully')
+          setSession(restored)
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error)
+      } finally {
+        setIsRestoring(false)
+      }
+    }
+
+    restoreSession()
+  }, [])
+
+  // Show loading state while restoring session
+  if (isRestoring) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900 flex items-center justify-center">
+        <div className="loading-spinner" />
+      </div>
+    )
+  }
 
   return (
-  <WharfkitContext.Provider value={{ session, setSession, sessionKit }}>
-    <div className="App">
-      <GameUI />
-    </div>
-  </WharfkitContext.Provider>
+    <WharfkitContext.Provider value={{ session, setSession, sessionKit }}>
+      <div className="App">
+        <GameUI />
+      </div>
+    </WharfkitContext.Provider>
   )
 }
 
