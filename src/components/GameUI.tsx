@@ -298,7 +298,12 @@ const canUpgradeTier = useMemo(() => {
         );
 
       case 'leaderboard':
-        return <Leaderboard />;
+  return <Leaderboard 
+    data={data?.stakes || []} 
+    isLoading={loading} 
+    error={error}
+    cooldownPeriod={config?.cooldown_seconds_per_claim || 60}
+  />;
 
       case 'guild':
         return (
