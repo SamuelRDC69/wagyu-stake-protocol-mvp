@@ -24,40 +24,58 @@ export function useContractData() {
       const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
       
       const poolsTable = contract.table(CONTRACTS.STAKING.TABLES.POOLS);
-      const stakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, session.actor.toString());
       const tiersTable = contract.table(CONTRACTS.STAKING.TABLES.TIERS);
       const configTable = contract.table(CONTRACTS.STAKING.TABLES.CONFIG);
 
-      const [poolsData, stakesData, tiersData, configData] = await Promise.all([
+      // First get all scopes (accounts) that have staked
+      const stakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
+      const scopesCursor = await stakesTable.scopes();
+      const scopes = await scopesCursor.all();
+
+      // Fetch data from all tables
+      const [poolsData, tiersData, configData] = await Promise.all([
         poolsTable.all(),
-        stakesTable.all(),
         tiersTable.all(),
         configTable.get()
       ]);
 
+      // Fetch stakes for all users
+      const allStakesPromises = scopes.map(async (scope) => {
+        const userStakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope);
+        const userStakes = await userStakesTable.get();
+        return userStakes.map(stake => ({
+          ...stake,
+          owner: scope.scope // Add owner field to each stake
+        }));
+      });
+
+      const allStakesArrays = await Promise.all(allStakesPromises);
+      const allStakes = allStakesArrays.flat();
+
       // Transform pools data
       const pools: PoolEntity[] = poolsData.map(pool => ({
-  pool_id: Number(pool.pool_id?.toString() || 0),
-  staked_token_contract: pool.staked_token_contract?.toString() || '',
-  total_staked_quantity: pool.total_staked_quantity?.toString() || '0.00000000 WAX',
-  total_staked_weight: pool.total_staked_weight?.toString() || '0.00000000 WAX',
-  reward_pool: {
-    quantity: pool.reward_pool?.quantity?.toString() || '0.00000000 WAX',
-    contract: pool.reward_pool?.contract?.toString() || ''
-  },
-  emission_unit: Number(pool.emission_unit?.toString() || 0),
-  emission_rate: Number(pool.emission_rate?.toString() || 0),
-  last_emission_updated_at: pool.last_emission_updated_at?.toString() || new Date().toISOString(),
-  is_active: Number(pool.is_active ? 1 : 0)  // Convert boolean to number
-}));
+        pool_id: Number(pool.pool_id?.toString() || 0),
+        staked_token_contract: pool.staked_token_contract?.toString() || '',
+        total_staked_quantity: pool.total_staked_quantity?.toString() || '0.00000000 WAX',
+        total_staked_weight: pool.total_staked_weight?.toString() || '0.00000000 WAX',
+        reward_pool: {
+          quantity: pool.reward_pool?.quantity?.toString() || '0.00000000 WAX',
+          contract: pool.reward_pool?.contract?.toString() || ''
+        },
+        emission_unit: Number(pool.emission_unit?.toString() || 0),
+        emission_rate: Number(pool.emission_rate?.toString() || 0),
+        last_emission_updated_at: pool.last_emission_updated_at?.toString() || new Date().toISOString(),
+        is_active: Number(pool.is_active ? 1 : 0)
+      }));
 
-      // Transform stakes data
-      const stakes: StakedEntity[] = stakesData.map(stake => ({
+      // Transform stakes data with owner information
+      const stakes: StakedEntity[] = allStakes.map(stake => ({
         pool_id: Number(stake.pool_id?.toString() || 0),
         staked_quantity: stake.staked_quantity?.toString() || '0.00000000 WAX',
         tier: stake.tier?.toString() || 'bronze',
         last_claimed_at: stake.last_claimed_at?.toString() || new Date().toISOString(),
-        cooldown_end_at: stake.cooldown_end_at?.toString() || new Date().toISOString()
+        cooldown_end_at: stake.cooldown_end_at?.toString() || new Date().toISOString(),
+        owner: stake.owner // Include owner in the transformed data
       }));
 
       // Transform tiers data
@@ -70,10 +88,10 @@ export function useContractData() {
 
       // Transform config data
       const config: ConfigEntity = {
-  maintenance: Number(configData?.maintenance ? 1 : 0),  // Convert boolean to number
-  cooldown_seconds_per_claim: Number(configData?.cooldown_seconds_per_claim?.toString() || 60),
-  vault_account: configData?.vault_account?.toString() || ''
-};
+        maintenance: Number(configData?.maintenance ? 1 : 0),
+        cooldown_seconds_per_claim: Number(configData?.cooldown_seconds_per_claim?.toString() || 60),
+        vault_account: configData?.vault_account?.toString() || ''
+      };
 
       console.log('Transformed data:', { pools, stakes, tiers, config });
 
