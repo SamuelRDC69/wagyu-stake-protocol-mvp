@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import {
   Table,
@@ -15,24 +15,10 @@ import {
   TrendingUp,
   BarChart3,
 } from 'lucide-react';
-import { WharfkitContext } from '../../lib/wharfkit/context';
 import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
-import { ContractKit } from '@wharfkit/contract';
-import { CONTRACTS } from '../../lib/wharfkit/contracts';
+import { useContractData } from '../../lib/hooks/useContractData';
 import { StakedEntity } from '../../lib/types/staked';
-
-interface LeaderboardEntry extends StakedEntity {
-  account: string;
-}
-
-interface TableScope {
-  code: string;
-  scope: string;
-  table: string;
-  payer: string;
-  count: number;
-}
 
 const TIER_CONFIG = {
   supplier: {
@@ -63,58 +49,26 @@ const TIER_CONFIG = {
 } as const;
 
 export const Leaderboard: React.FC = () => {
-  const { session } = useContext(WharfkitContext);
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { fetchData, loading, error } = useContractData();
+  const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
 
-  const fetchAllStakes = async () => {
-    if (!session) return;
-    
-    try {
-      setLoading(true);
-      const contractKit = new ContractKit({
-        client: session.client
-      });
-      
-      const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
-      const stakedTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
-      const scopesCursor = await stakedTable.scopes();
-      const scopesData = await scopesCursor.all();
-      
-      const allStakes = await Promise.all(
-        scopesData.map(async (scope: TableScope) => {
-          const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope);
-          const stakes = await table.get();
-          return stakes.map((stake: StakedEntity) => ({
-            ...stake,
-            account: scope.scope
-          }));
-        })
-      );
-
-      const flattenedStakes = allStakes.flat();
-      const sortedStakes = flattenedStakes.sort((a: LeaderboardEntry, b: LeaderboardEntry) => {
+  const loadLeaderboardData = async () => {
+    const data = await fetchData();
+    if (data?.stakes) {
+      const sortedStakes = [...data.stakes].sort((a, b) => {
         const amountA = parseTokenString(a.staked_quantity).amount;
         const amountB = parseTokenString(b.staked_quantity).amount;
         return amountB - amountA;
       });
-
       setLeaderboardData(sortedStakes);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching stakes:', err);
-      setError('Failed to load leaderboard data');
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAllStakes();
-    const interval = setInterval(fetchAllStakes, 30000);
+    loadLeaderboardData();
+    const interval = setInterval(loadLeaderboardData, 30000);
     return () => clearInterval(interval);
-  }, [session]);
+  }, []);
 
   const getTierConfig = (tier: string) => {
     const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
@@ -161,7 +115,7 @@ export const Leaderboard: React.FC = () => {
           <CardTitle>Leaderboard</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400 text-center">{error}</div>
+          <div className="text-red-400 text-center">{error.message}</div>
         </CardContent>
       </Card>
     );
@@ -190,9 +144,9 @@ export const Leaderboard: React.FC = () => {
               const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
               return (
-                <TableRow key={`${entry.account}-${entry.pool_id}`}>
+                <TableRow key={`${entry.pool_id}-${index}`}>
                   <TableCell className="font-medium">#{index + 1}</TableCell>
-                  <TableCell>{entry.account}</TableCell>
+                  <TableCell>{entry.owner}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
