@@ -306,6 +306,7 @@ const canUpgradeTier = useMemo(() => {
             error={error}
             cooldownPeriod={config.cooldown_seconds_per_claim}
           />
+        );
 
       case 'guild':
         return (
