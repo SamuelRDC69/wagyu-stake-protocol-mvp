@@ -300,7 +300,6 @@ const canUpgradeTier = useMemo(() => {
 
       case 'leaderboard':
         return <Leaderboard />;
-        );
 
       case 'guild':
         return (
