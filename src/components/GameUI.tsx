@@ -160,42 +160,133 @@ const GameUI: React.FC = () => {
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
     { icon: Users, label: 'Guild', id: 'guild' },
+    { icon: BarChart, label: 'Leaderboard', id: 'leaderboard' },
     { icon: Sword, label: 'Battle', id: 'battle' },
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
-  // Calculate tier progress only when all required data is available
-  const tierProgress = React.useMemo(() => {
-    if (!playerStake || !selectedPool || !tiers.length) return null;
-
-    try {
-      return calculateTierProgress(
-        playerStake.staked_quantity,
-        selectedPool.total_staked_quantity,
-        tiers
+  // Render appropriate content based on active tab
+  const renderContent = () => {
+    if (!session && activeTab !== 'leaderboard') {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-purple-200">Connect your wallet to start playing</p>
+        </div>
       );
-    } catch (error) {
-      console.error('Error calculating tier progress:', error);
-      return null;
     }
-  }, [playerStake, selectedPool, tiers]);
 
-  // Calculate upgrade availability only when tier progress is available
-  const canUpgradeTier = React.useMemo(() => {
-    if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
+    switch (activeTab) {
+      case 'kingdom':
+        return (
+          <div className="space-y-6">
+            <div className="crystal-bg rounded-2xl p-6">
+              <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+              <Select 
+                onValueChange={(value) => {
+                  try {
+                    const pool = pools.find(p => p.pool_id === parseInt(value));
+                    setSelectedPool(pool);
+                    setError(null);
+                  } catch (error) {
+                    console.error('Error selecting pool:', error);
+                    setError('Error selecting pool');
+                  }
+                }}
+                value={selectedPool?.pool_id?.toString()}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a kingdom" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div>
+                    {pools.map((pool) => {
+                      try {
+                        const { symbol } = parseTokenString(pool.total_staked_quantity);
+                        return (
+                          <SelectItem 
+                            key={pool.pool_id} 
+                            value={pool.pool_id.toString()}
+                          >
+                            {`${symbol} - Pool #${pool.pool_id}`}
+                          </SelectItem>
+                        );
+                      } catch (e) {
+                        console.error('Error parsing pool data:', e);
+                        return null;
+                      }
+                    })}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-    try {
-      return isTierUpgradeAvailable(
-        playerStake.staked_quantity,
-        selectedPool.total_staked_quantity,
-        tierProgress.currentTier,
-        tiers
-      );
-    } catch (error) {
-      console.error('Error calculating upgrade availability:', error);
-      return false;
+            {selectedPool && (
+              <ErrorBoundary 
+                fallback={<div className="text-red-400">
+                  Error loading pool data. Check console for details.
+                </div>}
+              >
+                <div className="space-y-6">
+                  <PoolStats poolData={selectedPool} />
+
+                  {tierProgress && (
+                    <TierDisplay 
+                      tierProgress={tierProgress}
+                      isUpgradeAvailable={canUpgradeTier}
+                    />
+                  )}
+                  
+                  {config && (
+                    <UserStatus 
+                      stakedData={playerStake}
+                      config={config}
+                      onClaim={handleClaim}
+                      onUnstake={handleUnstake}
+                      onStake={handleStake}
+                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+                      isLoading={loading}
+                    />
+                  )}
+
+                  <RewardsChart poolData={selectedPool} />
+                </div>
+              </ErrorBoundary>
+            )}
+          </div>
+        );
+
+      case 'leaderboard':
+        return <Leaderboard />;
+
+      case 'guild':
+        return (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-purple-200">Guild features coming soon...</p>
+          </div>
+        );
+
+      case 'battle':
+        return (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-purple-200">Battle features coming soon...</p>
+          </div>
+        );
+
+      case 'rewards':
+        return (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-purple-200">Rewards features coming soon...</p>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-purple-200">Select a tab to begin</p>
+          </div>
+        );
     }
-  }, [tierProgress, selectedPool, playerStake, tiers]);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
@@ -221,7 +312,7 @@ const GameUI: React.FC = () => {
                   Logout
                 </Button>
               </>
-            ): (
+            ) : (
               <Button 
                 variant="outline" 
                 className="text-purple-200 border-purple-500" 
@@ -234,95 +325,9 @@ const GameUI: React.FC = () => {
         </div>
       </div>
 
-{session ? (
-        <div className="p-6 space-y-6">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="loading-spinner" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="crystal-bg rounded-2xl p-6">
-                <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-                <Select 
-                  onValueChange={(value) => {
-                    try {
-                      const pool = pools.find(p => p.pool_id === parseInt(value));
-                      setSelectedPool(pool);
-                      setError(null);
-                    } catch (error) {
-                      console.error('Error selecting pool:', error);
-                      setError('Error selecting pool');
-                    }
-                  }}
-                  value={selectedPool?.pool_id?.toString()}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a kingdom" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div>
-                      {pools.map((pool) => {
-                        try {
-                          const { symbol } = parseTokenString(pool.total_staked_quantity);
-                          return (
-                            <SelectItem 
-                              key={pool.pool_id} 
-                              value={pool.pool_id.toString()}
-                            >
-                              {`${symbol} - Pool #${pool.pool_id}`}
-                            </SelectItem>
-                          );
-                        } catch (e) {
-                          console.error('Error parsing pool data:', e);
-                          return null;
-                        }
-                      })}
-                    </div>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedPool && (
-                <ErrorBoundary 
-                  fallback={<div className="text-red-400">
-                    Error loading pool data. Check console for details.
-                  </div>}
-                >
-                  <div className="space-y-6">
-                    <PoolStats poolData={selectedPool} />
-
-                    {tierProgress && (
-                      <TierDisplay 
-                        tierProgress={tierProgress}
-                        isUpgradeAvailable={canUpgradeTier}
-                      />
-                    )}
-                    
-{config && (  // Only check for config, not playerStake
-  <UserStatus 
-    stakedData={playerStake}  // Can be undefined for new users
-    config={config}
-    onClaim={handleClaim}
-    onUnstake={handleUnstake}
-    onStake={handleStake}
-    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-    isLoading={loading}
-  />
-)}
-
-                    <RewardsChart poolData={selectedPool} />
-                  </div>
-                </ErrorBoundary>
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex justify-center items-center h-64">
-          <p className="text-purple-200">Connect your wallet to start playing</p>
-        </div>
-      )}
+      <div className="p-6">
+        {renderContent()}
+      </div>
 
       <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
         <div className="flex justify-around p-4 max-w-lg mx-auto">
