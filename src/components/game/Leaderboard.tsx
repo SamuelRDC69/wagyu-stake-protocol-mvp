@@ -53,9 +53,9 @@ interface LeaderboardProps {
   cooldownPeriod: number;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ 
-  data, 
-  isLoading, 
+export const Leaderboard: React.FC<LeaderboardProps> = ({
+  data,
+  isLoading,
   error,
   cooldownPeriod
 }) => {
@@ -132,7 +132,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                     {`${Number(amount).toFixed(8)} ${symbol}`}
                   </TableCell>
                   <TableCell className="text-right">
-                    <CooldownTimer
+                    <CooldownTimer 
                       cooldownEndAt={entry.cooldown_end_at}
                       cooldownSeconds={cooldownPeriod}
                     />
