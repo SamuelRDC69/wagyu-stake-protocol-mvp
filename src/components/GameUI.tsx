@@ -21,7 +21,7 @@ import { RewardsChart } from './game/RewardsChart';
 import { UserStatus } from './game/UserStatus';
 import { PoolStats } from './game/PoolStats';
 import { ErrorBoundary } from './ErrorBoundary';
-import { Leaderboard } from './Leaderboard';
+import { Leaderboard } from './game/Leaderboard';
 
 // Types
 import { PoolEntity } from '../lib/types/pool';
