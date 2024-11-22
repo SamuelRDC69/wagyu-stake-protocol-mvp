@@ -151,14 +151,18 @@ export function useContractData() {
       console.log('Final transformed data:', result);
       return result;
 
-    } catch (err) {
-      console.error('Error details:', {
-        name: err.name,
-        message: err.message,
-        stack: err.stack
-      });
-      setError(err as Error);
-      throw err; // Re-throw to see full error in console
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      } else {
+        console.error('Unknown error:', error);
+      }
+      setError(error instanceof Error ? error : new Error('An unknown error occurred'));
+      return null;
     } finally {
       setLoading(false);
     }
