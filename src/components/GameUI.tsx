@@ -62,6 +62,14 @@ const GameUI: React.FC = () => {
   const { fetchData, loading } = useContractData();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+    // Add this function to get stake for selected pool
+  const getStakeForSelectedPool = useMemo(() => {
+    if (!selectedPool || !playerStake) return undefined;
+    // Find the stake that matches the selected pool
+    return playerStake.find(stake => stake.pool_id === selectedPool.pool_id);
+  }, [selectedPool, playerStake]);
+
+  // Update the useEffect for initial data loading
   useEffect(() => {
     const loadInitialData = async () => {
       if (session) {
@@ -70,13 +78,19 @@ const GameUI: React.FC = () => {
           const data = await fetchData();
           if (data) {
             setPools(data.pools);
-            setPlayerStake(data.stakes[0]);
+            setPlayerStake(data.stakes); // Now storing all stakes
             setTiers(data.tiers);
             setConfig(data.config);
             
-            // If pools exist, set the first pool as selected by default
-            if (data.pools.length > 0 && !selectedPool) {
-              setSelectedPool(data.pools[0]);
+            // If pools exist and user has stakes, set the first staked pool as selected
+            if (data.pools.length > 0) {
+              if (data.stakes.length > 0) {
+                // Find the pool that matches the first stake
+                const firstStakedPool = data.pools.find(p => p.pool_id === data.stakes[0].pool_id);
+                setSelectedPool(firstStakedPool || data.pools[0]);
+              } else {
+                setSelectedPool(data.pools[0]);
+              }
             }
           }
         } catch (err) {
@@ -88,7 +102,7 @@ const GameUI: React.FC = () => {
       } else {
         // Reset state when session is lost
         setPools([]);
-        setPlayerStake(undefined);
+        setPlayerStake([]);
         setTiers([]);
         setConfig(undefined);
         setSelectedPool(undefined);
@@ -97,25 +111,36 @@ const GameUI: React.FC = () => {
     };
 
     loadInitialData();
-  }, [session]); // Dependency on session ensures data loads when user logs in
+  }, [session]);
 
 
   const refreshData = async () => {
-    if (!session) return;
-    
-    try {
-      const data = await fetchData();
-      if (data) {
-        setPools(data.pools);
-        setPlayerStake(data.stakes[0]);
-        setTiers(data.tiers);
-        setConfig(data.config);
+  if (!session) return;
+  
+  try {
+    const data = await fetchData();
+    if (data) {
+      setPools(data.pools);
+      setPlayerStake(data.stakes); // Now storing all stakes instead of just the first one
+      setTiers(data.tiers);
+      setConfig(data.config);
+      
+      // If we don't have a selected pool but have data, select one
+      if (!selectedPool && data.pools.length > 0) {
+        if (data.stakes.length > 0) {
+          // Find the pool that matches the first stake
+          const firstStakedPool = data.pools.find(p => p.pool_id === data.stakes[0].pool_id);
+          setSelectedPool(firstStakedPool || data.pools[0]);
+        } else {
+          setSelectedPool(data.pools[0]);
+        }
       }
-    } catch (err) {
-      setError('Failed to load data');
     }
-  };
-
+  } catch (err) {
+    console.error('Failed to refresh data:', err);
+    setError('Failed to load data');
+  }
+};
   const handleClaim = async () => {
     if (!session || !selectedPool) return;
     
@@ -217,18 +242,19 @@ const GameUI: React.FC = () => {
 
 // Calculate tier progress and upgrade availability
 const tierProgress = useMemo(() => {
-  if (!playerStake || !selectedPool || !tiers.length) return null;
-  try {
-    return calculateTierProgress(
-      playerStake.staked_quantity,
-      selectedPool.total_staked_quantity,
-      tiers
-    );
-  } catch (error) {
-    console.error('Error calculating tier progress:', error);
-    return null;
-  }
-}, [playerStake, selectedPool, tiers]);
+    const currentStake = getStakeForSelectedPool;
+    if (!currentStake || !selectedPool || !tiers.length) return null;
+    try {
+      return calculateTierProgress(
+        currentStake.staked_quantity,
+        selectedPool.total_staked_quantity,
+        tiers
+      );
+    } catch (error) {
+      console.error('Error calculating tier progress:', error);
+      return null;
+    }
+  }, [getStakeForSelectedPool, selectedPool, tiers]);
 
 const canUpgradeTier = useMemo(() => {
   if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
@@ -341,17 +367,17 @@ case 'kingdom':
               />
             )}
             
-            {config && (
-              <UserStatus 
-                stakedData={playerStake}
-                config={config}
-                onClaim={handleClaim}
-                onUnstake={handleUnstake}
-                onStake={handleStake}
-                poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                isLoading={loading}
-              />
-            )}
+              {config && (
+    <UserStatus 
+      stakedData={getStakeForSelectedPool}
+      config={config}
+      onClaim={handleClaim}
+      onUnstake={handleUnstake}
+      onStake={handleStake}
+      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+      isLoading={loading}
+    />
+  )}
 
             <RewardsChart poolData={selectedPool} isLoading={loading} />
           </div>
