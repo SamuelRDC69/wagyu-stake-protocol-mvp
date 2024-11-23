@@ -39,6 +39,11 @@ function App() {
     restoreSession()
   }, [])
 
+  // Custom session setter that can be passed down
+  const handleSetSession = (newSession: Session | undefined) => {
+    setSession(newSession)
+  }
+
   // Show loading state while restoring session
   if (isRestoring) {
     return (
@@ -49,7 +54,7 @@ function App() {
   }
 
   return (
-    <WharfkitContext.Provider value={{ session, setSession, sessionKit }}>
+    <WharfkitContext.Provider value={{ session, setSession: handleSetSession, sessionKit }}>
       <div className="App">
         <GameUI />
       </div>
