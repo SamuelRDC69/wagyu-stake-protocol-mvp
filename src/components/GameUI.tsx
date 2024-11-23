@@ -57,7 +57,7 @@ const GameUI: React.FC = () => {
   const [tiers, setTiers] = useState<TierEntity[]>([]);
   const [config, setConfig] = useState<ConfigEntity | undefined>();
   const [error, setError] = useState<string | null>(null);
-
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   const { fetchData, loading } = useContractData();
 
   // Automatic data loading on login
@@ -110,6 +110,8 @@ const GameUI: React.FC = () => {
   loadInitialData();
 }, [session, selectedPool]);
 
+  
+
   const refreshData = async () => {
   if (!session) return;
   
@@ -153,7 +155,8 @@ const GameUI: React.FC = () => {
     };
 
     await session.transact({ actions: [action] });
-    // Wait for refreshData to complete
+    // Add delay before refresh to allow blockchain to update
+    await delay(1000);
     await refreshData();
   } catch (error) {
     console.error('Claim error:', error);
@@ -180,7 +183,7 @@ const handleStake = async (amount: string) => {
     };
 
     await session.transact({ actions: [action] });
-    // Wait for refreshData to complete
+    await delay(1000);
     await refreshData();
   } catch (error) {
     console.error('Stake error:', error);
@@ -206,7 +209,7 @@ const handleUnstake = async (amount: string) => {
     };
 
     await session.transact({ actions: [action] });
-    // Wait for refreshData to complete
+    await delay(1000);
     await refreshData();
   } catch (error) {
     console.error('Unstake error:', error);
@@ -342,15 +345,16 @@ const handleUnstake = async (amount: string) => {
                   )}
                   
                   {config && (
-                    <UserStatus 
-                      stakedData={playerStake}
-                      config={config}
-                      onClaim={handleClaim}
-                      onUnstake={handleUnstake}
-                      onStake={handleStake}
-                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                    />
-                  )}
+  <UserStatus 
+    stakedData={playerStake}
+    config={config}
+    onCooldownComplete={refreshData}  // Add this prop
+    onClaim={handleClaim}
+    onUnstake={handleUnstake}
+    onStake={handleStake}
+    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+  />
+)}
 
                   <RewardsChart poolData={selectedPool} />
                 </div>
