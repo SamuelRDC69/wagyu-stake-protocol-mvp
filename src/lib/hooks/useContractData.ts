@@ -9,15 +9,6 @@ import { StakedEntity } from '../types/staked';
 import { TierEntity } from '../types/tier';
 import { ConfigEntity } from '../types/config';
 
-interface RawStakeData {
-  pool_id: Name;
-  staked_quantity: Asset;
-  tier: Name;
-  last_claimed_at: string;
-  cooldown_end_at: string;
-  owner?: string;
-}
-
 export function useContractData() {
   const { session } = useContext(WharfkitContext);
   const [loading, setLoading] = useState(false);
@@ -40,33 +31,23 @@ export function useContractData() {
       const configTable = contract.table(CONTRACTS.STAKING.TABLES.CONFIG);
       const stakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
 
-      // Get scopes for stakes table
-      const scopesCursor = await stakesTable.scopes();
-      const scopes = await scopesCursor.all();
-      console.log("Scopes: ", scopes);
+      // Fetch user's stakes specifically
+      const userStakes = await stakesTable.all({ scope: session.actor.toString() });
+      
+      // Transform user stakes
+      const stakes: StakedEntity[] = userStakes.map((stake: any) => ({
+        pool_id: Number(stake.pool_id.toString()),
+        staked_quantity: stake.staked_quantity.toString(),
+        tier: stake.tier.toString(),
+        last_claimed_at: stake.last_claimed_at,
+        cooldown_end_at: stake.cooldown_end_at
+      }));
 
-      // Fetch all stakes data for each scope
-      const allStakesPromises = scopes.map(async (scope) => {
-        const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString());
-        const stakes = await table.all();
-        return stakes.map((stake: RawStakeData) => {
-          return {
-            pool_id: Number(stake.pool_id.toString()),
-            staked_quantity: stake.staked_quantity.toString(),
-            tier: stake.tier.toString(),
-            last_claimed_at: stake.last_claimed_at,
-            cooldown_end_at: stake.cooldown_end_at,
-            owner: scope.scope.toString()
-          };
-        });
-      });
-
-      // Fetch all data in parallel
-      const [poolsData, tiersData, configData, ...stakesData] = await Promise.all([
+      // Fetch all other data in parallel
+      const [poolsData, tiersData, configData] = await Promise.all([
         poolsTable.all(),
         tiersTable.all(),
-        configTable.get(),
-        ...allStakesPromises
+        configTable.get()
       ]);
 
       // Transform pools data
@@ -100,20 +81,14 @@ export function useContractData() {
         vault_account: configData?.vault_account.toString()
       };
 
-      // Flatten and transform stakes data
-      const stakes = stakesData.flat();
-
-      console.log('Transformed data:', { pools, stakes, tiers, config });
-
       return {
         pools,
         stakes,
         tiers,
         config
       };
-
     } catch (error: unknown) {
-      console.error('Error details:', error);
+      console.error('Error fetching contract data:', error);
       setError(error instanceof Error ? error : new Error('An unknown error occurred'));
       return null;
     } finally {
