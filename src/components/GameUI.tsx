@@ -63,59 +63,68 @@ const GameUI: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      if (session) {
-        try {
-          setIsInitialLoading(true);
-          const data = await fetchData();
-          if (data) {
-            setPools(data.pools);
-            setPlayerStake(data.stakes[0]);
-            setTiers(data.tiers);
-            setConfig(data.config);
-            
-            // If pools exist, set the first pool as selected by default
-            if (data.pools.length > 0 && !selectedPool) {
-              setSelectedPool(data.pools[0]);
-            }
+  const loadInitialData = async () => {
+    if (session) {
+      try {
+        setIsInitialLoading(true);
+        const data = await fetchData();
+        if (data) {
+          setPools(data.pools);
+          // Find the stake that matches the selected pool
+          if (data.stakes && data.stakes.length > 0) {
+            const relevantStake = selectedPool 
+              ? data.stakes.find(stake => stake.pool_id === selectedPool.pool_id)
+              : data.stakes[0];
+            setPlayerStake(relevantStake);
           }
-        } catch (err) {
-          console.error('Failed to load initial data:', err);
-          setError('Failed to load initial data');
-        } finally {
-          setIsInitialLoading(false);
+          setTiers(data.tiers);
+          setConfig(data.config);
+          
+          // If pools exist, set the first pool as selected by default
+          if (data.pools.length > 0 && !selectedPool) {
+            setSelectedPool(data.pools[0]);
+          }
         }
-      } else {
-        // Reset state when session is lost
-        setPools([]);
-        setPlayerStake(undefined);
-        setTiers([]);
-        setConfig(undefined);
-        setSelectedPool(undefined);
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+        setError('Failed to load initial data');
+      } finally {
         setIsInitialLoading(false);
       }
-    };
-
-    loadInitialData();
-  }, [session]); // Dependency on session ensures data loads when user logs in
-
-
-  const refreshData = async () => {
-    if (!session) return;
-    
-    try {
-      const data = await fetchData();
-      if (data) {
-        setPools(data.pools);
-        setPlayerStake(data.stakes[0]);
-        setTiers(data.tiers);
-        setConfig(data.config);
-      }
-    } catch (err) {
-      setError('Failed to load data');
+    } else {
+      // Reset state when session is lost
+      setPools([]);
+      setPlayerStake(undefined);
+      setTiers([]);
+      setConfig(undefined);
+      setSelectedPool(undefined);
+      setIsInitialLoading(false);
     }
   };
 
+  loadInitialData();
+}, [session, selectedPool]); // Add selectedPool as dependency
+
+  const refreshData = async () => {
+  if (!session) return;
+  
+  try {
+    const data = await fetchData();
+    if (data) {
+      setPools(data.pools);
+      if (data.stakes && data.stakes.length > 0) {
+        const relevantStake = selectedPool 
+          ? data.stakes.find(stake => stake.pool_id === selectedPool.pool_id)
+          : data.stakes[0];
+        setPlayerStake(relevantStake);
+      }
+      setTiers(data.tiers);
+      setConfig(data.config);
+    }
+  } catch (err) {
+    setError('Failed to load data');
+  }
+};
   const handleClaim = async () => {
     if (!session || !selectedPool) return;
     
@@ -265,19 +274,27 @@ case 'kingdom':
       <div className="crystal-bg rounded-2xl p-6">
         <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
         <Select 
-          onValueChange={(value) => {
-            try {
-              const pool = pools.find(p => p.pool_id === parseInt(value));
-              setSelectedPool(pool);
-              setError(null);
-            } catch (error) {
-              console.error('Error selecting pool:', error);
-              setError('Error selecting pool');
-            }
-          }}
-          value={selectedPool?.pool_id?.toString()}
-          disabled={isInitialLoading || loading}
-        >
+  onValueChange={(value) => {
+    try {
+      const pool = pools.find(p => p.pool_id === parseInt(value));
+      setSelectedPool(pool);
+      // Update player stake when pool changes
+      const data = await fetchData();
+      if (data?.stakes) {
+        const relevantStake = data.stakes.find(
+          stake => stake.pool_id === pool?.pool_id
+        );
+        setPlayerStake(relevantStake);
+      }
+      setError(null);
+    } catch (error) {
+      console.error('Error selecting pool:', error);
+      setError('Error selecting pool');
+    }
+  }}
+  value={selectedPool?.pool_id?.toString()}
+  disabled={isInitialLoading || loading}
+>
           <SelectTrigger className="w-full">
             <SelectValue placeholder={
               isInitialLoading || loading 
