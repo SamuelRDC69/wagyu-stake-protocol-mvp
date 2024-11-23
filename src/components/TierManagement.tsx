@@ -24,12 +24,23 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     staked_up_to_percent: 0
   });
 
+  // Store input values separately to allow for partial input
+  const [inputValues, setInputValues] = useState({
+    weight: '1.00000000',
+    staked_up_to_percent: '0.00000000'
+  });
+
   const [errors, setErrors] = useState({
     weight: '',
     staked_up_to_percent: ''
   });
 
   const validateDecimalInput = (value: string, field: 'weight' | 'staked_up_to_percent'): boolean => {
+    // Allow empty or partial decimal input (like "0." or ".")
+    if (value === '' || value === '.') {
+      return true;
+    }
+
     const decimalRegex = /^\d*\.?\d{0,8}$/;
     if (!decimalRegex.test(value)) {
       setErrors(prev => ({
@@ -40,7 +51,9 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     }
 
     const numValue = parseFloat(value);
-    if (field === 'weight' && (numValue <= 0 || numValue > 10)) {
+    
+    // Allow any decimal input but validate the final number
+    if (field === 'weight' && numValue !== 0 && (numValue <= 0 || numValue > 10)) {
       setErrors(prev => ({
         ...prev,
         weight: 'Weight must be between 0 and 10'
@@ -48,7 +61,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
       return false;
     }
 
-    if (field === 'staked_up_to_percent' && (numValue < 0 || numValue > 100)) {
+    if (field === 'staked_up_to_percent' && numValue !== 0 && (numValue < 0 || numValue > 100)) {
       setErrors(prev => ({
         ...prev,
         staked_up_to_percent: 'Percentage must be between 0 and 100'
@@ -68,11 +81,24 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     field: 'weight' | 'staked_up_to_percent'
   ) => {
     const value = e.target.value;
+    
     if (validateDecimalInput(value, field)) {
-      setNewTier(prev => ({
+      // Update the display value
+      setInputValues(prev => ({
         ...prev,
-        [field]: parseFloat(value) || 0
+        [field]: value
       }));
+      
+      // Only update the actual value if it's a valid number
+      if (value !== '' && value !== '.') {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          setNewTier(prev => ({
+            ...prev,
+            [field]: numValue
+          }));
+        }
+      }
     }
   };
 
@@ -90,6 +116,11 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
       tier_name: '',
       weight: 1,
       staked_up_to_percent: 0
+    });
+    
+    setInputValues({
+      weight: '1.00000000',
+      staked_up_to_percent: '0.00000000'
     });
   };
 
@@ -140,7 +171,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
             <input
               type="text"
               inputMode="decimal"
-              value={formatDecimalValue(newTier.weight)}
+              value={inputValues.weight}
               onChange={(e) => handleDecimalInput(e, 'weight')}
               className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
                 errors.weight ? 'border border-red-500' : ''
@@ -164,7 +195,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
             <input
               type="text"
               inputMode="decimal"
-              value={formatDecimalValue(newTier.staked_up_to_percent)}
+              value={inputValues.staked_up_to_percent}
               onChange={(e) => handleDecimalInput(e, 'staked_up_to_percent')}
               className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
                 errors.staked_up_to_percent ? 'border border-red-500' : ''
