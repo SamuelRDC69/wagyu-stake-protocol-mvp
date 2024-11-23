@@ -1,4 +1,4 @@
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { Crown, 
   Sword, 
   Shield, 
@@ -60,6 +60,45 @@ const GameUI: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { fetchData, loading } = useContractData();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (session) {
+        try {
+          setIsInitialLoading(true);
+          const data = await fetchData();
+          if (data) {
+            setPools(data.pools);
+            setPlayerStake(data.stakes[0]);
+            setTiers(data.tiers);
+            setConfig(data.config);
+            
+            // If pools exist, set the first pool as selected by default
+            if (data.pools.length > 0 && !selectedPool) {
+              setSelectedPool(data.pools[0]);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load initial data:', err);
+          setError('Failed to load initial data');
+        } finally {
+          setIsInitialLoading(false);
+        }
+      } else {
+        // Reset state when session is lost
+        setPools([]);
+        setPlayerStake(undefined);
+        setTiers([]);
+        setConfig(undefined);
+        setSelectedPool(undefined);
+        setIsInitialLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [session]); // Dependency on session ensures data loads when user logs in
+
 
   const refreshData = async () => {
     if (!session) return;
@@ -154,7 +193,7 @@ const GameUI: React.FC = () => {
     try {
       const response = await sessionKit.login();
       setSession(response.session);
-      await refreshData();
+      // No need to call refreshData here as the useEffect will handle it
     } catch (error) {
       console.error('Login error:', error);
       setError('Failed to connect wallet');
@@ -219,84 +258,107 @@ const canUpgradeTier = useMemo(() => {
     }
 
     switch (activeTab) {
-      case 'kingdom':
-        return (
-          <div className="space-y-6">
-            <div className="crystal-bg rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-              <Select 
-                onValueChange={(value) => {
+      // Inside GameUI.tsx - Replace the kingdom case in renderContent with this updated version:
+case 'kingdom':
+  return (
+    <div className="space-y-6">
+      <div className="crystal-bg rounded-2xl p-6">
+        <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+        <Select 
+          onValueChange={(value) => {
+            try {
+              const pool = pools.find(p => p.pool_id === parseInt(value));
+              setSelectedPool(pool);
+              setError(null);
+            } catch (error) {
+              console.error('Error selecting pool:', error);
+              setError('Error selecting pool');
+            }
+          }}
+          value={selectedPool?.pool_id?.toString()}
+          disabled={isInitialLoading || loading}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={
+              isInitialLoading || loading 
+                ? "Loading kingdoms..." 
+                : pools.length === 0 
+                  ? "No kingdoms available" 
+                  : "Choose a kingdom"
+            } />
+          </SelectTrigger>
+          <SelectContent>
+            {isInitialLoading || loading ? (
+              <div className="p-2 text-center">
+                <div className="loading-spinner mx-auto" />
+              </div>
+            ) : (
+              <div>
+                {pools.map((pool) => {
                   try {
-                    const pool = pools.find(p => p.pool_id === parseInt(value));
-                    setSelectedPool(pool);
-                    setError(null);
-                  } catch (error) {
-                    console.error('Error selecting pool:', error);
-                    setError('Error selecting pool');
+                    const { symbol } = parseTokenString(pool.total_staked_quantity);
+                    return (
+                      <SelectItem 
+                        key={pool.pool_id} 
+                        value={pool.pool_id.toString()}
+                      >
+                        {`${symbol} - Pool #${pool.pool_id}`}
+                      </SelectItem>
+                    );
+                  } catch (e) {
+                    console.error('Error parsing pool data:', e);
+                    return null;
                   }
-                }}
-                value={selectedPool?.pool_id?.toString()}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a kingdom" />
-                </SelectTrigger>
-                <SelectContent>
-                  <div>
-                    {pools.map((pool) => {
-                      try {
-                        const { symbol } = parseTokenString(pool.total_staked_quantity);
-                        return (
-                          <SelectItem 
-                            key={pool.pool_id} 
-                            value={pool.pool_id.toString()}
-                          >
-                            {`${symbol} - Pool #${pool.pool_id}`}
-                          </SelectItem>
-                        );
-                      } catch (e) {
-                        console.error('Error parsing pool data:', e);
-                        return null;
-                      }
-                    })}
-                  </div>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedPool && (
-              <ErrorBoundary 
-                fallback={<div className="text-red-400">
-                  Error loading pool data. Check console for details.
-                </div>}
-              >
-                <div className="space-y-6">
-                  <PoolStats poolData={selectedPool} />
-
-                  {tierProgress && (
-                    <TierDisplay 
-                      tierProgress={tierProgress}
-                      isUpgradeAvailable={canUpgradeTier}
-                    />
-                  )}
-                  
-                  {config && (
-                    <UserStatus 
-                      stakedData={playerStake}
-                      config={config}
-                      onClaim={handleClaim}
-                      onUnstake={handleUnstake}
-                      onStake={handleStake}
-                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                      isLoading={loading}
-                    />
-                  )}
-
-                  <RewardsChart poolData={selectedPool} />
-                </div>
-              </ErrorBoundary>
+                })}
+              </div>
             )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isInitialLoading ? (
+        <div className="space-y-6">
+          <div className="crystal-bg rounded-2xl p-6">
+            <div className="h-32 flex items-center justify-center">
+              <div className="loading-spinner" />
+            </div>
           </div>
-        );
+        </div>
+      ) : selectedPool ? (
+        <ErrorBoundary 
+          fallback={<div className="text-red-400">
+            Error loading pool data. Check console for details.
+          </div>}
+        >
+          <div className="space-y-6">
+            <PoolStats poolData={selectedPool} isLoading={loading} />
+
+            {tierProgress && (
+              <TierDisplay 
+                tierProgress={tierProgress}
+                isUpgradeAvailable={canUpgradeTier}
+                isLoading={loading}
+              />
+            )}
+            
+            {config && (
+              <UserStatus 
+                stakedData={playerStake}
+                config={config}
+                onClaim={handleClaim}
+                onUnstake={handleUnstake}
+                onStake={handleStake}
+                poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+                isLoading={loading}
+              />
+            )}
+
+            <RewardsChart poolData={selectedPool} isLoading={loading} />
+          </div>
+        </ErrorBoundary>
+      ) : null}
+    </div>
+  );
 
       case 'leaderboard':
         return <Leaderboard />;
