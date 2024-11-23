@@ -16,7 +16,7 @@ interface TierManagementProps {
   loading?: boolean;
 }
 
-const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagementProps) => {
+const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierManagementProps) => {
   const [newTier, setNewTier] = useState({
     tier: '',
     tier_name: '',
@@ -24,7 +24,6 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     staked_up_to_percent: 0
   });
 
-  // Store input values separately to allow for partial input
   const [inputValues, setInputValues] = useState({
     weight: '1.00000000',
     staked_up_to_percent: '0.00000000'
@@ -36,7 +35,6 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
   });
 
   const validateDecimalInput = (value: string, field: 'weight' | 'staked_up_to_percent'): boolean => {
-    // Allow empty or partial decimal input (like "0." or ".")
     if (value === '' || value === '.') {
       return true;
     }
@@ -52,7 +50,6 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
 
     const numValue = parseFloat(value);
     
-    // Allow any decimal input but validate the final number
     if (field === 'weight' && numValue !== 0 && (numValue <= 0 || numValue > 10)) {
       setErrors(prev => ({
         ...prev,
@@ -83,13 +80,11 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     const value = e.target.value;
     
     if (validateDecimalInput(value, field)) {
-      // Update the display value
       setInputValues(prev => ({
         ...prev,
         [field]: value
       }));
       
-      // Only update the actual value if it's a valid number
       if (value !== '' && value !== '.') {
         const numValue = parseFloat(value);
         if (!isNaN(numValue)) {
@@ -102,8 +97,11 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     }
   };
 
-  const formatDecimalValue = (value: number): string => {
-    return value.toFixed(8);
+  const formatDecimalValue = (value: number | string): string => {
+    // Handle string inputs by converting to number first
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    // Return '0.00000000' if the value is NaN or undefined
+    return isNaN(numValue) ? '0.00000000' : numValue.toFixed(8);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,6 +119,40 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     setInputValues({
       weight: '1.00000000',
       staked_up_to_percent: '0.00000000'
+    });
+  };
+
+  const renderTiers = () => {
+    if (!Array.isArray(tiers)) {
+      console.error('Tiers is not an array:', tiers);
+      return null;
+    }
+
+    return tiers.map((tier) => {
+      if (!tier) {
+        return null;
+      }
+
+      return (
+        <div
+          key={tier.tier}
+          className="flex items-center justify-between bg-slate-900 p-3 rounded-lg"
+        >
+          <div>
+            <p className="font-medium">{tier.tier_name}</p>
+            <p className="text-sm text-slate-400">
+              Weight: {formatDecimalValue(tier.weight)}x | Up to {formatDecimalValue(tier.staked_up_to_percent)}%
+            </p>
+          </div>
+          <button
+            onClick={() => onRemoveTier(tier.tier)}
+            disabled={loading}
+            className="p-2 text-red-400 hover:text-red-300 rounded-lg"
+          >
+            <Trash2 className="w-4 h-4"/>
+          </button>
+        </div>
+      );
     });
   };
 
@@ -230,26 +262,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-3">Active Tiers</h3>
         <div className="space-y-2">
-          {tiers.map((tier) => (
-            <div
-              key={tier.tier}
-              className="flex items-center justify-between bg-slate-900 p-3 rounded-lg"
-            >
-              <div>
-                <p className="font-medium">{tier.tier_name}</p>
-                <p className="text-sm text-slate-400">
-                  Weight: {formatDecimalValue(tier.weight)}x | Up to {formatDecimalValue(tier.staked_up_to_percent)}%
-                </p>
-              </div>
-              <button
-                onClick={() => onRemoveTier(tier.tier)}
-                disabled={loading}
-                className="p-2 text-red-400 hover:text-red-300 rounded-lg"
-              >
-                <Trash2 className="w-4 h-4"/>
-              </button>
-            </div>
-          ))}
+          {renderTiers()}
         </div>
       </div>
     </div>
