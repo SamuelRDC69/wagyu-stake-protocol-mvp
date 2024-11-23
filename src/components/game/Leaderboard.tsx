@@ -144,24 +144,25 @@ export const Leaderboard: React.FC = () => {
               const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
               return (
-                <TableRow key={`${entry.pool_id}-${index}`}>
-                  <TableCell className="font-medium">#{index + 1}</TableCell>
-                  <TableCell>{entry.owner}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
-                        <TierIcon className={`w-4 h-4 ${tierConfig.color}`} />
-                      </div>
-                      <span className={tierConfig.color}>{entry.tier}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {`${Number(amount).toFixed(8)} ${symbol}`}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {renderClaimStatus(entry.cooldown_end_at)}
-                  </TableCell>
-                </TableRow>
+// In Leaderboard.tsx, update the TableRow rendering:
+<TableRow key={`${entry.pool_id}-${index}`}>
+  <TableCell className="font-medium text-slate-200">#{index + 1}</TableCell>
+  <TableCell className="text-slate-200">{entry.owner}</TableCell>
+  <TableCell>
+    <div className="flex items-center gap-2">
+      <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
+        <TierIcon className={`w-4 h-4 ${tierConfig.color}`} />
+      </div>
+      <span className={`${tierConfig.color}`}>{entry.tier}</span>
+    </div>
+  </TableCell>
+  <TableCell className="text-right font-medium text-slate-200">
+    {`${Number(amount).toFixed(8)} ${symbol}`}
+  </TableCell>
+  <TableCell className="text-right">
+    {renderClaimStatus(entry.cooldown_end_at)}
+  </TableCell>
+</TableRow>
               );
             })}
           </TableBody>
