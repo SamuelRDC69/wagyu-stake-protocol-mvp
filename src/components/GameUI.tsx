@@ -14,7 +14,6 @@ import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
 
-
 // UI Components
 import {
   Select,
@@ -60,71 +59,57 @@ const GameUI: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { fetchData, loading } = useContractData();
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  // Automatic data loading on login
   useEffect(() => {
-  const loadInitialData = async () => {
-    if (session) {
-      try {
-        setIsInitialLoading(true);
-        const data = await fetchData();
-        if (data) {
-          setPools(data.pools);
-          // Find the stake that matches the selected pool
-          if (data.stakes && data.stakes.length > 0) {
-            const relevantStake = selectedPool 
-              ? data.stakes.find(stake => stake.pool_id === selectedPool.pool_id)
-              : data.stakes[0];
-            setPlayerStake(relevantStake);
+    const loadInitialData = async () => {
+      if (session) {
+        try {
+          const data = await fetchData();
+          if (data) {
+            setPools(data.pools);
+            setPlayerStake(data.stakes[0]);
+            setTiers(data.tiers);
+            setConfig(data.config);
+            
+            // If pools exist, set the first pool as selected by default
+            if (data.pools.length > 0 && !selectedPool) {
+              setSelectedPool(data.pools[0]);
+            }
           }
-          setTiers(data.tiers);
-          setConfig(data.config);
-          
-          // If pools exist, set the first pool as selected by default
-          if (data.pools.length > 0 && !selectedPool) {
-            setSelectedPool(data.pools[0]);
-          }
+        } catch (err) {
+          console.error('Failed to load initial data:', err);
+          setError('Failed to load initial data');
         }
-      } catch (err) {
-        console.error('Failed to load initial data:', err);
-        setError('Failed to load initial data');
-      } finally {
-        setIsInitialLoading(false);
+      } else {
+        // Reset state when session is lost
+        setPools([]);
+        setPlayerStake(undefined);
+        setTiers([]);
+        setConfig(undefined);
+        setSelectedPool(undefined);
       }
-    } else {
-      // Reset state when session is lost
-      setPools([]);
-      setPlayerStake(undefined);
-      setTiers([]);
-      setConfig(undefined);
-      setSelectedPool(undefined);
-      setIsInitialLoading(false);
+    };
+
+    loadInitialData();
+  }, [session]);
+
+  const refreshData = async () => {
+    if (!session) return;
+    
+    try {
+      const data = await fetchData();
+      if (data) {
+        setPools(data.pools);
+        setPlayerStake(data.stakes[0]);
+        setTiers(data.tiers);
+        setConfig(data.config);
+      }
+    } catch (err) {
+      setError('Failed to load data');
     }
   };
 
-  loadInitialData();
-}, [session, selectedPool]); // Add selectedPool as dependency
-
-  const refreshData = async () => {
-  if (!session) return;
-  
-  try {
-    const data = await fetchData();
-    if (data) {
-      setPools(data.pools);
-      if (data.stakes && data.stakes.length > 0) {
-        const relevantStake = selectedPool 
-          ? data.stakes.find(stake => stake.pool_id === selectedPool.pool_id)
-          : data.stakes[0];
-        setPlayerStake(relevantStake);
-      }
-      setTiers(data.tiers);
-      setConfig(data.config);
-    }
-  } catch (err) {
-    setError('Failed to load data');
-  }
-};
   const handleClaim = async () => {
     if (!session || !selectedPool) return;
     
@@ -148,30 +133,30 @@ const GameUI: React.FC = () => {
   };
 
   const handleStake = async (amount: string) => {
- if (!session || !selectedPool) return;
- 
- try {
-   const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-   const formattedAmount = parseFloat(amount).toFixed(8); // Forces 8 decimals
-   const action = {
-     account: Name.from(selectedPool.staked_token_contract),
-     name: Name.from('transfer'),
-     authorization: [session.permissionLevel],
-     data: {
-       from: session.actor,
-       to: CONTRACTS.STAKING.NAME,
-       quantity: `${formattedAmount} ${symbol}`,
-       memo: 'stake'
-     }
-   };
+    if (!session || !selectedPool) return;
+    
+    try {
+      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+      const formattedAmount = parseFloat(amount).toFixed(8); // Forces 8 decimals
+      const action = {
+        account: Name.from(selectedPool.staked_token_contract),
+        name: Name.from('transfer'),
+        authorization: [session.permissionLevel],
+        data: {
+          from: session.actor,
+          to: CONTRACTS.STAKING.NAME,
+          quantity: `${formattedAmount} ${symbol}`,
+          memo: 'stake'
+        }
+      };
 
-   await session.transact({ actions: [action] });
-   await refreshData();
- } catch (error) {
-   console.error('Stake error:', error);
-   setError('Failed to stake tokens');
- }
-};
+      await session.transact({ actions: [action] });
+      await refreshData();
+    } catch (error) {
+      console.error('Stake error:', error);
+      setError('Failed to stake tokens');
+    }
+  };
 
   const handleUnstake = async (amount: string) => {
     if (!session || !selectedPool) return;
@@ -217,44 +202,42 @@ const GameUI: React.FC = () => {
   };
 
   const navItems: NavItem[] = [
-  { icon: Crown, label: 'Kingdom', id: 'kingdom' },
-  { icon: Users, label: 'Guild', id: 'guild' },
-  { icon: BarChart3, label: 'Leaderboard', id: 'leaderboard' }, // Fixed BarChart to BarChart3
-  { icon: Sword, label: 'Battle', id: 'battle' },
-  { icon: Trophy, label: 'Rewards', id: 'rewards' }
-];
+    { icon: Crown, label: 'Kingdom', id: 'kingdom' },
+    { icon: Users, label: 'Guild', id: 'guild' },
+    { icon: BarChart3, label: 'Leaderboard', id: 'leaderboard' },
+    { icon: Sword, label: 'Battle', id: 'battle' },
+    { icon: Trophy, label: 'Rewards', id: 'rewards' }
+  ];
 
-// Calculate tier progress and upgrade availability
-const tierProgress = useMemo(() => {
-  if (!playerStake || !selectedPool || !tiers.length) return null;
-  try {
-    return calculateTierProgress(
-      playerStake.staked_quantity,
-      selectedPool.total_staked_quantity,
-      tiers
-    );
-  } catch (error) {
-    console.error('Error calculating tier progress:', error);
-    return null;
-  }
-}, [playerStake, selectedPool, tiers]);
+  // Calculate tier progress and upgrade availability
+  const tierProgress = useMemo(() => {
+    if (!playerStake || !selectedPool || !tiers.length) return null;
+    try {
+      return calculateTierProgress(
+        playerStake.staked_quantity,
+        selectedPool.total_staked_quantity,
+        tiers
+      );
+    } catch (error) {
+      console.error('Error calculating tier progress:', error);
+      return null;
+    }
+  }, [playerStake, selectedPool, tiers]);
 
-const canUpgradeTier = useMemo(() => {
-  if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
-  try {
-    return isTierUpgradeAvailable(
-      playerStake.staked_quantity,
-      selectedPool.total_staked_quantity,
-      tierProgress.currentTier,
-      tiers
-    );
-  } catch (error) {
-    console.error('Error calculating upgrade availability:', error);
-    return false;
-  }
-}, [tierProgress, selectedPool, playerStake, tiers]);
-
-
+  const canUpgradeTier = useMemo(() => {
+    if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
+    try {
+      return isTierUpgradeAvailable(
+        playerStake.staked_quantity,
+        selectedPool.total_staked_quantity,
+        tierProgress.currentTier,
+        tiers
+      );
+    } catch (error) {
+      console.error('Error calculating upgrade availability:', error);
+      return false;
+    }
+  }, [tierProgress, selectedPool, playerStake, tiers]);
 
   // Render appropriate content based on active tab
   const renderContent = () => {
@@ -267,115 +250,84 @@ const canUpgradeTier = useMemo(() => {
     }
 
     switch (activeTab) {
-      // Inside GameUI.tsx - Replace the kingdom case in renderContent with this updated version:
-case 'kingdom':
-  return (
-    <div className="space-y-6">
-      <div className="crystal-bg rounded-2xl p-6">
-        <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-<Select 
-  onValueChange={async (value) => { // Add async here
-    try {
-      const pool = pools.find(p => p.pool_id === parseInt(value));
-      setSelectedPool(pool);
-      // Update player stake when pool changes
-      const data = await fetchData();
-      if (data?.stakes) {
-        const relevantStake = data.stakes.find(
-          stake => stake.pool_id === pool?.pool_id
-        );
-        setPlayerStake(relevantStake);
-      }
-      setError(null);
-    } catch (error) {
-      console.error('Error selecting pool:', error);
-      setError('Error selecting pool');
-    }
-  }}
-  value={selectedPool?.pool_id?.toString()}
-  disabled={isInitialLoading || loading}
->
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={
-              isInitialLoading || loading 
-                ? "Loading kingdoms..." 
-                : pools.length === 0 
-                  ? "No kingdoms available" 
-                  : "Choose a kingdom"
-            } />
-          </SelectTrigger>
-          <SelectContent>
-            {isInitialLoading || loading ? (
-              <div className="p-2 text-center">
-                <div className="loading-spinner mx-auto" />
-              </div>
-            ) : (
-              <div>
-                {pools.map((pool) => {
-                  try {
-                    const { symbol } = parseTokenString(pool.total_staked_quantity);
-                    return (
-                      <SelectItem 
-                        key={pool.pool_id} 
-                        value={pool.pool_id.toString()}
-                      >
-                        {`${symbol} - Pool #${pool.pool_id}`}
-                      </SelectItem>
-                    );
-                  } catch (e) {
-                    console.error('Error parsing pool data:', e);
-                    return null;
-                  }
-                })}
-              </div>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {isInitialLoading ? (
-        <div className="space-y-6">
-          <div className="crystal-bg rounded-2xl p-6">
-            <div className="h-32 flex items-center justify-center">
-              <div className="loading-spinner" />
-            </div>
-          </div>
-        </div>
-      ) : selectedPool ? (
-        <ErrorBoundary 
-          fallback={<div className="text-red-400">
-            Error loading pool data. Check console for details.
-          </div>}
-        >
+      case 'kingdom':
+        return (
           <div className="space-y-6">
-            <PoolStats poolData={selectedPool} isLoading={loading} />
+            <div className="crystal-bg rounded-2xl p-6">
+              <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+              <Select 
+                onValueChange={(value) => {
+                  try {
+                    const pool = pools.find(p => p.pool_id === parseInt(value));
+                    setSelectedPool(pool);
+                    setError(null);
+                  } catch (error) {
+                    console.error('Error selecting pool:', error);
+                    setError('Error selecting pool');
+                  }
+                }}
+                value={selectedPool?.pool_id?.toString()}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a kingdom" />
+                </SelectTrigger>
+                <SelectContent>
+                  <div>
+                    {pools.map((pool) => {
+                      try {
+                        const { symbol } = parseTokenString(pool.total_staked_quantity);
+                        return (
+                          <SelectItem 
+                            key={pool.pool_id} 
+                            value={pool.pool_id.toString()}
+                          >
+                            {`${symbol} - Pool #${pool.pool_id}`}
+                          </SelectItem>
+                        );
+                      } catch (e) {
+                        console.error('Error parsing pool data:', e);
+                        return null;
+                      }
+                    })}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-            {tierProgress && (
-              <TierDisplay 
-                tierProgress={tierProgress}
-                isUpgradeAvailable={canUpgradeTier}
-                isLoading={loading}
-              />
-            )}
-            
-            {config && (
-              <UserStatus 
-                stakedData={playerStake}
-                config={config}
-                onClaim={handleClaim}
-                onUnstake={handleUnstake}
-                onStake={handleStake}
-                poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                isLoading={loading}
-              />
-            )}
+            {selectedPool && (
+              <ErrorBoundary 
+                fallback={<div className="text-red-400">
+                  Error loading pool data. Check console for details.
+                </div>}
+              >
+                <div className="space-y-6">
+                  <PoolStats poolData={selectedPool} />
 
-            <RewardsChart poolData={selectedPool} isLoading={loading} />
+                  {tierProgress && (
+                    <TierDisplay 
+                      tierProgress={tierProgress}
+                      isUpgradeAvailable={canUpgradeTier}
+                    />
+                  )}
+                  
+                  {config && (
+                    <UserStatus 
+                      stakedData={playerStake}
+                      config={config}
+                      onClaim={handleClaim}
+                      onUnstake={handleUnstake}
+                      onStake={handleStake}
+                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+                    />
+                  )}
+
+                  <RewardsChart poolData={selectedPool} />
+                </div>
+              </ErrorBoundary>
+            )}
           </div>
-        </ErrorBoundary>
-      ) : null}
-    </div>
-  );
+        );
+
       case 'leaderboard':
         return <Leaderboard />;
 
