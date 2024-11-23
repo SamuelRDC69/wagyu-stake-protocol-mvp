@@ -111,93 +111,108 @@ const GameUI: React.FC = () => {
 }, [session, selectedPool]);
 
   const refreshData = async () => {
-    if (!session) return;
-    
-    try {
-      const data = await fetchData();
-      if (data) {
-        setPools(data.pools);
-        setPlayerStake(data.stakes[0]);
-        setTiers(data.tiers);
-        setConfig(data.config);
+  if (!session) return;
+  
+  try {
+    const data = await fetchData();
+    if (data) {
+      setPools(data.pools);
+      setTiers(data.tiers);
+      setConfig(data.config);
+
+      // Filter stakes for current user
+      const userStakes = data.stakes.filter(
+        stake => stake.owner === session.actor.toString()
+      );
+      
+      // Find stake for current selected pool
+      if (selectedPool) {
+        const poolStake = userStakes.find(
+          stake => stake.pool_id === selectedPool.pool_id
+        );
+        setPlayerStake(poolStake);
       }
-    } catch (err) {
-      setError('Failed to load data');
     }
-  };
+  } catch (err) {
+    setError('Failed to load data');
+  }
+};
 
   const handleClaim = async () => {
-    if (!session || !selectedPool) return;
-    
-    try {
-      const action = {
-        account: Name.from(CONTRACTS.STAKING.NAME),
-        name: Name.from('claim'),
-        authorization: [session.permissionLevel],
-        data: {
-          claimer: session.actor,
-          pool_id: selectedPool.pool_id
-        }
-      };
+  if (!session || !selectedPool) return;
+  
+  try {
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('claim'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id
+      }
+    };
 
-      await session.transact({ actions: [action] });
-      await refreshData();
-    } catch (error) {
-      console.error('Claim error:', error);
-      setError('Failed to claim rewards');
-    }
-  };
+    await session.transact({ actions: [action] });
+    // Wait for refreshData to complete
+    await refreshData();
+  } catch (error) {
+    console.error('Claim error:', error);
+    setError('Failed to claim rewards');
+  }
+};
 
-  const handleStake = async (amount: string) => {
-    if (!session || !selectedPool) return;
-    
-    try {
-      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-      const formattedAmount = parseFloat(amount).toFixed(8); // Forces 8 decimals
-      const action = {
-        account: Name.from(selectedPool.staked_token_contract),
-        name: Name.from('transfer'),
-        authorization: [session.permissionLevel],
-        data: {
-          from: session.actor,
-          to: CONTRACTS.STAKING.NAME,
-          quantity: `${formattedAmount} ${symbol}`,
-          memo: 'stake'
-        }
-      };
+const handleStake = async (amount: string) => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(8);
+    const action = {
+      account: Name.from(selectedPool.staked_token_contract),
+      name: Name.from('transfer'),
+      authorization: [session.permissionLevel],
+      data: {
+        from: session.actor,
+        to: CONTRACTS.STAKING.NAME,
+        quantity: `${formattedAmount} ${symbol}`,
+        memo: 'stake'
+      }
+    };
 
-      await session.transact({ actions: [action] });
-      await refreshData();
-    } catch (error) {
-      console.error('Stake error:', error);
-      setError('Failed to stake tokens');
-    }
-  };
+    await session.transact({ actions: [action] });
+    // Wait for refreshData to complete
+    await refreshData();
+  } catch (error) {
+    console.error('Stake error:', error);
+    setError('Failed to stake tokens');
+  }
+};
 
-  const handleUnstake = async (amount: string) => {
-    if (!session || !selectedPool) return;
-    
-    try {
-      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-      const formattedAmount = parseFloat(amount).toFixed(8); // Forces 8 decimals
-      const action = {
-        account: Name.from(CONTRACTS.STAKING.NAME),
-        name: Name.from('unstake'),
-        authorization: [session.permissionLevel],
-        data: {
-          claimer: session.actor,
-          pool_id: selectedPool.pool_id,
-          quantity: `${formattedAmount} ${symbol}`,
-        }
-      };
+const handleUnstake = async (amount: string) => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(8);
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('unstake'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id,
+        quantity: `${formattedAmount} ${symbol}`,
+      }
+    };
 
-      await session.transact({ actions: [action] });
-      await refreshData();
-    } catch (error) {
-      console.error('Unstake error:', error);
-      setError('Failed to unstake tokens');
-    }
-  };
+    await session.transact({ actions: [action] });
+    // Wait for refreshData to complete
+    await refreshData();
+  } catch (error) {
+    console.error('Unstake error:', error);
+    setError('Failed to unstake tokens');
+  }
+};
 
   const handleLogin = async () => {
     try {
