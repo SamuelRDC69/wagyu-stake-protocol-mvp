@@ -8,84 +8,59 @@ export const calculateTierProgress = (
   totalStaked: string,
   tiers: TierEntity[]
 ): TierProgress | null => {
-  console.log('Calculate Tier Progress Input:', {
-    stakedAmount,
-    totalStaked,
-    tiers
-  });
-
   try {
     // Parse the staked amounts first
     const stakedValue = parseFloat(stakedAmount.split(' ')[0]);
     const totalValue = parseFloat(totalStaked.split(' ')[0]);
     
     if (isNaN(stakedValue) || isNaN(totalValue) || totalValue === 0) {
-      console.log('Invalid staked values:', { stakedValue, totalValue });
       return null;
     }
 
-    // Calculate percentage
-    const stakedPercent = (stakedValue / totalValue) * 100;
-    console.log('User staked percent:', stakedPercent);
+    // Calculate percentage like the smart contract
+    let stakedPercent = (stakedValue / totalValue) * 100;
+    stakedPercent = Math.min(stakedPercent, 100); // Cap at 100% like the contract
 
-    // Sort tiers by staked_up_to_percent in DESCENDING order
+    // Sort tiers by staked_up_to_percent ASCENDING (like the contract's index)
     const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
-    
-    console.log('Sorted tiers:', sortedTiers.map(t => ({
-      name: t.tier_name,
-      threshold: t.staked_up_to_percent
-    })));
 
-    // Find the first tier where the user's percentage is less than or equal to the threshold
-    let currentTier = sortedTiers[sortedTiers.length - 1]; // Default to lowest tier
-    let nextTier: TierEntity | undefined;
-    let prevTier: TierEntity | undefined;
+    // Find first tier where threshold >= user percentage (mimic lower_bound)
+    const tierIndex = sortedTiers.findIndex(
+      tier => parseFloat(tier.staked_up_to_percent) >= stakedPercent
+    );
 
-    for (let i = 0; i < sortedTiers.length; i++) {
-      const threshold = parseFloat(sortedTiers[i].staked_up_to_percent);
-      if (stakedPercent <= threshold) {
-        currentTier = sortedTiers[i];
-        nextTier = i > 0 ? sortedTiers[i - 1] : undefined;
-        prevTier = i < sortedTiers.length - 1 ? sortedTiers[i + 1] : undefined;
-        console.log('Found tier match:', {
-          tier: currentTier.tier_name,
-          threshold,
-          stakedPercent,
-          next: nextTier?.tier_name,
-          prev: prevTier?.tier_name
-        });
-        break;
-      }
+    if (tierIndex === -1) {
+      // If no tier found, use the highest tier
+      const highestTier = sortedTiers[sortedTiers.length - 1];
+      return {
+        currentTier: highestTier,
+        progress: 100,
+        requiredForCurrent: parseFloat(highestTier.staked_up_to_percent)
+      };
     }
 
-    // Calculate progress between tiers
+    const currentTier = sortedTiers[tierIndex];
+    const prevTier = tierIndex > 0 ? sortedTiers[tierIndex - 1] : undefined;
+    const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
+
+    // Calculate progress
     const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
     const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
     
-    const progress = ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100;
+    const progress = prevThreshold === currentThreshold 
+      ? 100 
+      : ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100;
 
-    const result = {
+    return {
       currentTier,
       nextTier,
       prevTier,
-      progress: Math.min(Math.max(0, progress), 100), // Clamp between 0 and 100
+      progress: Math.min(Math.max(0, progress), 100),
       requiredForNext: nextTier ? parseFloat(nextTier.staked_up_to_percent) : undefined,
       requiredForCurrent: currentThreshold
     };
-
-    console.log('Final tier calculation result:', {
-      stakedPercent,
-      currentTierName: currentTier.tier_name,
-      nextTierName: nextTier?.tier_name,
-      prevTierName: prevTier?.tier_name,
-      progress: result.progress,
-      requiredForNext: result.requiredForNext,
-      requiredForCurrent: result.requiredForCurrent
-    });
-
-    return result;
   } catch (error) {
     console.error('Error in calculateTierProgress:', error);
     return null;
