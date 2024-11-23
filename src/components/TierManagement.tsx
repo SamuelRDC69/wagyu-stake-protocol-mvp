@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Layers, Plus, Trash2 } from 'lucide-react';
-import { TierEntity } from '../config/types';
+
+interface TierEntity {
+  id?: string;
+  tier: string;
+  tier_name: string;
+  weight: number;
+  staked_up_to_percent: number;
+}
 
 interface TierManagementProps {
   tiers: TierEntity[];
@@ -13,8 +20,8 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
   const [newTier, setNewTier] = useState({
     tier: '',
     tier_name: '',
-    weight: '1.00000000',
-    staked_up_to_percent: '0.00000000'
+    weight: 1,
+    staked_up_to_percent: 0
   });
 
   const [errors, setErrors] = useState({
@@ -64,33 +71,25 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
     if (validateDecimalInput(value, field)) {
       setNewTier(prev => ({
         ...prev,
-        [field]: value
+        [field]: parseFloat(value) || 0
       }));
     }
   };
 
-  const formatDecimalValue = (value: string): string => {
-    const numValue = parseFloat(value);
-    return isNaN(numValue) ? '0.00000000' : numValue.toFixed(8);
+  const formatDecimalValue = (value: number): string => {
+    return value.toFixed(8);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Format decimal values before submission
-    const formattedTier = {
-      ...newTier,
-      weight: formatDecimalValue(newTier.weight),
-      staked_up_to_percent: formatDecimalValue(newTier.staked_up_to_percent)
-    };
-
-    await onAddTier(formattedTier);
+    await onAddTier(newTier);
     
     setNewTier({
       tier: '',
       tier_name: '',
-      weight: '1.00000000',
-      staked_up_to_percent: '0.00000000'
+      weight: 1,
+      staked_up_to_percent: 0
     });
   };
 
@@ -141,7 +140,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
             <input
               type="text"
               inputMode="decimal"
-              value={newTier.weight}
+              value={formatDecimalValue(newTier.weight)}
               onChange={(e) => handleDecimalInput(e, 'weight')}
               className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
                 errors.weight ? 'border border-red-500' : ''
@@ -165,7 +164,7 @@ const TierManagement = ({ tiers, onAddTier, onRemoveTier, loading }: TierManagem
             <input
               type="text"
               inputMode="decimal"
-              value={newTier.staked_up_to_percent}
+              value={formatDecimalValue(newTier.staked_up_to_percent)}
               onChange={(e) => handleDecimalInput(e, 'staked_up_to_percent')}
               className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
                 errors.staked_up_to_percent ? 'border border-red-500' : ''
