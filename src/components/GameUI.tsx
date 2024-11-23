@@ -273,8 +273,8 @@ case 'kingdom':
     <div className="space-y-6">
       <div className="crystal-bg rounded-2xl p-6">
         <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
-        <Select 
-  onValueChange={(value) => {
+<Select 
+  onValueChange={async (value) => { // Add async here
     try {
       const pool = pools.find(p => p.pool_id === parseInt(value));
       setSelectedPool(pool);
