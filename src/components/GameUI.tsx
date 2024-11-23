@@ -62,37 +62,53 @@ const GameUI: React.FC = () => {
 
   // Automatic data loading on login
   useEffect(() => {
-    const loadInitialData = async () => {
-      if (session) {
-        try {
-          const data = await fetchData();
-          if (data) {
-            setPools(data.pools);
-            setPlayerStake(data.stakes[0]);
-            setTiers(data.tiers);
-            setConfig(data.config);
+  const loadInitialData = async () => {
+    if (session) {
+      try {
+        const data = await fetchData();
+        if (data) {
+          setPools(data.pools);
+          setTiers(data.tiers);
+          setConfig(data.config);
+          
+          // Filter stakes for current user
+          const userStakes = data.stakes.filter(
+            stake => stake.owner === session.actor.toString()
+          );
+          
+          // If pools exist, set the first pool as selected by default
+          if (data.pools.length > 0 && !selectedPool) {
+            const firstPool = data.pools[0];
+            setSelectedPool(firstPool);
             
-            // If pools exist, set the first pool as selected by default
-            if (data.pools.length > 0 && !selectedPool) {
-              setSelectedPool(data.pools[0]);
-            }
+            // Find user's stake for this pool
+            const poolStake = userStakes.find(
+              stake => stake.pool_id === firstPool.pool_id
+            );
+            setPlayerStake(poolStake);
+          } else if (selectedPool) {
+            // Find user's stake for current selected pool
+            const poolStake = userStakes.find(
+              stake => stake.pool_id === selectedPool.pool_id
+            );
+            setPlayerStake(poolStake);
           }
-        } catch (err) {
-          console.error('Failed to load initial data:', err);
-          setError('Failed to load initial data');
         }
-      } else {
-        // Reset state when session is lost
-        setPools([]);
-        setPlayerStake(undefined);
-        setTiers([]);
-        setConfig(undefined);
-        setSelectedPool(undefined);
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+        setError('Failed to load initial data');
       }
-    };
+    } else {
+      setPools([]);
+      setPlayerStake(undefined);
+      setTiers([]);
+      setConfig(undefined);
+      setSelectedPool(undefined);
+    }
+  };
 
-    loadInitialData();
-  }, [session]);
+  loadInitialData();
+}, [session, selectedPool]);
 
   const refreshData = async () => {
     if (!session) return;
