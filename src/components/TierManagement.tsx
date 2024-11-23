@@ -17,7 +17,7 @@ interface TierManagementProps {
 }
 
 const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierManagementProps) => {
-  const [newTier, setNewTier] = useState({
+  const [newTier, setNewTier] = useState<Omit<TierEntity, 'id'>>({
     tier: '',
     tier_name: '',
     weight: 1,
@@ -98,62 +98,45 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
   };
 
   const formatDecimalValue = (value: number | string): string => {
-    // Handle string inputs by converting to number first
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    // Return '0.00000000' if the value is NaN or undefined
     return isNaN(numValue) ? '0.00000000' : numValue.toFixed(8);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await onAddTier(newTier);
-    
-    setNewTier({
-      tier: '',
-      tier_name: '',
-      weight: 1,
-      staked_up_to_percent: 0
-    });
-    
-    setInputValues({
-      weight: '1.00000000',
-      staked_up_to_percent: '0.00000000'
-    });
-  };
-
-  const renderTiers = () => {
-    if (!Array.isArray(tiers)) {
-      console.error('Tiers is not an array:', tiers);
-      return null;
-    }
-
-    return tiers.map((tier) => {
-      if (!tier) {
-        return null;
+    try {
+      // Ensure all required fields are present and valid
+      if (!newTier.tier || !newTier.tier_name) {
+        console.error('Missing required fields');
+        return;
       }
 
-      return (
-        <div
-          key={tier.tier}
-          className="flex items-center justify-between bg-slate-900 p-3 rounded-lg"
-        >
-          <div>
-            <p className="font-medium">{tier.tier_name}</p>
-            <p className="text-sm text-slate-400">
-              Weight: {formatDecimalValue(tier.weight)}x | Up to {formatDecimalValue(tier.staked_up_to_percent)}%
-            </p>
-          </div>
-          <button
-            onClick={() => onRemoveTier(tier.tier)}
-            disabled={loading}
-            className="p-2 text-red-400 hover:text-red-300 rounded-lg"
-          >
-            <Trash2 className="w-4 h-4"/>
-          </button>
-        </div>
-      );
-    });
+      // Parse and validate the numeric values
+      const validatedTier = {
+        ...newTier,
+        weight: parseFloat(newTier.weight.toString()),
+        staked_up_to_percent: parseFloat(newTier.staked_up_to_percent.toString())
+      };
+
+      console.log('Submitting tier:', validatedTier);
+      await onAddTier(validatedTier);
+      
+      // Reset form after successful submission
+      setNewTier({
+        tier: '',
+        tier_name: '',
+        weight: 1,
+        staked_up_to_percent: 0
+      });
+      
+      setInputValues({
+        weight: '1.00000000',
+        staked_up_to_percent: '0.00000000'
+      });
+    } catch (error) {
+      console.error('Error adding tier:', error);
+    }
   };
 
   return (
@@ -172,10 +155,16 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
             <input
               type="text"
               value={newTier.tier}
-              onChange={(e) => setNewTier({ ...newTier, tier: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value.toLowerCase().replace(/[^a-z1-5]/g, '').slice(0, 12);
+                setNewTier(prev => ({ ...prev, tier: value }));
+              }}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
               placeholder="e.g., bronze"
               required
+              maxLength={12}
+              pattern="[a-z1-5]{1,12}"
+              title="Must be a valid EOSIO name (a-z, 1-5, max 12 chars)"
             />
             <p className="mt-1 text-xs text-slate-500">
               Must be a valid EOSIO name (a-z, 1-5, max 12 chars)
@@ -189,7 +178,7 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
             <input
               type="text"
               value={newTier.tier_name}
-              onChange={(e) => setNewTier({ ...newTier, tier_name: e.target.value })}
+              onChange={(e) => setNewTier(prev => ({ ...prev, tier_name: e.target.value }))}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
               placeholder="e.g., Bronze Tier"
               required
@@ -262,7 +251,26 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
       <div>
         <h3 className="text-sm font-medium text-slate-400 mb-3">Active Tiers</h3>
         <div className="space-y-2">
-          {renderTiers()}
+          {tiers.map((tier) => (
+            <div
+              key={tier.tier}
+              className="flex items-center justify-between bg-slate-900 p-3 rounded-lg"
+            >
+              <div>
+                <p className="font-medium">{tier.tier_name}</p>
+                <p className="text-sm text-slate-400">
+                  Weight: {formatDecimalValue(tier.weight)}x | Up to {formatDecimalValue(tier.staked_up_to_percent)}%
+                </p>
+              </div>
+              <button
+                onClick={() => onRemoveTier(tier.tier)}
+                disabled={loading}
+                className="p-2 text-red-400 hover:text-red-300 rounded-lg"
+              >
+                <Trash2 className="w-4 h-4"/>
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
