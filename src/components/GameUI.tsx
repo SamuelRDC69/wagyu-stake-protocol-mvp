@@ -155,8 +155,8 @@ const GameUI: React.FC = () => {
     };
 
     await session.transact({ actions: [action] });
-    // Add delay before refresh to allow blockchain to update
-    await delay(1000);
+    // Wait a moment for blockchain to update
+    await new Promise(resolve => setTimeout(resolve, 2000));
     await refreshData();
   } catch (error) {
     console.error('Claim error:', error);
