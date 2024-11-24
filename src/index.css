@@ -1,6 +1,60 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.ticker-view {
+  height: 100%;
+  margin: auto;
+  display: flex;
+  flex-direction: row-reverse;
+  overflow: hidden;
+  position: relative;
+  color: white;
+}
+
+.number-placeholder {
+  visibility: hidden;
+}
+
+.ticker-column-container {
+  position: relative;
+}
+
+.ticker-column {
+  position: absolute;
+  height: 1000%;
+  bottom: 0;
+}
+
+.ticker-digit {
+  height: 10%;
+}
+
+.ticker-column.increase {
+  animation: pulseGreen 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+}
+
+.ticker-column.decrease {
+  animation: pulseRed 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+}
+
+@keyframes pulseGreen {
+  0%, 100% {
+    color: white;
+  }
+  50% {
+    @apply text-green-500;
+  }
+}
+
+@keyframes pulseRed {
+  0%, 100% {
+    color: white;
+  }
+  50% {
+    @apply text-red-500;
+  }
+}
  
 @layer base {
   :root {
@@ -127,60 +181,4 @@
 
 .scale-in {
   animation: scale-in 0.3s ease-out forwards;
-}
-
-/* Put this in your index.css */
-/* AnimatingTokenAmount styles - add in a separate section */
-.ticker-view {
-  height: 100%;
-  margin: auto;
-  display: flex;
-  flex-direction: row-reverse;
-  overflow: hidden;
-  position: relative;
-}
-
-.number-placeholder {
-  visibility: hidden;
-}
-
-.ticker-column-container {
-  position: relative;
-}
-
-.ticker-column {
-  position: absolute;
-  height: 1000%;
-  bottom: 0;
-}
-
-.ticker-digit {
-  height: 10%;
-}
-
-/* Must be separate from other animations to avoid conflicts */
-.ticker-column.increase {
-  animation: number-pulse-green 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
-}
-
-.ticker-column.decrease {
-  animation: number-pulse-red 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
-}
-
-@keyframes number-pulse-green {
-  0%, 100% {
-    color: rgb(226 232 240);
-  }
-  50% {
-    color: rgb(34 197 94);
-  }
-}
-
-@keyframes number-pulse-red {
-  0%, 100% {
-    color: rgb(226 232 240);
-  }
-  50% {
-    color: rgb(239 68 68);
-  }
 }
