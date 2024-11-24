@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useRef } from 'react';
 import { ContractKit } from '@wharfkit/contract';
 import { Name } from '@wharfkit/session';
 import { Serializer, Asset } from '@wharfkit/antelope';
@@ -43,7 +43,6 @@ export function useContractData() {
       });
       
       const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
-
       
       // Get all table instances
       const poolsTable = contract.table(CONTRACTS.STAKING.TABLES.POOLS);
@@ -51,22 +50,33 @@ export function useContractData() {
       const configTable = contract.table(CONTRACTS.STAKING.TABLES.CONFIG);
       const stakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
 
-      // Only fetch scopes if we don't have them cached
-      let scopes = cachedScopes;
-      if (!scopes.length || forceRefresh) {
-        const scopesCursor = await stakesTable.scopes();
-        scopes = await scopesCursor.all();
-        setCachedScopes(scopes);
-      }
+      // Get scopes for stakes table
+      const scopesCursor = await stakesTable.scopes();
+      const scopes = await scopesCursor.all();
+      console.log("Scopes: ", scopes);
+
+      // Fetch all stakes data for each scope
+      const allStakesPromises = scopes.map(async (scope: any) => {
+        const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString());
+        const stakes = await table.all();
+        return stakes.map((stake: RawStakeData) => {
+          return {
+            pool_id: Number(stake.pool_id.toString()),
+            staked_quantity: stake.staked_quantity.toString(),
+            tier: stake.tier.toString(),
+            last_claimed_at: stake.last_claimed_at,
+            cooldown_end_at: stake.cooldown_end_at,
+            owner: scope.scope.toString()
+          };
+        });
+      });
 
       // Fetch all data in parallel
       const [poolsData, tiersData, configData, ...stakesData] = await Promise.all([
         poolsTable.all(),
         tiersTable.all(),
         configTable.get(),
-        ...scopes.map(scope => 
-          contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString()).all()
-        )
+        ...allStakesPromises
       ]);
 
       // Transform pools data
@@ -105,7 +115,6 @@ export function useContractData() {
 
       console.log('Transformed data:', { pools, stakes, tiers, config });
 
-      setLastFetchTime(now);
       return {
         pools,
         stakes,
@@ -113,7 +122,7 @@ export function useContractData() {
         config
       };
 
-        } catch (error: unknown) {
+    } catch (error: unknown) {
       console.error('Error details:', error);
       setError(error instanceof Error ? error : new Error('An unknown error occurred'));
       return null;
