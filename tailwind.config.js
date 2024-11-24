@@ -65,10 +65,20 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        pulseGreen: {
+          '0%, 100%': { color: 'white' },
+          '50%': { color: 'rgb(34 197 94)' }
+        },
+        pulseRed: {
+          '0%, 100%': { color: 'white' },
+          '50%': { color: 'rgb(239 68 68)' }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-green": "pulseGreen 500ms cubic-bezier(0.4, 0, 0.6, 1) 1",
+        "pulse-red": "pulseRed 500ms cubic-bezier(0.4, 0, 0.6, 1) 1"
       },
     },
   },
