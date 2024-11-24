@@ -22,26 +22,28 @@ export function useContractData() {
   const { session } = useContext(WharfkitContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [cachedScopes, setCachedScopes] = useState<any[]>([]);
-  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const lastFetchRef = useRef<number>(0);
+  const FETCH_COOLDOWN = 5000; // 5 seconds minimum between fetches
 
-  const fetchData = async (forceRefresh = false) => {
+  const fetchData = async () => {
     if (!session) return null;
     
-    // Don't fetch if we've fetched within the last 5 seconds unless forced
+    // Rate limiting
     const now = Date.now();
-    if (!forceRefresh && now - lastFetchTime < 5000) {
+    if (now - lastFetchRef.current < FETCH_COOLDOWN) {
       return null;
     }
-    
+
     setLoading(true);
     
     try {
+      lastFetchRef.current = now;
       const contractKit = new ContractKit({
         client: session.client
       });
       
       const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
+
       
       // Get all table instances
       const poolsTable = contract.table(CONTRACTS.STAKING.TABLES.POOLS);
@@ -111,7 +113,7 @@ export function useContractData() {
         config
       };
 
-    } catch (error: unknown) {
+        } catch (error: unknown) {
       console.error('Error details:', error);
       setError(error instanceof Error ? error : new Error('An unknown error occurred'));
       return null;
@@ -123,7 +125,6 @@ export function useContractData() {
   return {
     fetchData,
     loading,
-    error,
-    forceRefresh: () => fetchData(true)
+    error
   };
 }
