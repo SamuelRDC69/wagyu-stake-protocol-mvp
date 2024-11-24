@@ -6,8 +6,8 @@ interface AnimatingTokenAmountProps {
   value: number;
 }
 
-function formatForDisplay(number = 0) {
-  return parseFloat(Math.max(number, 0)).toFixed(8).split("").reverse();
+function formatForDisplay(number: number) {
+  return number.toFixed(8).split("").reverse();
 }
 
 function DecimalColumn() {
@@ -18,9 +18,11 @@ function DecimalColumn() {
   );
 }
 
-function NumberColumn({ digit, delta }: { digit: string; delta: string | null }) {
+type Delta = 'increase' | 'decrease' | null;
+
+function NumberColumn({ digit, delta }: { digit: string; delta: Delta }) {
   const [position, setPosition] = useState(0);
-  const [animationClass, setAnimationClass] = useState<string | null>(null);
+  const [animationClass, setAnimationClass] = useState<string>("");
   const previousDigit = usePrevious(digit);
   const columnContainer = useRef<HTMLDivElement>(null);
 
@@ -30,10 +32,9 @@ function NumberColumn({ digit, delta }: { digit: string; delta: string | null })
     }
   };
 
-  useEffect(() => setAnimationClass(previousDigit !== digit ? delta : ""), [
-    digit,
-    delta
-  ]);
+  useEffect(() => {
+    setAnimationClass(previousDigit !== digit && delta ? delta : "");
+  }, [digit, delta, previousDigit]);
 
   useEffect(() => setColumnToNumber(digit), [digit]);
 
@@ -59,9 +60,11 @@ export const AnimatingTokenAmount = ({ value }: AnimatingTokenAmountProps) => {
   const numArray = formatForDisplay(value);
   const previousNumber = usePrevious(value);
 
-  let delta = null;
-  if (value > previousNumber!) delta = "increase";
-  if (value < previousNumber!) delta = "decrease";
+  let delta: Delta = null;
+  if (previousNumber !== undefined) {
+    if (value > previousNumber) delta = "increase";
+    if (value < previousNumber) delta = "decrease";
+  }
 
   return (
     <motion.div layout className="ticker-view">
