@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { usePrevious } from "../../lib/hooks/animation";
 
 function formatForDisplay(number = 0) {
-  return parseFloat(Math.max(number, 0)).toFixed(8).split("").reverse();
+  const maxNum = Math.max(number, 0);
+  const fixedNum = maxNum.toFixed(8);  // Returns a string
+  return fixedNum.split("").reverse();
 }
 
 function DecimalColumn() {
