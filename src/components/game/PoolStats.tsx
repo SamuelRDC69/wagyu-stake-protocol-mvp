@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, Timer, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
+import AnimatedNumber from '../animated/AnimatedNumber';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
@@ -9,6 +10,8 @@ interface PoolStatsProps {
 }
 
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => {
+  const [currentRewards, setCurrentRewards] = useState<number>(0);
+
   // Validation function from project knowledge
   const isValidPoolData = (data: any): data is PoolEntity => {
     return (
@@ -21,6 +24,25 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
       'quantity' in data.reward_pool
     );
   };
+
+  // Update rewards based on emission rate
+  useEffect(() => {
+    if (!poolData || !isValidPoolData(poolData)) return;
+
+    const [initialAmount] = poolData.reward_pool.quantity.split(' ');
+    setCurrentRewards(parseFloat(initialAmount));
+
+    const emissionPerSecond = poolData.emission_rate / poolData.emission_unit;
+    
+    const interval = setInterval(() => {
+      setCurrentRewards(prev => {
+        const newValue = prev + emissionPerSecond;
+        return Math.round(newValue * 100000000) / 100000000;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [poolData]);
 
   if (isLoading) {
     return (
@@ -80,7 +102,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
   // Parse values
   const totalStaked = formatTokenString(poolData.total_staked_quantity);
   const totalWeight = formatTokenString(poolData.total_staked_weight);
-  const rewards = formatTokenString(poolData.reward_pool.quantity);
+  const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
   return (
     <Card className="w-full">
@@ -111,9 +133,10 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
             <TrendingUp className="w-8 h-8 text-purple-500" />
             <div>
               <p className="text-sm text-slate-400">Rewards</p>
-              <p className="text-lg font-medium text-purple-200">
-                {`${rewards.amount} ${rewards.symbol}`}
-              </p>
+              <div className="text-lg font-medium text-purple-200">
+                <AnimatedNumber value={currentRewards} />
+                <span className="ml-1">{symbol}</span>
+              </div>
             </div>
           </div>
         </div>
