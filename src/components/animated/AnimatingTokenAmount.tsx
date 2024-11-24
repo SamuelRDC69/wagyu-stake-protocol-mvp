@@ -21,6 +21,10 @@ function DecimalColumn() {
 }
 
 function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }) {
+  useEffect(() => {
+    console.log('Digit changed:', { digit, delta, previousDigit: previousDigit.current });
+  }, [digit, delta]);
+
   const [position, setPosition] = useState(0);
   const [animationClass, setAnimationClass] = useState<AnimationState>("");
   const previousDigit = usePrevious(digit);
@@ -33,7 +37,7 @@ function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }
   };
 
   useEffect(() => {
-    setAnimationClass(previousDigit !== digit ? delta : "");
+    setAnimationClass(previousDigit !== digit && delta ? delta : "");
   }, [digit, delta, previousDigit]);
 
   useEffect(() => setColumnToNumber(digit), [digit]);
@@ -60,8 +64,7 @@ export default function AnimatingTokenAmount({ value }: AnimatingTokenAmountProp
   const numArray = formatForDisplay(value);
   const previousNumber = usePrevious(value);
 
-  // Add console.log to debug
-  let delta = null;
+  let delta: AnimationState = "";
   if (previousNumber !== undefined) {
     if (value > previousNumber) {
       delta = "increase";
@@ -72,6 +75,7 @@ export default function AnimatingTokenAmount({ value }: AnimatingTokenAmountProp
       console.log('Decreasing:', { value, previousNumber, delta });
     }
   }
+
   return (
     <motion.div layout className="ticker-view">
       {numArray.map((number, index) =>
