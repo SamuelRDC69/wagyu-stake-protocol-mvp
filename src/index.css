@@ -129,15 +129,14 @@
   animation: scale-in 0.3s ease-out forwards;
 }
 
-/* Replace the animation section in your index.css with this exact version */
-
+/* Animation styles for number ticker */
 .ticker-view {
   height: 100%;
   margin: auto;
   display: flex;
   flex-direction: row-reverse;
   overflow: hidden;
-  font-size: 56px;  /* We can adjust this size as needed */
+  font-size: inherit;
   position: relative;
   color: white;
 }
@@ -148,44 +147,30 @@
 
 .ticker-column-container {
   position: relative;
+  width: 1em;
+  display: inline-block;
 }
 
 .ticker-column {
   position: absolute;
   height: 1000%;
   bottom: 0;
+  left: 0;
 }
 
 .ticker-digit {
   height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ticker-column.increase {
-  animation: pulseGreen 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+  @apply animate-pulse-green;
 }
 
 .ticker-column.decrease {
-  animation: pulseRed 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+  @apply animate-pulse-red;
 }
 
-@keyframes pulseGreen {
-  0%,
-  100% {
-    color: white;
-  }
-
-  50% {
-    @apply text-green-500;
-  }
-}
-
-@keyframes pulseRed {
-  0%,
-  100% {
-    color: white;
-  }
-
-  50% {
-    @apply text-red-500;
-  }
-}
+/* Remove any existing pulseGreen/pulseRed keyframes since they're now in tailwind config */
