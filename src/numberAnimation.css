@@ -1,0 +1,85 @@
+/* numberAnimation.css */
+/* These styles must be separate from other animations and not within any @layer */
+.ticker-view {
+  height: 100%;
+  margin: auto;
+  display: flex;
+  flex-direction: row-reverse;
+  overflow: hidden;
+  font-size: inherit;
+  position: relative;
+  color: inherit;
+}
+
+.number-placeholder {
+  visibility: hidden;
+}
+
+.ticker-column-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 1ch;
+}
+
+.ticker-column {
+  position: absolute;
+  height: 1000%;
+  bottom: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.ticker-digit {
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Separate animation classes to avoid conflicts */
+.ticker-column.increase {
+  -webkit-animation: numberIncrease 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+  animation: numberIncrease 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+}
+
+.ticker-column.decrease {
+  -webkit-animation: numberDecrease 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+  animation: numberDecrease 500ms cubic-bezier(0.4, 0, 0.6, 1) 1;
+}
+
+@-webkit-keyframes numberIncrease {
+  0%, 100% {
+    color: rgb(226 232 240);
+  }
+  50% {
+    color: rgb(34 197 94);
+  }
+}
+
+@keyframes numberIncrease {
+  0%, 100% {
+    color: rgb(226 232 240);
+  }
+  50% {
+    color: rgb(34 197 94);
+  }
+}
+
+@-webkit-keyframes numberDecrease {
+  0%, 100% {
+    color: rgb(226 232 240);
+  }
+  50% {
+    color: rgb(239 68 68);
+  }
+}
+
+@keyframes numberDecrease {
+  0%, 100% {
+    color: rgb(226 232 240);
+  }
+  50% {
+    color: rgb(239 68 68);
+  }
+}
