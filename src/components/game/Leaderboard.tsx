@@ -52,7 +52,13 @@ export const Leaderboard: React.FC = () => {
   const { fetchData, loading, error } = useContractData();
   const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
 
-  const loadLeaderboardData = async () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+const loadLeaderboardData = async () => {
+  if (isLoading) return; // Prevent concurrent requests
+  
+  try {
+    setIsLoading(true);
     const data = await fetchData();
     if (data?.stakes) {
       const sortedStakes = [...data.stakes].sort((a, b) => {
@@ -62,13 +68,19 @@ export const Leaderboard: React.FC = () => {
       });
       setLeaderboardData(sortedStakes);
     }
-  };
+  } catch (error) {
+    console.error('Failed to load leaderboard data:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  useEffect(() => {
-    loadLeaderboardData();
-    const interval = setInterval(loadLeaderboardData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // In Leaderboard.tsx
+useEffect(() => {
+  loadLeaderboardData();
+  const interval = setInterval(loadLeaderboardData, 60000); // Changed to 60 seconds
+  return () => clearInterval(interval);
+}, []);
 
   const getTierConfig = (tier: string) => {
     const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
