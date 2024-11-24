@@ -134,7 +134,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
             <div>
               <p className="text-sm text-slate-400">Rewards</p>
               <div className="text-lg font-medium text-purple-200">
-                <AnimatedNumber value={currentRewards} />
+                <AnimatingTokenAmount value={currentRewards} />
                 <span className="ml-1">{symbol}</span>
               </div>
             </div>
