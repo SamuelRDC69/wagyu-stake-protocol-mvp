@@ -110,15 +110,6 @@ const GameUI: React.FC = () => {
   loadInitialData();
 }, [session, selectedPool]);
 
-  // Add this after your existing useEffect in GameUI.tsx
-useEffect(() => {
-  if (session && activeTab === 'kingdom') {
-    const interval = setInterval(refreshData, 60000); // Refresh every 60 seconds when on kingdom tab
-    return () => clearInterval(interval);
-  }
-}, [session, activeTab]); // Only when session or active tab changes
-
-  
 
   const refreshData = async () => {
   if (!session) return;
@@ -164,7 +155,7 @@ useEffect(() => {
 
     await session.transact({ actions: [action] });
     // Wait a moment for blockchain to update
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await delay(2000);
     await refreshData();
   } catch (error) {
     console.error('Claim error:', error);
@@ -191,7 +182,7 @@ const handleStake = async (amount: string) => {
     };
 
     await session.transact({ actions: [action] });
-    await delay(1000);
+    await delay(2000);
     await refreshData();
   } catch (error) {
     console.error('Stake error:', error);
@@ -217,7 +208,7 @@ const handleUnstake = async (amount: string) => {
     };
 
     await session.transact({ actions: [action] });
-    await delay(1000);
+    await delay(2000);
     await refreshData();
   } catch (error) {
     console.error('Unstake error:', error);
