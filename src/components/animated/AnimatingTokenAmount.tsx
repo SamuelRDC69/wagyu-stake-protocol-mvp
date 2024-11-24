@@ -21,14 +21,15 @@ function DecimalColumn() {
 }
 
 function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }) {
-  useEffect(() => {
-    console.log('Digit changed:', { digit, delta, previousDigit: previousDigit.current });
-  }, [digit, delta]);
-
   const [position, setPosition] = useState(0);
   const [animationClass, setAnimationClass] = useState<AnimationState>("");
-  const previousDigit = usePrevious(digit);
+  const previousDigit = usePrevious(digit); // This returns a string | undefined
   const columnContainer = useRef<HTMLDivElement>(null);
+
+  // Debug logging with proper type checking
+  useEffect(() => {
+    console.log('Digit changed:', { digit, delta, previousDigit });
+  }, [digit, delta, previousDigit]);
 
   const setColumnToNumber = (number: string) => {
     if (columnContainer.current) {
@@ -37,7 +38,9 @@ function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }
   };
 
   useEffect(() => {
-    setAnimationClass(previousDigit !== digit && delta ? delta : "");
+    if (previousDigit !== undefined) {
+      setAnimationClass(previousDigit !== digit && delta ? delta : "");
+    }
   }, [digit, delta, previousDigit]);
 
   useEffect(() => setColumnToNumber(digit), [digit]);
