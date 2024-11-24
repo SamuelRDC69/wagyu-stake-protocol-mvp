@@ -1,12 +1,9 @@
-// src/components/animated/AnimatingTokenAmount.tsx
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { usePrevious } from "../../lib/hooks/animation";
 
 function formatForDisplay(number = 0) {
-  const maxNum = Math.max(number, 0);
-  const fixedNum = maxNum.toFixed(8);  // Returns a string
-  return fixedNum.split("").reverse();
+  return number.toFixed(8).split("").reverse();
 }
 
 function DecimalColumn() {
@@ -19,7 +16,7 @@ function DecimalColumn() {
 
 function NumberColumn({ digit, delta }: { digit: string; delta: string | null }) {
   const [position, setPosition] = useState(0);
-  const [animationClass, setAnimationClass] = useState("");
+  const [animationClass, setAnimationClass] = useState<string>("");  // THIS MUST BE STRING TYPE
   const previousDigit = usePrevious(digit);
   const columnContainer = useRef<HTMLDivElement>(null);
 
@@ -29,8 +26,13 @@ function NumberColumn({ digit, delta }: { digit: string; delta: string | null })
     }
   };
 
+  // THIS MUST BE EXACT
   useEffect(() => {
-    setAnimationClass(previousDigit !== digit ? delta || "" : "");
+    if (previousDigit !== digit && delta) {
+      setAnimationClass(delta);
+    } else {
+      setAnimationClass("");
+    }
   }, [digit, delta, previousDigit]);
 
   useEffect(() => setColumnToNumber(digit), [digit]);
@@ -53,18 +55,17 @@ function NumberColumn({ digit, delta }: { digit: string; delta: string | null })
   );
 }
 
-interface AnimatingTokenAmountProps {
-  value: number;
-}
-
-export default function AnimatingTokenAmount({ value }: AnimatingTokenAmountProps) {
+export default function AnimatingTokenAmount({ value }: { value: number }) {
   const numArray = formatForDisplay(value);
   const previousNumber = usePrevious(value);
 
   let delta: string | null = null;
   if (previousNumber !== undefined) {
-    if (value > previousNumber) delta = "increase";
-    if (value < previousNumber) delta = "decrease";
+    if (value > previousNumber) {
+      delta = "increase";
+    } else if (value < previousNumber) {
+      delta = "decrease";
+    }
   }
 
   return (
