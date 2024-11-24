@@ -110,6 +110,21 @@ const GameUI: React.FC = () => {
   loadInitialData();
 }, [session, selectedPool]);
 
+  // Add to GameUI.tsx at the top level
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.hidden && activeTab === 'kingdom') {
+      // Clear any pending refreshes when tab is hidden
+      console.log('Tab hidden, pausing refreshes');
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, [activeTab]);
+
 
   const refreshData = async () => {
   if (!session) return;
