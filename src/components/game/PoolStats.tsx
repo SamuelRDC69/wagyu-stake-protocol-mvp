@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, Timer, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
-import AnimatedNumber from '../animated/AnimatedNumber';
+import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
