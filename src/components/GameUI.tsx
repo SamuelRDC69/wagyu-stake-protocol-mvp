@@ -110,6 +110,14 @@ const GameUI: React.FC = () => {
   loadInitialData();
 }, [session, selectedPool]);
 
+  // Add this after your existing useEffect in GameUI.tsx
+useEffect(() => {
+  if (session && activeTab === 'kingdom') {
+    const interval = setInterval(refreshData, 60000); // Refresh every 60 seconds when on kingdom tab
+    return () => clearInterval(interval);
+  }
+}, [session, activeTab]); // Only when session or active tab changes
+
   
 
   const refreshData = async () => {
