@@ -1,28 +1,27 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { usePrevious } from "../../lib/hooks/animation";
 
 interface AnimatingTokenAmountProps {
   value: number;
-  precision?: number;
 }
 
-// Format number for display with specified precision
-const formatForDisplay = (number = 0, precision = 8) => {
-  return number.toFixed(precision).split('').reverse();
-};
+function formatForDisplay(number = 0) {
+  return parseFloat(Math.max(number, 0)).toFixed(8).split("").reverse();
+}
 
-const DecimalColumn = () => {
+function DecimalColumn() {
   return (
-    <div className="flex items-center justify-center w-2">
+    <div>
       <span>.</span>
     </div>
   );
-};
+}
 
-const NumberColumn = ({ digit, delta }: { digit: string; delta: string | null }) => {
+function NumberColumn({ digit, delta }: { digit: string; delta: string | null }) {
   const [position, setPosition] = useState(0);
   const [animationClass, setAnimationClass] = useState<string | null>(null);
-  const previousDigit = useRef(digit);
+  const previousDigit = usePrevious(digit);
   const columnContainer = useRef<HTMLDivElement>(null);
 
   const setColumnToNumber = (number: string) => {
@@ -31,23 +30,19 @@ const NumberColumn = ({ digit, delta }: { digit: string; delta: string | null })
     }
   };
 
-  useEffect(() => {
-    if (previousDigit.current !== digit) {
-      setAnimationClass(delta);
-      previousDigit.current = digit;
-    }
-  }, [digit, delta]);
+  useEffect(() => setAnimationClass(previousDigit !== digit ? delta : ""), [
+    digit,
+    delta
+  ]);
 
-  useEffect(() => {
-    setColumnToNumber(digit);
-  }, [digit]);
+  useEffect(() => setColumnToNumber(digit), [digit]);
 
   return (
     <div className="ticker-column-container" ref={columnContainer}>
       <motion.div
         animate={{ y: position }}
-        className={`ticker-column ${animationClass || ''}`}
-        onAnimationComplete={() => setAnimationClass(null)}
+        className={`ticker-column ${animationClass}`}
+        onAnimationComplete={() => setAnimationClass("")}
       >
         {[9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((num) => (
           <div key={num} className="ticker-digit">
@@ -58,24 +53,20 @@ const NumberColumn = ({ digit, delta }: { digit: string; delta: string | null })
       <span className="number-placeholder">0</span>
     </div>
   );
-};
+}
 
-export const AnimatingTokenAmount: React.FC<AnimatingTokenAmountProps> = ({ value, precision = 8 }) => {
-  const [previousValue, setPreviousValue] = useState(value);
-  const numArray = formatForDisplay(value, precision);
+export const AnimatingTokenAmount = ({ value }: AnimatingTokenAmountProps) => {
+  const numArray = formatForDisplay(value);
+  const previousNumber = usePrevious(value);
 
-  let delta: string | null = null;
-  if (value > previousValue) delta = 'increase';
-  if (value < previousValue) delta = 'decrease';
-
-  useEffect(() => {
-    setPreviousValue(value);
-  }, [value]);
+  let delta = null;
+  if (value > previousNumber!) delta = "increase";
+  if (value < previousNumber!) delta = "decrease";
 
   return (
     <motion.div layout className="ticker-view">
       {numArray.map((number, index) =>
-        number === '.' ? (
+        number === "." ? (
           <DecimalColumn key={index} />
         ) : (
           <NumberColumn key={index} digit={number} delta={delta} />
