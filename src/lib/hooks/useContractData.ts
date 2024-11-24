@@ -22,9 +22,18 @@ export function useContractData() {
   const { session } = useContext(WharfkitContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [cachedScopes, setCachedScopes] = useState<any[]>([]);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
 
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh = false) => {
     if (!session) return null;
+    
+    // Don't fetch if we've fetched within the last 5 seconds unless forced
+    const now = Date.now();
+    if (!forceRefresh && now - lastFetchTime < 5000) {
+      return null;
+    }
+    
     setLoading(true);
     
     try {
@@ -40,33 +49,22 @@ export function useContractData() {
       const configTable = contract.table(CONTRACTS.STAKING.TABLES.CONFIG);
       const stakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
 
-      // Get scopes for stakes table
-      const scopesCursor = await stakesTable.scopes();
-      const scopes = await scopesCursor.all();
-      console.log("Scopes: ", scopes);
-
-      // Fetch all stakes data for each scope
-      const allStakesPromises = scopes.map(async (scope) => {
-        const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString());
-        const stakes = await table.all();
-        return stakes.map((stake: RawStakeData) => {
-          return {
-            pool_id: Number(stake.pool_id.toString()),
-            staked_quantity: stake.staked_quantity.toString(),
-            tier: stake.tier.toString(),
-            last_claimed_at: stake.last_claimed_at,
-            cooldown_end_at: stake.cooldown_end_at,
-            owner: scope.scope.toString()
-          };
-        });
-      });
+      // Only fetch scopes if we don't have them cached
+      let scopes = cachedScopes;
+      if (!scopes.length || forceRefresh) {
+        const scopesCursor = await stakesTable.scopes();
+        scopes = await scopesCursor.all();
+        setCachedScopes(scopes);
+      }
 
       // Fetch all data in parallel
       const [poolsData, tiersData, configData, ...stakesData] = await Promise.all([
         poolsTable.all(),
         tiersTable.all(),
         configTable.get(),
-        ...allStakesPromises
+        ...scopes.map(scope => 
+          contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString()).all()
+        )
       ]);
 
       // Transform pools data
@@ -105,6 +103,7 @@ export function useContractData() {
 
       console.log('Transformed data:', { pools, stakes, tiers, config });
 
+      setLastFetchTime(now);
       return {
         pools,
         stakes,
@@ -124,6 +123,7 @@ export function useContractData() {
   return {
     fetchData,
     loading,
-    error
+    error,
+    forceRefresh: () => fetchData(true)
   };
 }
