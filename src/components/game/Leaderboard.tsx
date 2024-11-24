@@ -51,36 +51,39 @@ const TIER_CONFIG = {
 export const Leaderboard: React.FC = () => {
   const { fetchData, loading, error } = useContractData();
   const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
-
   const [isLoading, setIsLoading] = useState(false);
 
-const loadLeaderboardData = async () => {
-  if (isLoading) return; // Prevent concurrent requests
-  
-  try {
-    setIsLoading(true);
-    const data = await fetchData();
-    if (data?.stakes) {
-      const sortedStakes = [...data.stakes].sort((a, b) => {
-        const amountA = parseTokenString(a.staked_quantity).amount;
-        const amountB = parseTokenString(b.staked_quantity).amount;
-        return amountB - amountA;
-      });
-      setLeaderboardData(sortedStakes);
+  const loadLeaderboardData = async () => {
+    if (isLoading) return;
+    
+    try {
+      setIsLoading(true);
+      const data = await fetchData();
+      if (data?.stakes) {
+        const sortedStakes = [...data.stakes].sort((a, b) => {
+          const amountA = parseTokenString(a.staked_quantity).amount;
+          const amountB = parseTokenString(b.staked_quantity).amount;
+          return amountB - amountA;
+        });
+        setLeaderboardData(sortedStakes);
+      }
+    } catch (err) {
+      console.error('Failed to load leaderboard data:', err);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Failed to load leaderboard data:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
-  // In Leaderboard.tsx
-useEffect(() => {
-  loadLeaderboardData();
-  const interval = setInterval(loadLeaderboardData, 60000); // Changed to 60 seconds
-  return () => clearInterval(interval);
-}, []);
+  // Initial load
+  useEffect(() => {
+    loadLeaderboardData();
+  }, []);
+
+  // Periodic refresh - no need for constant polling when not visible
+  useEffect(() => {
+    const interval = setInterval(loadLeaderboardData, 120000); // 2 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   const getTierConfig = (tier: string) => {
     const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
