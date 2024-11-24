@@ -60,12 +60,18 @@ export default function AnimatingTokenAmount({ value }: AnimatingTokenAmountProp
   const numArray = formatForDisplay(value);
   const previousNumber = usePrevious(value);
 
-  let delta: AnimationState = "";
+  // Add console.log to debug
+  let delta = null;
   if (previousNumber !== undefined) {
-    if (value > previousNumber) delta = "increase";
-    if (value < previousNumber) delta = "decrease";
+    if (value > previousNumber) {
+      delta = "increase";
+      console.log('Increasing:', { value, previousNumber, delta });
+    }
+    if (value < previousNumber) {
+      delta = "decrease";
+      console.log('Decreasing:', { value, previousNumber, delta });
+    }
   }
-
   return (
     <motion.div layout className="ticker-view">
       {numArray.map((number, index) =>
