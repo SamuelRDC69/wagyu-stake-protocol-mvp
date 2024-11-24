@@ -1,15 +1,10 @@
+// src/components/animated/AnimatingTokenAmount.tsx
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { usePrevious } from "../../lib/hooks/animation";
 
-interface AnimatingTokenAmountProps {
-  value: number;
-}
-
-type AnimationState = "increase" | "decrease" | "";
-
-function formatForDisplay(number: number) {
-  return number.toFixed(8).split("").reverse();
+function formatForDisplay(number = 0) {
+  return parseFloat(Math.max(number, 0)).toFixed(8).split("").reverse();
 }
 
 function DecimalColumn() {
@@ -20,16 +15,11 @@ function DecimalColumn() {
   );
 }
 
-function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }) {
+function NumberColumn({ digit, delta }: { digit: string; delta: string | null }) {
   const [position, setPosition] = useState(0);
-  const [animationClass, setAnimationClass] = useState<AnimationState>("");
-  const previousDigit = usePrevious(digit); // This returns a string | undefined
+  const [animationClass, setAnimationClass] = useState("");
+  const previousDigit = usePrevious(digit);
   const columnContainer = useRef<HTMLDivElement>(null);
-
-  // Debug logging with proper type checking
-  useEffect(() => {
-    console.log('Digit changed:', { digit, delta, previousDigit });
-  }, [digit, delta, previousDigit]);
 
   const setColumnToNumber = (number: string) => {
     if (columnContainer.current) {
@@ -38,9 +28,7 @@ function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }
   };
 
   useEffect(() => {
-    if (previousDigit !== undefined) {
-      setAnimationClass(previousDigit !== digit && delta ? delta : "");
-    }
+    setAnimationClass(previousDigit !== digit ? delta || "" : "");
   }, [digit, delta, previousDigit]);
 
   useEffect(() => setColumnToNumber(digit), [digit]);
@@ -63,20 +51,18 @@ function NumberColumn({ digit, delta }: { digit: string; delta: AnimationState }
   );
 }
 
+interface AnimatingTokenAmountProps {
+  value: number;
+}
+
 export default function AnimatingTokenAmount({ value }: AnimatingTokenAmountProps) {
   const numArray = formatForDisplay(value);
   const previousNumber = usePrevious(value);
 
-  let delta: AnimationState = "";
+  let delta: string | null = null;
   if (previousNumber !== undefined) {
-    if (value > previousNumber) {
-      delta = "increase";
-      console.log('Increasing:', { value, previousNumber, delta });
-    }
-    if (value < previousNumber) {
-      delta = "decrease";
-      console.log('Decreasing:', { value, previousNumber, delta });
-    }
+    if (value > previousNumber) delta = "increase";
+    if (value < previousNumber) delta = "decrease";
   }
 
   return (
