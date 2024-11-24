@@ -220,7 +220,6 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      // In UserStatus.tsx, update the AlertDialogCancel button:
 <AlertDialogCancel 
   onClick={() => setConfirmDialogOpen(false)}
   className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
