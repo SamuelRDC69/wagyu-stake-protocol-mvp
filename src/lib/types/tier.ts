@@ -16,6 +16,7 @@ export interface TierProgress {
   totalStaked: string;
   stakedAmount: string;
   currentStakedAmount: number;
+  symbol: string;  // Added to support token display
 }
 
 // Using the existing tier types from Leaderboard.tsx
