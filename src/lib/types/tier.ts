@@ -1,8 +1,9 @@
+// src/lib/types/tier.ts
 export interface TierEntity {
-  tier: string;               // "bronze" | "silver" | "gold"
-  tier_name: string;          // "Bronze Tier" | "Silver Tier" | "Gold Tier"
-  weight: string;             // "2.00000000000000000"
-  staked_up_to_percent: string; // "1.00000000000000000"
+  tier: string;               
+  tier_name: string;          
+  weight: string;             
+  staked_up_to_percent: string;
 }
 
 export interface TierProgress {
@@ -12,6 +13,10 @@ export interface TierProgress {
   progress: number;
   requiredForNext?: number;
   requiredForCurrent: number;
+  totalStaked: string;
+  stakedAmount: string;
+  currentStakedAmount: number;
 }
 
-export type TierVariant = 'bronze' | 'silver' | 'gold';
+// Using the existing tier types from Leaderboard.tsx
+export type TierVariant = 'supplier' | 'merchant' | 'trader' | 'market maker' | 'exchange';
