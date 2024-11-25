@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Shield, Timer, TrendingUp } from 'lucide-react';
+import { Shield, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
 
@@ -40,7 +40,6 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
       const elapsedSeconds = (currentTime - lastUpdate) / 1000;
 
       // Calculate new emissions based on contract logic
-      // new_reward_pool_quantity = current_quantity + (elapsed_time / emission_unit * emission_rate)
       const newEmissions = (elapsedSeconds / poolData.emission_unit) * poolData.emission_rate;
       
       // Return total current rewards (base + new emissions)
@@ -65,8 +64,8 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2].map((i) => (
               <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
                 <div className="w-8 h-8 bg-purple-500/20 rounded animate-pulse" />
                 <div className="space-y-2 flex-1">
@@ -114,7 +113,6 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
 
   // Parse values
   const totalStaked = formatTokenString(poolData.total_staked_quantity);
-  const totalWeight = formatTokenString(poolData.total_staked_weight);
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
   return (
@@ -123,22 +121,13 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
         <CardTitle>Pool Statistics</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
             <Shield className="w-8 h-8 text-purple-500" />
             <div>
               <p className="text-sm text-slate-400">Total Staked</p>
               <p className="text-lg font-medium text-purple-200">
                 {`${totalStaked.amount} ${totalStaked.symbol}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
-            <Timer className="w-8 h-8 text-purple-500" />
-            <div>
-              <p className="text-sm text-slate-400">Weight</p>
-              <p className="text-lg font-medium text-purple-200">
-                {`${totalWeight.amount} ${totalWeight.symbol}`}
               </p>
             </div>
           </div>
