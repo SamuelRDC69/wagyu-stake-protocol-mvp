@@ -322,7 +322,7 @@ const handleUnstake = async (amount: string) => {
                 <SelectTrigger className="w-full bg-slate-800/30 border-purple-500/20 text-purple-200 h-12">
                   <SelectValue placeholder="Choose your kingdom" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-purple-500/20">
+                <SelectContent className="bg-white/5 backdrop-blur-xl border-purple-500/20">
                   <div className="py-2">
                     {pools.map((pool) => {
                       try {
@@ -331,7 +331,7 @@ const handleUnstake = async (amount: string) => {
                           <SelectItem 
                             key={pool.pool_id} 
                             value={pool.pool_id.toString()}
-                            className="text-purple-200 hover:bg-purple-500/20 focus:bg-purple-500/20"
+                            className="text-purple-100 hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer"
                           >
                             {`${symbol} Kingdom - Realm #${pool.pool_id}`}
                           </SelectItem>
