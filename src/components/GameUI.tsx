@@ -301,8 +301,11 @@ const handleUnstake = async (amount: string) => {
       case 'kingdom':
         return (
           <div className="space-y-6">
-            <div className="crystal-bg rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-4">Select Kingdom</h2>
+            <div className="crystal-bg rounded-2xl p-6 border border-purple-500/20">
+              <h2 className="text-2xl font-bold mb-6 text-purple-200 flex items-center gap-3">
+                <Crown className="w-8 h-8 text-purple-500" />
+                Select Your Kingdom
+              </h2>
               <Select 
                 onValueChange={(value) => {
                   try {
@@ -316,11 +319,11 @@ const handleUnstake = async (amount: string) => {
                 }}
                 value={selectedPool?.pool_id?.toString()}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a kingdom" />
+                <SelectTrigger className="w-full bg-slate-800/30 border-purple-500/20 text-purple-200 h-12">
+                  <SelectValue placeholder="Choose your kingdom" />
                 </SelectTrigger>
-                <SelectContent>
-                  <div>
+                <SelectContent className="bg-slate-900 border-purple-500/20">
+                  <div className="py-2">
                     {pools.map((pool) => {
                       try {
                         const { symbol } = parseTokenString(pool.total_staked_quantity);
@@ -328,8 +331,9 @@ const handleUnstake = async (amount: string) => {
                           <SelectItem 
                             key={pool.pool_id} 
                             value={pool.pool_id.toString()}
+                            className="text-purple-200 hover:bg-purple-500/20 focus:bg-purple-500/20"
                           >
-                            {`${symbol} - Pool #${pool.pool_id}`}
+                            {`${symbol} Kingdom - Realm #${pool.pool_id}`}
                           </SelectItem>
                         );
                       } catch (e) {
