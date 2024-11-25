@@ -25,20 +25,34 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   };
 
-  // Update rewards based on emission rate
+  // Calculate current rewards based on smart contract logic
   useEffect(() => {
     if (!poolData || !isValidPoolData(poolData)) return;
 
-    const [initialAmount] = poolData.reward_pool.quantity.split(' ');
-    setCurrentRewards(parseFloat(initialAmount));
+    const calculateCurrentRewards = () => {
+      // Get initial rewards from the pool
+      const [initialAmount] = poolData.reward_pool.quantity.split(' ');
+      const baseRewards = parseFloat(initialAmount);
 
-    const emissionPerSecond = poolData.emission_rate / poolData.emission_unit;
-    
+      // Calculate time elapsed since last emission update
+      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+      const currentTime = new Date().getTime();
+      const elapsedSeconds = (currentTime - lastUpdate) / 1000;
+
+      // Calculate new emissions based on contract logic
+      // new_reward_pool_quantity = current_quantity + (elapsed_time / emission_unit * emission_rate)
+      const newEmissions = (elapsedSeconds / poolData.emission_unit) * poolData.emission_rate;
+      
+      // Return total current rewards (base + new emissions)
+      return Math.round((baseRewards + newEmissions) * 100000000) / 100000000;
+    };
+
+    // Set initial value
+    setCurrentRewards(calculateCurrentRewards());
+
+    // Update every second
     const interval = setInterval(() => {
-      setCurrentRewards(prev => {
-        const newValue = prev + emissionPerSecond;
-        return Math.round(newValue * 100000000) / 100000000;
-      });
+      setCurrentRewards(calculateCurrentRewards());
     }, 1000);
 
     return () => clearInterval(interval);
@@ -67,7 +81,6 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   }
 
-  // Early validation from project knowledge
   if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
@@ -82,7 +95,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   }
 
-  // Format token string safely from project knowledge
+  // Format token string safely
   const formatTokenString = (value: string): { amount: string; symbol: string } => {
     try {
       const [amount, symbol = 'WAX'] = value.split(' ');
