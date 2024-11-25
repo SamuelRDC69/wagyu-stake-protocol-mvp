@@ -43,6 +43,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const tierConfig = getTierConfig(tierProgress.currentTier.tier);
   const TierIcon = tierConfig.icon;
+  const tierKey = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
+    'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
 
   return (
     <Card className="w-full crystal-bg group">
@@ -55,24 +57,16 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <span className="text-white">{tierProgress.currentTier.tier_name}</span>
             {isUpgradeAvailable && (
               <Badge 
-                variant="outline" 
-                className={cn(
-                  "animate-pulse ml-2",
-                  tierConfig.color,
-                  tierConfig.borderColor
-                )}
+                variant={tierKey}
+                className="animate-pulse ml-2"
               >
                 Tier Up Ready!
               </Badge>
             )}
           </CardTitle>
           <Badge 
-            variant="outline" 
-            className={cn(
-              "ml-2 transition-all shine-effect",
-              tierConfig.color,
-              tierConfig.borderColor
-            )}
+            variant={tierKey}
+            className="ml-2 transition-all shine-effect"
           >
             {`${parseFloat(tierProgress.currentTier.weight).toFixed(1)}x Power Multiplier`}
           </Badge>
