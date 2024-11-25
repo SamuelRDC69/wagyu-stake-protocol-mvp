@@ -3,42 +3,40 @@ import { StakedEntity } from '@/lib/types/staked';
 import { PoolEntity } from '@/lib/types/pool';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from '@/lib/utils/tokenUtils';
-import { cn } from '@/lib/utils';
 
-// Using consistent color patterns from the project's theme
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
     bgColor: 'bg-emerald-500/10',
-    progressColor: 'bg-emerald-500/50 group-hover:bg-emerald-500',
+    progressColor: 'bg-emerald-500',
     borderColor: 'border-emerald-500/20',
     icon: Store,
   },
   merchant: {
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
-    progressColor: 'bg-blue-500/50 group-hover:bg-blue-500',
+    progressColor: 'bg-blue-500',
     borderColor: 'border-blue-500/20',
     icon: Building2,
   },
   trader: {
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
-    progressColor: 'bg-purple-500/50 group-hover:bg-purple-500',
+    progressColor: 'bg-purple-500',
     borderColor: 'border-purple-500/20',
     icon: TrendingUp,
   },
-  'market maker': {
+  'market-maker': {
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
-    progressColor: 'bg-amber-500/50 group-hover:bg-amber-500',
+    progressColor: 'bg-amber-500',
     borderColor: 'border-amber-500/20',
     icon: BarChart3,
   },
   exchange: {
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
-    progressColor: 'bg-red-500/50 group-hover:bg-red-500',
+    progressColor: 'bg-red-500',
     borderColor: 'border-red-500/20',
     icon: Building2,
   },
@@ -111,13 +109,14 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
-  return TIER_CONFIG[tierKey] || TIER_CONFIG.supplier;
+  // Convert "market maker" to "market-maker" for consistent keys
+  const normalizedTier = tier.toLowerCase().replace(' ', '-') as keyof typeof TIER_CONFIG;
+  return TIER_CONFIG[normalizedTier] || TIER_CONFIG.supplier;
 };
 
 export const getProgressColor = (progress: number): string => {
   if (progress < 33) return TIER_CONFIG.supplier.progressColor;
-  if (progress < 66) return TIER_CONFIG['market maker'].progressColor;
+  if (progress < 66) return TIER_CONFIG['market-maker'].progressColor;
   return TIER_CONFIG.exchange.progressColor;
 };
 
@@ -129,4 +128,38 @@ export const calculateRequiredTokens = (
   const remaining = Math.max(0, required - current);
   if (remaining === 0) return 'Requirement Met!';
   return `${remaining.toFixed(8)} ${symbol} more needed`;
+};
+
+export const isTierUpgradeAvailable = (
+  currentStaked: string,
+  totalStaked: string,
+  currentTier: TierEntity,
+  tiers: TierEntity[]
+): boolean => {
+  try {
+    const { amount: stakedValue } = parseTokenString(currentStaked);
+    const { amount: totalValue } = parseTokenString(totalStaked);
+    const stakedPercent = (stakedValue / totalValue) * 100;
+    
+    // Sort tiers in descending order
+    const sortedTiers = [...tiers].sort((a, b) => 
+      parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
+    );
+    
+    // Find index of current tier
+    const currentTierIndex = sortedTiers.findIndex(
+      t => t.tier === currentTier.tier
+    );
+    
+    // If not the highest tier and exceeds current tier's threshold
+    if (currentTierIndex > 0) {
+      const nextTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
+      return stakedPercent >= nextTierThreshold;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error in isTierUpgradeAvailable:', error);
+    return false;
+  }
 };
