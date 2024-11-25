@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Progress } from '../ui/progress';
-import { Badge } from '../ui/badge';
-import { Crown, TrendingUp, TrendingDown } from 'lucide-react';
-import { TierProgress } from '../../lib/types/tier';
-import { getTierColor } from '../../lib/utils/tierUtils';
+import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { TierProgress } from '@/lib/types/tier';
+import { getTierConfig, getProgressColor, calculateRequiredTokens } from '@/lib/utils/tierUtils';
+import { cn } from '@/lib/utils';
 
 interface TierDisplayProps {
   tierProgress?: TierProgress;
@@ -17,33 +17,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   isUpgradeAvailable,
   isLoading
 }) => {
-  // Safe number formatter from project knowledge
-  const formatPercent = (value: number | string | undefined): string => {
-    if (value === undefined) return '0.00%';
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return '0.00%';
-    return `${num.toFixed(2)}%`;
-  };
-
-  const tierColor = useMemo(() => 
-    tierProgress ? getTierColor(tierProgress.currentTier.tier) : 'text-slate-500', 
-    [tierProgress]
-  );
-
   if (isLoading) {
     return (
       <Card className="w-full">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="h-6 bg-slate-700 rounded w-1/4 animate-pulse" />
-            <div className="h-6 bg-slate-700 rounded w-1/6 animate-pulse" />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-2 bg-slate-700 rounded animate-pulse" />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="h-12 bg-slate-700 rounded animate-pulse" />
-            <div className="h-12 bg-slate-700 rounded animate-pulse" />
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-slate-700 rounded w-1/4" />
+            <div className="h-4 bg-slate-700 rounded w-1/2" />
+            <div className="h-4 bg-slate-700 rounded w-1/3" />
           </div>
         </CardContent>
       </Card>
@@ -52,7 +33,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   if (!tierProgress) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg">
         <CardContent className="p-6">
           <p className="text-center text-slate-400">No tier data available</p>
         </CardContent>
@@ -60,68 +41,78 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
+  const tierConfig = getTierConfig(tierProgress.currentTier.tier);
+  const TierIcon = tierConfig.icon;
+
   return (
-    <Card className="w-full hover:scale-in">
+    <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Crown className={tierColor} />
-            {tierProgress.currentTier.tier_name}
+            <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
+              <TierIcon className={cn("w-6 h-6", tierConfig.color)} />
+            </div>
+            <span className="text-white">{tierProgress.currentTier.tier_name}</span>
             {isUpgradeAvailable && (
-              <Badge variant="gold" className="animate-pulse ml-2">
-                Upgrade Available!
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "animate-pulse ml-2",
+                  tierConfig.color,
+                  tierConfig.borderColor
+                )}
+              >
+                Tier Up Ready!
               </Badge>
             )}
           </CardTitle>
           <Badge 
-            variant={tierProgress.currentTier.tier.toLowerCase() as 'bronze' | 'silver' | 'gold'} 
-            className="ml-2"
+            variant="outline" 
+            className={cn(
+              "ml-2 transition-all shine-effect",
+              tierConfig.color,
+              tierConfig.borderColor
+            )}
           >
-            {`${parseFloat(tierProgress.currentTier.weight).toFixed(1)}x Weight`}
+            {`${parseFloat(tierProgress.currentTier.weight).toFixed(1)}x Power Multiplier`}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Progress 
-            value={tierProgress.progress} 
-            className="h-2" 
-            color={tierColor}
-          />
-          <div className="flex justify-between text-xs text-slate-400">
-            {tierProgress.prevTier && (
-              <div className="flex items-center">
-                <TrendingDown className="w-3 h-3 mr-1" />
-                <span>
-                  {formatPercent(tierProgress.prevTier.staked_up_to_percent)}
-                </span>
-              </div>
-            )}
-            <span className="font-medium text-purple-300">
-              {formatPercent(tierProgress.progress)}
-            </span>
-            {tierProgress.nextTier && (
-              <div className="flex items-center">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>
-                  {formatPercent(tierProgress.nextTier.staked_up_to_percent)}
-                </span>
-              </div>
-            )}
+          <div className="relative h-2 w-full bg-slate-800/50 rounded overflow-hidden">
+            <Progress 
+              value={tierProgress.progress} 
+              className="h-full transition-all duration-500"
+              indicatorClassName={cn(
+                "transition-all duration-500",
+                getProgressColor(tierProgress.progress)
+              )}
+            />
           </div>
         </div>
+
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-slate-400">Current Requirement</p>
-            <p className="font-medium text-purple-200">
-              {formatPercent(tierProgress.requiredForCurrent)}
+          <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
+            <p className="text-slate-400 mb-2">Current Tier Requirements</p>
+            <p className={cn("font-medium", tierConfig.color)}>
+              {calculateRequiredTokens(
+                tierProgress.requiredForCurrent,
+                tierProgress.currentStakedAmount,
+                tierProgress.symbol
+              )}
             </p>
           </div>
+
           {tierProgress.nextTier && (
-            <div>
-              <p className="text-slate-400">Next Tier at</p>
-              <p className="font-medium text-purple-200">
-                {formatPercent(tierProgress.requiredForNext)}
+            <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
+              <p className="text-slate-400 mb-2">Next Tier Requirements</p>
+              <p className={cn("font-medium", tierConfig.color)}>
+                {calculateRequiredTokens(
+                  tierProgress.requiredForNext!,
+                  tierProgress.currentStakedAmount,
+                  tierProgress.symbol
+                )}
               </p>
             </div>
           )}
