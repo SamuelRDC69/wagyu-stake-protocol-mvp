@@ -14,7 +14,7 @@ import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
 
-import '../styles/game.css';
+
 
 // UI Components
 import {
