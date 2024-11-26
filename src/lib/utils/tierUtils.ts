@@ -56,28 +56,27 @@ export const calculateTierProgress = (
       return null;
     }
 
+    // Calculate percentage exactly like the contract
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
     stakedPercent = Math.min(stakedPercent, 100);
 
-    // Sort tiers by threshold ascending
+    // Sort tiers by staked_up_to_percent ascending
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find the tier where we fit
+    // Find first tier where threshold >= staked percentage (lower_bound)
     const tierIndex = sortedTiers.findIndex(
       tier => parseFloat(tier.staked_up_to_percent) >= stakedPercent
     );
 
-    // If no tier found, we're in the highest tier
     if (tierIndex === -1) {
+      // No tier found means we're beyond all thresholds, use highest tier
       const highestTier = sortedTiers[sortedTiers.length - 1];
-      const highestThreshold = parseFloat(highestTier.staked_up_to_percent);
-      
       return {
         currentTier: highestTier,
         progress: 100,
-        requiredForCurrent: (highestThreshold / 100) * totalValue.amount,
+        requiredForCurrent: (parseFloat(highestTier.staked_up_to_percent) / 100) * totalValue.amount,
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
@@ -89,18 +88,23 @@ export const calculateTierProgress = (
     const prevTier = tierIndex > 0 ? sortedTiers[tierIndex - 1] : undefined;
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
-    // Calculate thresholds
+    // Get thresholds
     const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
     const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
-    
-    // Calculate progress within current tier range
-    const progress = ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100;
 
     // Calculate required amounts
-    const requiredForCurrent = (prevThreshold / 100) * totalValue.amount;
+    // Required for current tier is the amount needed to reach this tier's threshold
+    const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
+    
+    // Required for next tier is the amount needed to reach next tier's threshold
     const requiredForNext = nextTier 
       ? (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount 
       : undefined;
+
+    // Calculate progress to next tier
+    const progress = nextTier
+      ? ((stakedPercent - currentThreshold) / (parseFloat(nextTier.staked_up_to_percent) - currentThreshold)) * 100
+      : 100;
 
     return {
       currentTier,
