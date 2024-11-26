@@ -47,17 +47,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const { 
     currentStakedAmount, 
-    requiredForCurrent, 
     requiredForNext, 
-    symbol 
+    symbol,
+    nextTier 
   } = tierProgress;
 
-  // Handle undefined requiredForNext
-  const nextTierRequired = typeof requiredForNext === 'number' ? requiredForNext : null;
-  
-  const remainingForCurrent = Math.max(0, requiredForCurrent - currentStakedAmount);
-  const remainingForNext = nextTierRequired 
-    ? Math.max(0, nextTierRequired - currentStakedAmount)
+  // Calculate remaining amount needed for next tier
+  const remainingForNext = requiredForNext 
+    ? Math.max(0, requiredForNext - currentStakedAmount)
     : null;
 
   const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
@@ -99,48 +96,29 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               tierConfig.progressColor
             )}
           />
-          <div className="flex justify-between text-xs text-slate-400">
-            <span>{formatNumber(requiredForCurrent)} {symbol}</span>
-            {tierProgress.nextTier && nextTierRequired !== null && (
-              <span>{formatNumber(nextTierRequired)} {symbol}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <p className="text-slate-400 mb-2">Current Tier Status</p>
-            <p className={cn("font-medium", tierConfig.color)}>
-              {remainingForCurrent <= 0 ? (
-                'Requirements Met'
-              ) : (
-                `Need ${formatNumber(remainingForCurrent)} ${symbol} more`
-              )}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              {remainingForCurrent <= 0 ? 
-                `Staking ${formatNumber(currentStakedAmount)} ${symbol}` :
-                `To maintain ${tierProgress.currentTier.tier_name}`
-              }
-            </p>
-          </div>
-
-          {tierProgress.nextTier && remainingForNext !== null && (
-            <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-              <p className="text-slate-400 mb-2">Next Tier Requirements</p>
-              <p className={cn("font-medium", tierConfig.color)}>
-                {remainingForNext <= 0 ? (
-                  'Ready to Advance!'
-                ) : (
-                  `Need ${formatNumber(remainingForNext)} ${symbol} more`
-                )}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                To reach {tierProgress.nextTier.tier_name}
-              </p>
+          {nextTier && requiredForNext && (
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>Current: {formatNumber(currentStakedAmount)} {symbol}</span>
+              <span>Next Tier: {formatNumber(requiredForNext)} {symbol}</span>
             </div>
           )}
         </div>
+
+        {nextTier && remainingForNext !== null && (
+          <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
+            <p className="text-slate-400 mb-2">Progress to {nextTier.tier_name}</p>
+            <p className={cn("font-medium", tierConfig.color)}>
+              {remainingForNext <= 0 ? (
+                'Ready to Advance!'
+              ) : (
+                `Need ${formatNumber(remainingForNext)} ${symbol} more`
+              )}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Currently staking {formatNumber(currentStakedAmount)} {symbol}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
