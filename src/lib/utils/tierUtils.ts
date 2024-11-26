@@ -120,14 +120,28 @@ export const getProgressColor = (progress: number): string => {
   return TIER_CONFIG.exchange.progressColor;
 };
 
-export const calculateRequiredTokens = (
-  required: number,
-  current: number,
-  symbol: string
-): string => {
-  const remaining = Math.max(0, required - current);
-  if (remaining === 0) return 'Requirement Met!';
-  return `${remaining.toFixed(8)} ${symbol} more needed`;
+// For required tokens calculation:
+const calculateRequired = (percentage: number, total: number) => {
+  return (percentage / 100) * total;
+};
+
+return {
+  currentTier,
+  nextTier,
+  prevTier,
+  progress: Math.min(Math.max(0, progress), 100),
+  // Only calculate requiredForCurrent if we're below the threshold
+  requiredForCurrent: stakedValue.amount < calculateRequired(prevThreshold, totalValue.amount) 
+    ? calculateRequired(prevThreshold, totalValue.amount)
+    : 0,
+  // For next tier, calculate based on next tier's lower bound
+  requiredForNext: nextTier 
+    ? calculateRequired(parseFloat(currentTier.staked_up_to_percent), totalValue.amount)
+    : undefined,
+  totalStaked,
+  stakedAmount,
+  currentStakedAmount: stakedValue.amount,
+  symbol: stakedValue.symbol
 };
 
 export const isTierUpgradeAvailable = (
