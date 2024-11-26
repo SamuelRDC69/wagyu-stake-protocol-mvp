@@ -45,15 +45,19 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   const tierConfig = getTierConfig(tierProgress.currentTier.tier);
   const TierIcon = tierConfig.icon;
 
-  // Calculate requirements correctly
-  const { currentStakedAmount, requiredForCurrent, requiredForNext, symbol } = tierProgress;
+  const { 
+    currentStakedAmount, 
+    requiredForCurrent, 
+    requiredForNext, 
+    symbol 
+  } = tierProgress;
 
-  // If we're meeting current tier requirements
-  const meetsCurrentTier = currentStakedAmount >= requiredForCurrent;
+  // Handle undefined requiredForNext
+  const nextTierRequired = typeof requiredForNext === 'number' ? requiredForNext : null;
   
-  // Calculate remaining for next tier if it exists
-  const remainingForNext = typeof requiredForNext === 'number' 
-    ? Math.max(0, requiredForNext - currentStakedAmount)
+  const remainingForCurrent = Math.max(0, requiredForCurrent - currentStakedAmount);
+  const remainingForNext = nextTierRequired 
+    ? Math.max(0, nextTierRequired - currentStakedAmount)
     : null;
 
   const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
@@ -97,8 +101,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           />
           <div className="flex justify-between text-xs text-slate-400">
             <span>{formatNumber(requiredForCurrent)} {symbol}</span>
-            {tierProgress.nextTier && requiredForNext !== undefined && (
-              <span>{formatNumber(requiredForNext)} {symbol}</span>
+            {tierProgress.nextTier && nextTierRequired !== null && (
+              <span>{formatNumber(nextTierRequired)} {symbol}</span>
             )}
           </div>
         </div>
@@ -107,16 +111,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
             <p className="text-slate-400 mb-2">Current Tier Status</p>
             <p className={cn("font-medium", tierConfig.color)}>
-              {meetsCurrentTier ? (
+              {remainingForCurrent <= 0 ? (
                 'Requirements Met'
               ) : (
-                <>
-                  Need {formatNumber(requiredForCurrent - currentStakedAmount)} {symbol} more
-                </>
+                `Need ${formatNumber(remainingForCurrent)} ${symbol} more`
               )}
             </p>
             <p className="text-xs text-slate-500 mt-1">
-              {meetsCurrentTier ? 
+              {remainingForCurrent <= 0 ? 
                 `Staking ${formatNumber(currentStakedAmount)} ${symbol}` :
                 `To maintain ${tierProgress.currentTier.tier_name}`
               }
@@ -127,12 +129,10 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
               <p className="text-slate-400 mb-2">Next Tier Requirements</p>
               <p className={cn("font-medium", tierConfig.color)}>
-                {remainingForNext === 0 ? (
+                {remainingForNext <= 0 ? (
                   'Ready to Advance!'
                 ) : (
-                  <>
-                    Need {formatNumber(remainingForNext)} {symbol} more
-                  </>
+                  `Need ${formatNumber(remainingForNext)} ${symbol} more`
                 )}
               </p>
               <p className="text-xs text-slate-500 mt-1">
