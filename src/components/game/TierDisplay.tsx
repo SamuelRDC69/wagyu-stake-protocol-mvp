@@ -49,8 +49,17 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     currentStakedAmount, 
     requiredForNext, 
     symbol,
-    nextTier 
+    nextTier,
+    prevTier,
+    progress,
+    totalStaked
   } = tierProgress;
+
+  // Calculate safe unstake amount (current staked minus previous tier's threshold)
+  const prevTierThreshold = prevTier 
+    ? (parseFloat(prevTier.staked_up_to_percent) / 100) * parseFloat(totalStaked)
+    : 0;
+  const safeUnstakeAmount = Math.max(0, currentStakedAmount - prevTierThreshold);
 
   // Calculate remaining amount needed for next tier
   const remainingForNext = requiredForNext 
@@ -89,7 +98,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Progress 
-            value={tierProgress.progress} 
+            value={progress} 
             className="h-2"
             indicatorClassName={cn(
               "transition-all duration-500",
@@ -98,7 +107,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           />
           {nextTier && requiredForNext && (
             <div className="flex justify-between text-xs text-slate-400">
-              <span>Current: {formatNumber(currentStakedAmount)} {symbol}</span>
+              <span>Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}</span>
               <span>Next Tier: {formatNumber(requiredForNext)} {symbol}</span>
             </div>
           )}
