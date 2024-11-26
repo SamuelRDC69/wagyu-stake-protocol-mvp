@@ -45,9 +45,15 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   const tierConfig = getTierConfig(tierProgress.currentTier.tier);
   const TierIcon = tierConfig.icon;
 
-  const remainingForCurrent = Math.max(0, tierProgress.requiredForCurrent - tierProgress.currentStakedAmount);
-  const remainingForNext = tierProgress.requiredForNext 
-    ? Math.max(0, tierProgress.requiredForNext - tierProgress.currentStakedAmount)
+  // Calculate requirements correctly
+  const { currentStakedAmount, requiredForCurrent, requiredForNext, symbol } = tierProgress;
+
+  // If we're meeting current tier requirements
+  const meetsCurrentTier = currentStakedAmount >= requiredForCurrent;
+  
+  // Calculate remaining for next tier if it exists
+  const remainingForNext = requiredForNext 
+    ? Math.max(0, requiredForNext - currentStakedAmount)
     : 0;
 
   const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
@@ -89,46 +95,51 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               tierConfig.progressColor
             )}
           />
+          <div className="flex justify-between text-xs text-slate-400">
+            <span>{formatNumber(requiredForCurrent)} {symbol}</span>
+            {tierProgress.nextTier && (
+              <span>{formatNumber(requiredForNext)} {symbol}</span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
-          {/* Current Tier Requirements */}
+          {/* Current Tier Status */}
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <p className="text-slate-400 mb-2">Current Tier Threshold</p>
-            {remainingForCurrent > 0 ? (
-              <>
-                <p className={cn("font-medium", tierConfig.color)}>
-                  Need {formatNumber(remainingForCurrent)} {tierProgress.symbol}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  to maintain {tierProgress.currentTier.tier_name}
-                </p>
-              </>
-            ) : (
-              <p className={cn("font-medium", tierConfig.color)}>
-                Threshold Met!
-              </p>
-            )}
+            <p className="text-slate-400 mb-2">Current Tier Status</p>
+            <p className={cn("font-medium", tierConfig.color)}>
+              {meetsCurrentTier ? (
+                'Requirements Met'
+              ) : (
+                <>
+                  Need {formatNumber(requiredForCurrent - currentStakedAmount)} {symbol} more
+                </>
+              )}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {meetsCurrentTier ? 
+                `Staking ${formatNumber(currentStakedAmount)} ${symbol}` :
+                `To maintain ${tierProgress.currentTier.tier_name}`
+              }
+            </p>
           </div>
 
-          {/* Next Tier Requirements */}
+          {/* Next Tier Requirements - only show if there's a next tier */}
           {tierProgress.nextTier && (
             <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-              <p className="text-slate-400 mb-2">Next Tier Threshold</p>
-              {remainingForNext > 0 ? (
-                <>
-                  <p className={cn("font-medium", tierConfig.color)}>
-                    Need {formatNumber(remainingForNext)} {tierProgress.symbol}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    to reach {tierProgress.nextTier.tier_name}
-                  </p>
-                </>
-              ) : (
-                <p className={cn("font-medium text-green-500")}>
-                  Ready to Advance!
-                </p>
-              )}
+              <p className="text-slate-400 mb-2">Next Tier Requirements</p>
+              <p className={cn("font-medium", tierConfig.color)}>
+                {remainingForNext === 0 ? (
+                  'Ready to Advance!'
+                ) : (
+                  <>
+                    Need {formatNumber(remainingForNext)} {symbol} more
+                  </>
+                )}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                To reach {tierProgress.nextTier.tier_name}
+              </p>
             </div>
           )}
         </div>
