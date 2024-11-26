@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { CooldownTimer } from './CooldownTimer';
 import {
   Dialog,
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../ui/dialog";
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,15 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "../ui/alert-dialog";
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { TrendingDown, Timer, TrendingUp } from 'lucide-react';
-import { StakedEntity } from '../../lib/types/staked';
-import { ConfigEntity } from '../../lib/types/config';
-import { formatLastAction } from '../../lib/utils/dateUtils';
-import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils';
-import { getTierColor } from '../../lib/utils/tierUtils';
+import { StakedEntity } from '@/lib/types/staked';
+import { ConfigEntity } from '@/lib/types/config';
+import { formatLastAction } from '@/lib/utils/dateUtils';
+import { formatTokenAmount, parseTokenString } from '@/lib/utils/tokenUtils';
+import { getTierConfig } from '@/lib/utils/tierUtils';
+import { cn } from '@/lib/utils';
 
 interface UserStatusProps {
   stakedData?: StakedEntity;
@@ -133,15 +134,18 @@ export const UserStatus: React.FC<UserStatusProps> = ({
     }
   };
 
+  const tierConfig = stakedData ? getTierConfig(stakedData.tier) : undefined;
+
   return (
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
-          {stakedData && (
+          {stakedData && tierConfig && (
             <Badge 
-              variant={stakedData.tier.toLowerCase() as 'bronze' | 'silver' | 'gold'}
-              className={`${getTierColor(stakedData.tier)} animate-pulse`}
+              variant={stakedData.tier.toLowerCase().replace(' ', '-') as
+                'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange'}
+              className={cn("animate-pulse", tierConfig.color)}
             >
               {stakedData.tier}
             </Badge>
@@ -154,14 +158,14 @@ export const UserStatus: React.FC<UserStatusProps> = ({
             <>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Staked Amount</span>
-                <span className="text-purple-200 font-medium">
+                <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
                   {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
                 </span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Last Claim</span>
-                <span className="text-purple-200 font-medium">
+                <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
                   {formatLastAction(stakedData.last_claimed_at)}
                 </span>
               </div>
@@ -182,7 +186,10 @@ export const UserStatus: React.FC<UserStatusProps> = ({
 
           <div className="grid grid-cols-3 gap-4 pt-4">
             <Button
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className={cn(
+                "w-full",
+                tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+              )}
               onClick={() => setStakeDialogOpen(true)}
               disabled={isProcessing}
             >
@@ -193,7 +200,10 @@ export const UserStatus: React.FC<UserStatusProps> = ({
             {stakedData && (
               <>
                 <Button
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  className={cn(
+                    "w-full",
+                    tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                  )}
                   onClick={handleClaim}
                   disabled={isProcessing}
                 >
@@ -220,12 +230,12 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-<AlertDialogCancel 
-  onClick={() => setConfirmDialogOpen(false)}
-  className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
->
-  Cancel
-</AlertDialogCancel>
+                      <AlertDialogCancel 
+                        onClick={() => setConfirmDialogOpen(false)}
+                        className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
+                      >
+                        Cancel
+                      </AlertDialogCancel>
                       <AlertDialogAction onClick={() => {
                         setConfirmDialogOpen(false);
                         setUnstakeDialogOpen(true);
@@ -259,15 +269,19 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                 />
                 <DialogFooter>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setStakeDialogOpen(false)}
+                    className="border-slate-600"
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleStake}
                     disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className={cn(
+                      "ml-2",
+                      tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                    )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Stake'}
                   </Button>
@@ -298,15 +312,19 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                 />
                 <DialogFooter>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setUnstakeDialogOpen(false)}
+                    className="border-slate-600"
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleUnstake}
                     disabled={isProcessing || !unstakeAmount || parseFloat(unstakeAmount) <= 0}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className={cn(
+                      "ml-2",
+                      tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                    )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Unstake'}
                   </Button>
