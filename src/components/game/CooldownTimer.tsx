@@ -26,7 +26,6 @@ export const CooldownTimer: React.FC<CooldownTimerProps> = ({
     const newTimeLeft = calculateTimeLeft(cooldownEndAt);
     setTimeLeft(newTimeLeft);
     setProgress(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
-
     if (newTimeLeft === 0) {
       onComplete?.();
     }
@@ -57,7 +56,7 @@ export const CooldownTimer: React.FC<CooldownTimerProps> = ({
       <Progress 
         value={progress} 
         className="h-1.5"
-        color={ready ? 'bg-green-500' : 'bg-yellow-500'}
+        indicatorClassName={ready ? 'bg-green-500' : 'bg-yellow-500'}
       />
       
       {ready && (
