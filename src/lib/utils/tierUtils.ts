@@ -102,9 +102,10 @@ export const calculateTierProgress = (
       : undefined;
 
     // Calculate progress to next tier
-    const progress = nextTier
-      ? ((stakedPercent - currentThreshold) / (parseFloat(nextTier.staked_up_to_percent) - currentThreshold)) * 100
-      : 100;
+const progress = prevTier
+  ? ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100
+  : (stakedPercent / currentThreshold) * 100;
+
 
     return {
       currentTier,
