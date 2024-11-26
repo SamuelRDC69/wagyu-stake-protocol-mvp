@@ -52,9 +52,9 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   const meetsCurrentTier = currentStakedAmount >= requiredForCurrent;
   
   // Calculate remaining for next tier if it exists
-  const remainingForNext = requiredForNext 
+  const remainingForNext = typeof requiredForNext === 'number' 
     ? Math.max(0, requiredForNext - currentStakedAmount)
-    : 0;
+    : null;
 
   const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
     'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
@@ -97,14 +97,13 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           />
           <div className="flex justify-between text-xs text-slate-400">
             <span>{formatNumber(requiredForCurrent)} {symbol}</span>
-            {tierProgress.nextTier && (
+            {tierProgress.nextTier && requiredForNext !== undefined && (
               <span>{formatNumber(requiredForNext)} {symbol}</span>
             )}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
-          {/* Current Tier Status */}
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
             <p className="text-slate-400 mb-2">Current Tier Status</p>
             <p className={cn("font-medium", tierConfig.color)}>
@@ -124,8 +123,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             </p>
           </div>
 
-          {/* Next Tier Requirements - only show if there's a next tier */}
-          {tierProgress.nextTier && (
+          {tierProgress.nextTier && remainingForNext !== null && (
             <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
               <p className="text-slate-400 mb-2">Next Tier Requirements</p>
               <p className={cn("font-medium", tierConfig.color)}>
