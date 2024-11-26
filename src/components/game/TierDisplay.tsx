@@ -3,7 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TierProgress } from '@/lib/types/tier';
-import { getTierConfig, getProgressColor, calculateRequiredTokens } from '@/lib/utils/tierUtils';
+import { getTierConfig } from '@/lib/utils/tierUtils';
+import { formatNumber } from '@/lib/utils/formatUtils';
 import { cn } from '@/lib/utils';
 
 interface TierDisplayProps {
@@ -33,7 +34,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   if (!tierProgress) {
     return (
-      <Card className="w-full crystal-bg">
+      <Card className="w-full">
         <CardContent className="p-6">
           <p className="text-center text-slate-400">No tier data available</p>
         </CardContent>
@@ -43,7 +44,13 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const tierConfig = getTierConfig(tierProgress.currentTier.tier);
   const TierIcon = tierConfig.icon;
-  const tierKey = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
+
+  const remainingForCurrent = Math.max(0, tierProgress.requiredForCurrent - tierProgress.currentStakedAmount);
+  const remainingForNext = tierProgress.requiredForNext 
+    ? Math.max(0, tierProgress.requiredForNext - tierProgress.currentStakedAmount)
+    : 0;
+
+  const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
     'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
 
   return (
@@ -57,7 +64,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <span className="text-white">{tierProgress.currentTier.tier_name}</span>
             {isUpgradeAvailable && (
               <Badge 
-                variant={tierKey}
+                variant={normalizedTier}
                 className="animate-pulse ml-2"
               >
                 Tier Up Ready!
@@ -65,49 +72,63 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             )}
           </CardTitle>
           <Badge 
-            variant={tierKey}
+            variant={normalizedTier}
             className="ml-2 transition-all shine-effect"
           >
-            {`${parseFloat(tierProgress.currentTier.weight).toFixed(1)}x Power Multiplier`}
+            {`${parseFloat(tierProgress.currentTier.weight).toFixed(1)}x Power`}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <div className="relative h-2 w-full bg-slate-800/50 rounded overflow-hidden">
-            <Progress 
-              value={tierProgress.progress} 
-              className="h-full transition-all duration-500"
-              indicatorClassName={cn(
-                "transition-all duration-500",
-                getProgressColor(tierProgress.progress)
-              )}
-            />
-          </div>
+          <Progress 
+            value={tierProgress.progress} 
+            className="h-2"
+            indicatorClassName={cn(
+              "transition-all duration-500",
+              tierConfig.progressColor
+            )}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
+          {/* Current Tier Requirements */}
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <p className="text-slate-400 mb-2">Current Tier Requirements</p>
-            <p className={cn("font-medium", tierConfig.color)}>
-              {calculateRequiredTokens(
-                tierProgress.requiredForCurrent,
-                tierProgress.currentStakedAmount,
-                tierProgress.symbol
-              )}
-            </p>
+            <p className="text-slate-400 mb-2">Current Tier Threshold</p>
+            {remainingForCurrent > 0 ? (
+              <>
+                <p className={cn("font-medium", tierConfig.color)}>
+                  Need {formatNumber(remainingForCurrent)} {tierProgress.symbol}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  to maintain {tierProgress.currentTier.tier_name}
+                </p>
+              </>
+            ) : (
+              <p className={cn("font-medium", tierConfig.color)}>
+                Threshold Met!
+              </p>
+            )}
           </div>
 
+          {/* Next Tier Requirements */}
           {tierProgress.nextTier && (
             <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-              <p className="text-slate-400 mb-2">Next Tier Requirements</p>
-              <p className={cn("font-medium", tierConfig.color)}>
-                {calculateRequiredTokens(
-                  tierProgress.requiredForNext!,
-                  tierProgress.currentStakedAmount,
-                  tierProgress.symbol
-                )}
-              </p>
+              <p className="text-slate-400 mb-2">Next Tier Threshold</p>
+              {remainingForNext > 0 ? (
+                <>
+                  <p className={cn("font-medium", tierConfig.color)}>
+                    Need {formatNumber(remainingForNext)} {tierProgress.symbol}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    to reach {tierProgress.nextTier.tier_name}
+                  </p>
+                </>
+              ) : (
+                <p className={cn("font-medium text-green-500")}>
+                  Ready to Advance!
+                </p>
+              )}
             </div>
           )}
         </div>
