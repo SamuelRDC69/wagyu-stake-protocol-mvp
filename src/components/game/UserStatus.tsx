@@ -137,7 +137,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   const tierConfig = stakedData ? getTierConfig(stakedData.tier) : undefined;
 
   return (
-    <Card className="w-full">
+    <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
@@ -156,21 +156,23 @@ export const UserStatus: React.FC<UserStatusProps> = ({
         <div className="space-y-4">
           {stakedData ? (
             <>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">Staked Amount</span>
-                <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
-                  {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
-                </span>
+              <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Staked Amount</span>
+                  <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
+                    {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Last Claim</span>
+                  <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
+                    {formatLastAction(stakedData.last_claimed_at)}
+                  </span>
+                </div>
               </div>
               
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">Last Claim</span>
-                <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
-                  {formatLastAction(stakedData.last_claimed_at)}
-                </span>
-              </div>
-              
-              <div className="border-t border-slate-800 pt-4">
+              <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all">
                 <CooldownTimer 
                   cooldownEndAt={stakedData.cooldown_end_at}
                   cooldownSeconds={config.cooldown_seconds_per_claim}
@@ -179,7 +181,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
               </div>
             </>
           ) : (
-            <div className="text-center text-slate-400 mb-4">
+            <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all text-center text-slate-400">
               No active stake. Start staking to earn rewards!
             </div>
           )}
@@ -187,8 +189,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
           <div className="grid grid-cols-3 gap-4 pt-4">
             <Button
               className={cn(
-                "w-full",
-                tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
+                tierConfig?.color
               )}
               onClick={() => setStakeDialogOpen(true)}
               disabled={isProcessing}
@@ -201,8 +203,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
               <>
                 <Button
                   className={cn(
-                    "w-full",
-                    tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                    "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
+                    tierConfig?.color
                   )}
                   onClick={handleClaim}
                   disabled={isProcessing}
@@ -215,14 +217,14 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"
-                      className="w-full"
+                      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
                       disabled={isProcessing}
                     >
                       <TrendingDown className="w-4 h-4 mr-2" />
                       Unstake
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-slate-900 text-white">
+                  <AlertDialogContent className="bg-slate-900 text-white border border-slate-700/50">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -239,7 +241,9 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                       <AlertDialogAction onClick={() => {
                         setConfirmDialogOpen(false);
                         setUnstakeDialogOpen(true);
-                      }}>
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700"
+                      >
                         Continue
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -250,7 +254,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
           </div>
 
           <Dialog open={isStakeDialogOpen} onOpenChange={setStakeDialogOpen}>
-            <DialogContent className="bg-slate-900 text-white">
+            <DialogContent className="bg-slate-900 text-white border border-slate-700/50">
               <DialogHeader>
                 <DialogTitle>Stake Tokens</DialogTitle>
                 <DialogDescription>
@@ -271,7 +275,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                   <Button
                     variant="outline"
                     onClick={() => setStakeDialogOpen(false)}
-                    className="border-slate-600"
+                    className="border-slate-600 hover:bg-slate-800"
                   >
                     Cancel
                   </Button>
@@ -279,8 +283,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                     onClick={handleStake}
                     disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
                     className={cn(
-                      "ml-2",
-                      tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                      "ml-2 bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
+                      tierConfig?.color
                     )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Stake'}
@@ -291,7 +295,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
           </Dialog>
 
           <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
-            <DialogContent className="bg-slate-900 text-white">
+            <DialogContent className="bg-slate-900 text-white border border-slate-700/50">
               <DialogHeader>
                 <DialogTitle>Unstake Tokens</DialogTitle>
                 <DialogDescription>
@@ -314,7 +318,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                   <Button
                     variant="outline"
                     onClick={() => setUnstakeDialogOpen(false)}
-                    className="border-slate-600"
+                    className="border-slate-600 hover:bg-slate-800"
                   >
                     Cancel
                   </Button>
@@ -322,8 +326,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                     onClick={handleUnstake}
                     disabled={isProcessing || !unstakeAmount || parseFloat(unstakeAmount) <= 0}
                     className={cn(
-                      "ml-2",
-                      tierConfig ? tierConfig.bgColor : "bg-purple-600 hover:bg-purple-700"
+                      "ml-2 bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
+                      tierConfig?.color
                     )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Unstake'}
