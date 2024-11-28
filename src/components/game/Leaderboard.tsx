@@ -19,6 +19,7 @@ import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
 import { useContractData } from '../../lib/hooks/useContractData';
 import { StakedEntity } from '../../lib/types/staked';
+import { cn } from '@/lib/utils';
 
 const TIER_CONFIG = {
   supplier: {
@@ -108,14 +109,14 @@ export const Leaderboard: React.FC = () => {
 
   if (loading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardHeader>
           <CardTitle>Leaderboard</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-slate-800/30 rounded animate-pulse" />
+              <div key={i} className="h-16 bg-slate-800/30 rounded-lg border border-slate-700/50 animate-pulse" />
             ))}
           </div>
         </CardContent>
@@ -125,63 +126,73 @@ export const Leaderboard: React.FC = () => {
 
   if (error) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardHeader>
           <CardTitle>Leaderboard</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400 text-center">{error.message}</div>
+          <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-4 text-red-400 text-center">
+            {error.message}
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full crystal-bg group">
       <CardHeader>
         <CardTitle>Top Stakers</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Rank</TableHead>
-              <TableHead>Account</TableHead>
-              <TableHead>Tier</TableHead>
-              <TableHead className="text-right">Staked Amount</TableHead>
-              <TableHead className="text-right">Next Claim</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaderboardData.map((entry, index) => {
-              const tierConfig = getTierConfig(entry.tier);
-              const TierIcon = tierConfig.icon;
-              const { amount, symbol } = parseTokenString(entry.staked_quantity);
+        <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 transition-all">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-slate-700/30 border-b border-slate-700/50">
+                <TableHead className="text-slate-300">Rank</TableHead>
+                <TableHead className="text-slate-300">Account</TableHead>
+                <TableHead className="text-slate-300">Tier</TableHead>
+                <TableHead className="text-right text-slate-300">Staked Amount</TableHead>
+                <TableHead className="text-right text-slate-300">Next Claim</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leaderboardData.map((entry, index) => {
+                const tierConfig = getTierConfig(entry.tier);
+                const TierIcon = tierConfig.icon;
+                const { amount, symbol } = parseTokenString(entry.staked_quantity);
 
-              return (
-// In Leaderboard.tsx, update the TableRow rendering:
-<TableRow key={`${entry.pool_id}-${index}`}>
-  <TableCell className="font-medium text-slate-200">#{index + 1}</TableCell>
-  <TableCell className="text-slate-200">{entry.owner}</TableCell>
-  <TableCell>
-    <div className="flex items-center gap-2">
-      <div className={`p-2 rounded-lg ${tierConfig.bgColor}`}>
-        <TierIcon className={`w-4 h-4 ${tierConfig.color}`} />
-      </div>
-      <span className={`${tierConfig.color}`}>{entry.tier}</span>
-    </div>
-  </TableCell>
-  <TableCell className="text-right font-medium text-slate-200">
-    {`${Number(amount).toFixed(8)} ${symbol}`}
-  </TableCell>
-  <TableCell className="text-right">
-    {renderClaimStatus(entry.cooldown_end_at)}
-  </TableCell>
-</TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                return (
+                  <TableRow 
+                    key={`${entry.pool_id}-${index}`}
+                    className="hover:bg-slate-700/30 transition-all border-b border-slate-700/50 last:border-0"
+                  >
+                    <TableCell className="font-medium text-slate-200">
+                      #{index + 1}
+                    </TableCell>
+                    <TableCell className="text-slate-200">
+                      {entry.owner}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
+                          <TierIcon className={cn("w-4 h-4", tierConfig.color)} />
+                        </div>
+                        <span className={tierConfig.color}>{entry.tier}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-slate-200">
+                      {`${Number(amount).toFixed(8)} ${symbol}`}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {renderClaimStatus(entry.cooldown_end_at)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
