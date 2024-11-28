@@ -59,14 +59,14 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
 
   if (isLoading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             {[1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
+              <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
                 <div className="w-8 h-8 bg-purple-500/20 rounded animate-pulse" />
                 <div className="space-y-2 flex-1">
                   <div className="h-4 bg-slate-700 rounded w-1/2 animate-pulse" />
@@ -83,7 +83,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
   if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
@@ -116,13 +116,13 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
   return (
-    <Card className="w-full">
+    <Card className="w-full crystal-bg group">
       <CardHeader>
         <CardTitle>Pool Statistics</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all">
             <Shield className="w-8 h-8 text-purple-500" />
             <div>
               <p className="text-sm text-slate-400">Total Staked</p>
@@ -131,7 +131,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all">
             <TrendingUp className="w-8 h-8 text-purple-500" />
             <div>
               <p className="text-sm text-slate-400">Rewards</p>
