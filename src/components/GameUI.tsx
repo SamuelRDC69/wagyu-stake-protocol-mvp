@@ -416,49 +416,55 @@ const handleUnstake = async (amount: string) => {
     }
   };
 
-  return (
-    <div className="relative crystal-bg py-4 border-b border-purple-500/20">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="flex justify-between items-center">
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
-        Stakeland
-      </h1>
-      
-      {session ? (
-        <div className="flex items-center gap-4">
-          <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
-            <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
-            <span className="text-purple-200 font-medium">
-              {session.actor.toString()}
-            </span>
-          </div>
-          <Button 
-            variant="outline" 
-            className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
-        </div>
-      ) : (
-        <Button 
-          variant="outline" 
-          className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
-          onClick={handleLogin}
-        >
-          Connect Wallet
-        </Button>
-      )}
-    </div>
-  </div>
-</div>
+  // In GameUI.tsx, update the return statement:
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
+return (
+  <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
+    {/* Header */}
+    <div className="relative crystal-bg py-4 border-b border-purple-500/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
+            Stakeland
+          </h1>
+          
+          {session ? (
+            <div className="flex items-center gap-4">
+              <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
+                <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
+                <span className="text-purple-200 font-medium">
+                  {session.actor.toString()}
+                </span>
+              </div>
+              <Button 
+                variant="outline" 
+                className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
+              onClick={handleLogin}
+            >
+              Connect Wallet
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {/* Main Content */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
       <div className="space-y-6">
         {renderContent()}
       </div>
     </div>
 
+    {/* Bottom Navigation */}
     <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
       <div className="max-w-lg mx-auto">
         <nav className="flex justify-around p-4">
@@ -489,6 +495,7 @@ const handleUnstake = async (amount: string) => {
       </div>
     </div>
 
+    {/* Error Toast */}
     {error && (
       <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg border border-red-400/50">
         {error}
