@@ -214,16 +214,16 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                 </Button>
 
                 <AlertDialog open={isConfirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
-                      disabled={isProcessing}
-                    >
-                      <TrendingDown className="w-5 h-5 mr-2" />
-                      Unstake
-                    </Button>
-                  </AlertDialogTrigger>
+  <AlertDialogTrigger>
+    <Button
+      variant="destructive"
+      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
+      disabled={isProcessing}
+    >
+      <TrendingDown className="w-5 h-5 mr-2" />
+      Unstake
+    </Button>
+  </AlertDialogTrigger>
                   <AlertDialogContent className="bg-slate-900 text-white border border-slate-700/50">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
