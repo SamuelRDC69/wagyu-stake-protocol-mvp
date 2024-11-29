@@ -220,7 +220,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
       className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
       disabled={isProcessing}
     >
-      <TrendingDown className="w-5 h-5 mr-2" />
+      <TrendingDown className="w-4 h-4 mr-2" />
       Unstake
     </Button>
   </AlertDialogTrigger>
