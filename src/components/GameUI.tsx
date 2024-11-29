@@ -453,9 +453,11 @@ const handleUnstake = async (amount: string) => {
   </div>
 </div>
 
-      <div className="p-6 pb-24"> {/* Changed from just "p-6" */}
-  {renderContent()}
-</div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
+      <div className="space-y-6">
+        {renderContent()}
+      </div>
+    </div>
 
       <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
         <div className="flex justify-around p-4 max-w-lg mx-auto">
