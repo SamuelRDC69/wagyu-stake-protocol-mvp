@@ -318,7 +318,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                   <Button
                     variant="outline"
                     onClick={() => setUnstakeDialogOpen(false)}
-                    className="border-slate-600 hover:bg-slate-800"
+                    className="border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
                   >
                     Cancel
                   </Button>
