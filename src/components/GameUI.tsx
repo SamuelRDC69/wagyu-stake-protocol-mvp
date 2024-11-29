@@ -459,30 +459,43 @@ const handleUnstake = async (amount: string) => {
       </div>
     </div>
 
-      <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
-        <div className="flex justify-around p-4 max-w-lg mx-auto">
+    <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
+      <div className="max-w-lg mx-auto">
+        <nav className="flex justify-around p-4">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-1 ${
-                activeTab === item.id ? 'text-purple-300' : 'text-white/60'
-              }`}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all",
+                activeTab === item.id 
+                  ? "bg-slate-800/50 border border-purple-500/20" 
+                  : "hover:bg-slate-800/30",
+                activeTab === item.id 
+                  ? "text-purple-200" 
+                  : "text-slate-400 hover:text-purple-200"
+              )}
             >
-              <item.icon className="w-6 h-6" />
-              <span className="text-xs">{item.label}</span>
+              <item.icon className={cn(
+                "w-5 h-5",
+                activeTab === item.id 
+                  ? "text-purple-400" 
+                  : "text-slate-500"
+              )} />
+              <span className="text-xs font-medium">{item.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
       </div>
-
-      {error && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg">
-          {error}
-        </div>
-      )}
     </div>
-  );
+
+    {error && (
+      <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg border border-red-400/50">
+        {error}
+      </div>
+    )}
+  </div>
+);
 };
 
 export default GameUI;
