@@ -13,6 +13,7 @@ import { Name } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
+import { cn } from '@/lib/utils';
 
 
 
