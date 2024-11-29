@@ -417,41 +417,41 @@ const handleUnstake = async (amount: string) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
-      <div className="relative crystal-bg py-4 px-6 border-b border-purple-500/20">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-purple-200">Stakeland</h1>
-          <div className="flex items-center gap-4">
-            {session ? (
-              <>
-                <span className="text-purple-200">{session.actor.toString()}</span>
-                <Button 
-                  variant="outline" 
-                  className="text-purple-200 border-purple-500"
-                  onClick={refreshData}
-                >
-                  Refresh
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="text-purple-200 border-purple-500" 
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <Button 
-                variant="outline" 
-                className="text-purple-200 border-purple-500" 
-                onClick={handleLogin}
-              >
-                Connect Wallet
-              </Button>
-            )}
+    <div className="relative crystal-bg py-4 border-b border-purple-500/20">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center">
+      <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
+        Stakeland
+      </h1>
+      
+      {session ? (
+        <div className="flex items-center gap-4">
+          <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
+            <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
+            <span className="text-purple-200 font-medium">
+              {session.actor.toString()}
+            </span>
           </div>
+          <Button 
+            variant="outline" 
+            className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
         </div>
-      </div>
+      ) : (
+        <Button 
+          variant="outline" 
+          className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
+          onClick={handleLogin}
+        >
+          Connect Wallet
+        </Button>
+      )}
+    </div>
+  </div>
+</div>
 
       <div className="p-6 pb-24"> {/* Changed from just "p-6" */}
   {renderContent()}
