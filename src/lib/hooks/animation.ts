@@ -1,4 +1,5 @@
 // src/lib/hooks/animation.ts
+
 import { useRef, useEffect } from "react";
 
 export function usePrevious<T>(value: T): T | undefined {
