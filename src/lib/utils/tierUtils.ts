@@ -29,7 +29,7 @@ export const TIER_CONFIG = {
     borderColor: 'border-purple-500/20',
     icon: TrendingUp,
   },
-  'market-maker': {
+  'marketmkr': {
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     progressColor: 'bg-amber-500',
