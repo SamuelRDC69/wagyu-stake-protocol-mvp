@@ -97,31 +97,32 @@ export const calculateTierProgress = (
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
     // Calculate thresholds
-    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
-    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
+    const currentThreshold = parseFloat(currentTier.staked_up_to_percent) / 100;
+    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) / 100 : 0;
 
-    // Calculate required amounts
-    const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
-    
+    // Required amount for current tier
+    const requiredForCurrent = currentThreshold * totalValue.amount;
+
     // Calculate additional amount needed for next tier
     let requiredForNext: number | undefined;
     if (nextTier) {
-      const nextTierMinAmount = (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount;
-      // If we're already at or above the next tier threshold, show 0
-      if (stakedValue.amount >= nextTierMinAmount) {
-        requiredForNext = 0;
-      } else {
-        // Calculate how much more is needed including fee adjustment
-        const amountNeeded = nextTierMinAmount - stakedValue.amount;
-        // Adjust for fee: amount / (1 - fee) to ensure enough after fee
-        requiredForNext = Math.ceil(amountNeeded / (1 - 0.003));
-      }
+        // Calculate the absolute amount needed for next tier
+        const nextTierMinAmount = (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount;
+        
+        if (stakedValue.amount >= nextTierMinAmount) {
+            // Already at or above next tier threshold
+            requiredForNext = 0;
+        } else {
+            // Calculate the difference needed and adjust for fee
+            const rawAmountNeeded = nextTierMinAmount - stakedValue.amount;
+            requiredForNext = Math.ceil(rawAmountNeeded / (1 - FEE_RATE));
+        }
     }
 
-    // Calculate progress to next tier
+    // Calculate progress within current tier range
     const progress = prevTier
-      ? ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100
-      : (stakedPercent / currentThreshold) * 100;
+      ? ((stakedPercent - (prevThreshold * 100)) / (currentThreshold * 100 - (prevThreshold * 100))) * 100
+      : (stakedPercent / (currentThreshold * 100)) * 100;
 
     return {
       currentTier,
