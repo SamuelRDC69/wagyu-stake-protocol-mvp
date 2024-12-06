@@ -55,7 +55,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     totalStaked
   } = tierProgress;
 
-  // Calculate safe unstake amount (current staked minus previous tier's threshold)
+  // Always calculate safe unstake amount, even for max tier
   const prevTierThreshold = prevTier 
     ? (parseFloat(prevTier.staked_up_to_percent) / 100) * parseFloat(totalStaked)
     : 0;
@@ -63,7 +63,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   // Calculate remaining amount needed for next tier
   const remainingForNext = requiredForNext 
-    ? Math.max(0, requiredForNext - currentStakedAmount)
+    ? Math.max(0, requiredForNext)
     : null;
 
   const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
@@ -105,12 +105,13 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               tierConfig.progressColor
             )}
           />
-          {nextTier && requiredForNext && (
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}</span>
-              <span>Next Tier: {formatNumber(requiredForNext)} {symbol}</span>
-            </div>
-          )}
+          {/* Always show safe unstake amount */}
+          <div className="flex justify-between text-xs text-slate-400">
+            <span>Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}</span>
+            {nextTier && remainingForNext !== null && (
+              <span>Next Tier: {formatNumber(remainingForNext)} {symbol}</span>
+            )}
+          </div>
         </div>
 
         {nextTier && remainingForNext !== null && (
