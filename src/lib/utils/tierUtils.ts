@@ -143,8 +143,8 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  const normalizedTier = tier.toLowerCase().replace(' ', '-') as keyof typeof TIER_CONFIG;
-  return TIER_CONFIG[normalizedTier] || TIER_CONFIG.supplier;
+  const contractTierName = tier.toLowerCase();
+  return TIER_CONFIG[contractTierName as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
 
 export const getProgressColor = (progress: number): string => {
