@@ -86,7 +86,7 @@ export const calculateTierProgress = (
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
         symbol: stakedValue.symbol,
-        prevTier, // Include previous tier for safe unstake calculation
+        prevTier,
         nextTier: undefined,
         requiredForNext: undefined
       };
@@ -104,11 +104,19 @@ export const calculateTierProgress = (
     const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
     
     // Calculate additional amount needed for next tier
-const requiredForNext = nextTier 
-  ? Math.ceil(
-      (((parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount) - currentStakedAmount)
-    )
-  : undefined;
+    let requiredForNext: number | undefined;
+    if (nextTier) {
+      const nextTierMinAmount = (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount;
+      // If we're already at or above the next tier threshold, show 0
+      if (stakedValue.amount >= nextTierMinAmount) {
+        requiredForNext = 0;
+      } else {
+        // Calculate how much more is needed including fee adjustment
+        const amountNeeded = nextTierMinAmount - stakedValue.amount;
+        // Adjust for fee: amount / (1 - fee) to ensure enough after fee
+        requiredForNext = Math.ceil(amountNeeded / (1 - 0.003));
+      }
+    }
 
     // Calculate progress to next tier
     const progress = prevTier
