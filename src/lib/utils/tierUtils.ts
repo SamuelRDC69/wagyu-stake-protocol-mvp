@@ -104,11 +104,11 @@ export const calculateTierProgress = (
     const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
     
     // Calculate additional amount needed for next tier
-    const requiredForNext = nextTier 
-      ? Math.ceil(
-          (((parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount) - currentStakedAmount)
-        )
-      : undefined;
+const requiredForNext = nextTier 
+  ? Math.ceil(
+      (((parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount) - currentStakedAmount)
+    )
+  : undefined;
 
     // Calculate progress to next tier
     const progress = prevTier
