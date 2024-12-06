@@ -5,6 +5,8 @@ import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from '@/lib/utils/tokenUtils';
 import { cn } from '@/lib/utils';
 
+const FEE_RATE = 0.003; // 0.3% fee
+
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -73,14 +75,20 @@ export const calculateTierProgress = (
     if (tierIndex === -1) {
       // No tier found means we're beyond all thresholds, use highest tier
       const highestTier = sortedTiers[sortedTiers.length - 1];
+      const highestThreshold = parseFloat(highestTier.staked_up_to_percent);
+      const prevTier = sortedTiers[sortedTiers.length - 2]; // Get previous tier for max tier
+      
       return {
         currentTier: highestTier,
         progress: 100,
-        requiredForCurrent: (parseFloat(highestTier.staked_up_to_percent) / 100) * totalValue.amount,
+        requiredForCurrent: (highestThreshold / 100) * totalValue.amount,
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
-        symbol: stakedValue.symbol
+        symbol: stakedValue.symbol,
+        prevTier, // Include previous tier for safe unstake calculation
+        nextTier: undefined,
+        requiredForNext: undefined
       };
     }
 
@@ -88,24 +96,22 @@ export const calculateTierProgress = (
     const prevTier = tierIndex > 0 ? sortedTiers[tierIndex - 1] : undefined;
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
-    // Get thresholds
+    // Calculate thresholds
     const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
     const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
 
     // Calculate required amounts
-    // Required for current tier is the amount needed to reach this tier's threshold
     const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
     
-    // Required for next tier is the amount needed to reach next tier's threshold
+    // Calculate additional amount needed for next tier (accounting for fee)
     const requiredForNext = nextTier 
-      ? (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount 
+      ? Math.ceil(((parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount - stakedValue.amount) / (1 - FEE_RATE))
       : undefined;
 
     // Calculate progress to next tier
-const progress = prevTier
-  ? ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100
-  : (stakedPercent / currentThreshold) * 100;
-
+    const progress = prevTier
+      ? ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100
+      : (stakedPercent / currentThreshold) * 100;
 
     return {
       currentTier,
