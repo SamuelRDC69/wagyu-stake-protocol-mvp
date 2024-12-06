@@ -149,7 +149,7 @@ export const getTierConfig = (tier: string) => {
 
 export const getProgressColor = (progress: number): string => {
   if (progress < 33) return TIER_CONFIG.supplier.progressColor;
-  if (progress < 66) return TIER_CONFIG['market-maker'].progressColor;
+  if (progress < 66) return TIER_CONFIG['marketmkr'].progressColor;
   return TIER_CONFIG.exchange.progressColor;
 };
 
