@@ -16,6 +16,8 @@ export interface TierProgress {
   totalStaked: string;
   stakedAmount: string;
   currentStakedAmount: number;
+  additionalAmountNeeded: number;
+  totalAmountForNext: number;
   symbol: string;  // Added to support token display
 }
 
