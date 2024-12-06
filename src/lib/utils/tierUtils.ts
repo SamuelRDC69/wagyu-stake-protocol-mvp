@@ -7,6 +7,15 @@ import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
+// Tier thresholds from contract
+const TIER_THRESHOLDS = {
+  supplier: 0.5,    // 0-0.5%
+  merchant: 2.0,    // 0.5-2%
+  trader: 5.0,      // 2-5%
+  'market-maker': 10.0, // 5-10%
+  exchange: 100.0   // 10%+
+} as const;
+
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -14,6 +23,7 @@ export const TIER_CONFIG = {
     progressColor: 'bg-emerald-500',
     borderColor: 'border-emerald-500/20',
     icon: Store,
+    multiplier: 1.0
   },
   merchant: {
     color: 'text-blue-500',
@@ -21,6 +31,7 @@ export const TIER_CONFIG = {
     progressColor: 'bg-blue-500',
     borderColor: 'border-blue-500/20',
     icon: Building2,
+    multiplier: 1.05
   },
   trader: {
     color: 'text-purple-500',
@@ -28,6 +39,7 @@ export const TIER_CONFIG = {
     progressColor: 'bg-purple-500',
     borderColor: 'border-purple-500/20',
     icon: TrendingUp,
+    multiplier: 1.1
   },
   'market-maker': {
     color: 'text-amber-500',
@@ -35,6 +47,7 @@ export const TIER_CONFIG = {
     progressColor: 'bg-amber-500',
     borderColor: 'border-amber-500/20',
     icon: BarChart3,
+    multiplier: 1.15
   },
   exchange: {
     color: 'text-red-500',
@@ -42,6 +55,7 @@ export const TIER_CONFIG = {
     progressColor: 'bg-red-500',
     borderColor: 'border-red-500/20',
     icon: Building2,
+    multiplier: 1.2
   },
 } as const;
 
@@ -97,44 +111,48 @@ export const calculateTierProgress = (
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
     // Calculate thresholds
-    const currentThreshold = parseFloat(currentTier.staked_up_to_percent) / 100;
-    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) / 100 : 0;
-
-    // Required amount for current tier
-    const requiredForCurrent = currentThreshold * totalValue.amount;
-
-    // Calculate additional amount needed for next tier
+    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
+    
+    // Calculate how much more is needed for next tier (if any)
     let requiredForNext: number | undefined;
     if (nextTier) {
-        // Calculate the absolute amount needed for next tier
-        const nextTierMinAmount = (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount;
+        const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent) / 100;
+        const nextTierMinAmount = nextTierThreshold * totalValue.amount;
         
         if (stakedValue.amount >= nextTierMinAmount) {
-            // Already at or above next tier threshold
             requiredForNext = 0;
         } else {
-            // Calculate the difference needed and adjust for fee
-            const rawAmountNeeded = nextTierMinAmount - stakedValue.amount;
-            requiredForNext = Math.ceil(rawAmountNeeded / (1 - FEE_RATE));
+            // Calculate actual amount needed including fee adjustment
+            const amountNeeded = nextTierMinAmount - stakedValue.amount;
+            requiredForNext = Math.ceil(amountNeeded / (1 - FEE_RATE));
         }
     }
 
-    // Calculate progress within current tier range
-    const progress = prevTier
-      ? ((stakedPercent - (prevThreshold * 100)) / (currentThreshold * 100 - (prevThreshold * 100))) * 100
-      : (stakedPercent / (currentThreshold * 100)) * 100;
+    // Required amount for current tier (used for safe unstake calculation)
+    const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
+
+    // Calculate progress between tiers
+    let progress: number;
+    if (prevTier) {
+        const range = currentThreshold - prevThreshold;
+        const position = stakedPercent - prevThreshold;
+        progress = (position / range) * 100;
+    } else {
+        progress = (stakedPercent / currentThreshold) * 100;
+    }
 
     return {
-      currentTier,
-      nextTier,
-      prevTier,
-      progress: Math.min(Math.max(0, progress), 100),
-      requiredForCurrent,
-      requiredForNext,
-      totalStaked,
-      stakedAmount,
-      currentStakedAmount: stakedValue.amount,
-      symbol: stakedValue.symbol
+        currentTier,
+        nextTier,
+        prevTier,
+        progress: Math.min(Math.max(0, progress), 100),
+        requiredForCurrent,
+        requiredForNext,
+        totalStaked,
+        stakedAmount,
+        currentStakedAmount: stakedValue.amount,
+        symbol: stakedValue.symbol
     };
   } catch (error) {
     console.error('Error in calculateTierProgress:', error);
