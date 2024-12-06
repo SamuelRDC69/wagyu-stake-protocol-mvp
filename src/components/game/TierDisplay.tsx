@@ -41,7 +41,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const { 
     currentStakedAmount, 
-    requiredForNext,
+    additionalAmountNeeded,
+    totalAmountForNext,
     symbol,
     nextTier,
     prevTier,
@@ -110,19 +111,26 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           </div>
         </div>
 
-        {nextTier && typeof requiredForNext === 'number' && (
+        {nextTier && typeof additionalAmountNeeded === 'number' && (
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
             <p className="text-slate-400 mb-2">Progress to {nextTier.tier_name}</p>
-            <p className={cn("font-medium", tierConfig.color)}>
-              {requiredForNext <= 0 ? (
-                'Ready to Advance!'
-              ) : (
-                `Need ${formatNumber(requiredForNext)} ${symbol} more`
+            <div className="space-y-1">
+              {typeof totalAmountForNext === 'number' && (
+                <p className="text-sm text-slate-300">
+                  Total needed: {formatNumber(totalAmountForNext)} {symbol}
+                </p>
               )}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              Currently staking {formatNumber(currentStakedAmount)} {symbol}
-            </p>
+              <p className={cn("font-medium", tierConfig.color)}>
+                {additionalAmountNeeded <= 0 ? (
+                  'Ready to Advance!'
+                ) : (
+                  `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
+                )}
+              </p>
+              <p className="text-xs text-slate-500">
+                Currently staking {formatNumber(currentStakedAmount)} {symbol}
+              </p>
+            </div>
           </div>
         )}
       </CardContent>
