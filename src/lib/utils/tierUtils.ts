@@ -106,18 +106,19 @@ export const calculateTierProgress = (
     // Calculate additional amount needed for next tier
     let requiredForNext: number | undefined;
     if (nextTier) {
-        // Calculate minimum amount needed for next tier percentage
-        const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent) / 100;
-        const nextTierMinAmount = nextTierThreshold * totalValue.amount;
-        
-        if (stakedValue.amount >= nextTierMinAmount) {
-            // Already at or above next tier threshold
+        // Next tier percentage (e.g., 10% for Market Maker)
+        const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
+        // Calculate exact amount needed for that percentage of total pool
+        const requiredAmount = (nextTierPercent / 100) * totalValue.amount;
+
+        if (stakedValue.amount >= requiredAmount) {
             requiredForNext = 0;
         } else {
-            // Calculate how much more is needed and adjust for fee
-            const rawAmountNeeded = nextTierMinAmount - stakedValue.amount;
-            // Round to 8 decimal places after fee adjustment
-            requiredForNext = Math.ceil((rawAmountNeeded) / (1 - FEE_RATE) * 100000000) / 100000000;
+            // Calculate how much MORE is needed by subtracting current stake
+            const additionalNeeded = Math.max(0, requiredAmount - stakedValue.amount);
+            // Adjust for 0.3% fee and round to 8 decimals
+            // Fee formula: amountToSend = desiredAmount / (1 - fee)
+            requiredForNext = Math.ceil(additionalNeeded / (1 - FEE_RATE) * 100000000) / 100000000;
         }
     }
 
