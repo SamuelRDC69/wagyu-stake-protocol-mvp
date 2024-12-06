@@ -20,4 +20,4 @@ export interface TierProgress {
 }
 
 // Using the existing tier types from Leaderboard.tsx
-export type TierVariant = 'supplier' | 'merchant' | 'trader' | 'market maker' | 'exchange';
+export type TierVariant = 'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
