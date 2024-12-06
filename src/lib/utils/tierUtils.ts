@@ -29,7 +29,7 @@ export const TIER_CONFIG = {
     borderColor: 'border-purple-500/20',
     icon: TrendingUp,
   },
-  'marketmkr': {
+  marketmkr: {
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     progressColor: 'bg-amber-500',
@@ -97,44 +97,46 @@ export const calculateTierProgress = (
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
     // Calculate thresholds
-    const currentThreshold = parseFloat(currentTier.staked_up_to_percent) / 100;
-    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) / 100 : 0;
+    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+    const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
 
-    // Required amount for current tier
-    const requiredForCurrent = currentThreshold * totalValue.amount;
+    // Required amount for current tier (used for safe unstake calculation)
+    const requiredForCurrent = (currentThreshold / 100) * totalValue.amount;
 
     // Calculate additional amount needed for next tier
     let requiredForNext: number | undefined;
     if (nextTier) {
-        // Calculate the absolute amount needed for next tier
-        const nextTierMinAmount = (parseFloat(nextTier.staked_up_to_percent) / 100) * totalValue.amount;
+        // Calculate minimum amount needed for next tier percentage
+        const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent) / 100;
+        const nextTierMinAmount = nextTierThreshold * totalValue.amount;
         
         if (stakedValue.amount >= nextTierMinAmount) {
             // Already at or above next tier threshold
             requiredForNext = 0;
         } else {
-            // Calculate the difference needed and adjust for fee
+            // Calculate how much more is needed and adjust for fee
             const rawAmountNeeded = nextTierMinAmount - stakedValue.amount;
-            requiredForNext = Math.ceil(rawAmountNeeded / (1 - FEE_RATE));
+            // Round to 8 decimal places after fee adjustment
+            requiredForNext = Math.ceil((rawAmountNeeded) / (1 - FEE_RATE) * 100000000) / 100000000;
         }
     }
 
     // Calculate progress within current tier range
     const progress = prevTier
-      ? ((stakedPercent - (prevThreshold * 100)) / (currentThreshold * 100 - (prevThreshold * 100))) * 100
-      : (stakedPercent / (currentThreshold * 100)) * 100;
+        ? ((stakedPercent - prevThreshold) / (currentThreshold - prevThreshold)) * 100
+        : (stakedPercent / currentThreshold) * 100;
 
     return {
-      currentTier,
-      nextTier,
-      prevTier,
-      progress: Math.min(Math.max(0, progress), 100),
-      requiredForCurrent,
-      requiredForNext,
-      totalStaked,
-      stakedAmount,
-      currentStakedAmount: stakedValue.amount,
-      symbol: stakedValue.symbol
+        currentTier,
+        nextTier,
+        prevTier,
+        progress: Math.min(Math.max(0, progress), 100),
+        requiredForCurrent,
+        requiredForNext,
+        totalStaked,
+        stakedAmount,
+        currentStakedAmount: stakedValue.amount,
+        symbol: stakedValue.symbol
     };
   } catch (error) {
     console.error('Error in calculateTierProgress:', error);
@@ -149,7 +151,7 @@ export const getTierConfig = (tier: string) => {
 
 export const getProgressColor = (progress: number): string => {
   if (progress < 33) return TIER_CONFIG.supplier.progressColor;
-  if (progress < 66) return TIER_CONFIG['marketmkr'].progressColor;
+  if (progress < 66) return TIER_CONFIG.marketmkr.progressColor;
   return TIER_CONFIG.exchange.progressColor;
 };
 
