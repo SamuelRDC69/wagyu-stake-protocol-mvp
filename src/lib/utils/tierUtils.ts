@@ -55,7 +55,6 @@ export const calculateTierProgress = (
     const totalValue = parseTokenString(totalStaked);
     
     if (isNaN(stakedValue.amount) || isNaN(totalValue.amount) || totalValue.amount === 0) {
-      console.log('Invalid amounts:', { stakedValue, totalValue });
       return null;
     }
 
@@ -89,7 +88,9 @@ export const calculateTierProgress = (
         symbol: stakedValue.symbol,
         prevTier,
         nextTier: undefined,
-        requiredForNext: undefined
+        requiredForNext: undefined,
+        totalAmountForNext: undefined,
+        additionalAmountNeeded: undefined
       };
     }
 
@@ -104,22 +105,22 @@ export const calculateTierProgress = (
     // Required amount for current tier (used for safe unstake calculation)
     const requiredForCurrent = (currentThresholdPercent / 100) * totalValue.amount;
 
-    // Calculate additional amount needed for next tier
-    let requiredForNext: number | undefined;
-    if (nextTier) {
-        // Calculate amount needed for next tier percentage
-        const nextTierThresholdPercent = parseFloat(nextTier.staked_up_to_percent);
-        const nextTierRequiredAmount = (nextTierThresholdPercent / 100) * totalValue.amount;
+    // Calculate both total needed and additional amount needed for next tier
+    let totalAmountForNext: number | undefined;
+    let additionalAmountNeeded: number | undefined;
 
-        if (stakedValue.amount >= nextTierRequiredAmount) {
-            requiredForNext = 0;
+    if (nextTier) {
+        // Calculate total amount needed for next tier percentage
+        const nextTierThresholdPercent = parseFloat(nextTier.staked_up_to_percent);
+        totalAmountForNext = (nextTierThresholdPercent / 100) * totalValue.amount;
+
+        if (stakedValue.amount >= totalAmountForNext) {
+            additionalAmountNeeded = 0;
         } else {
-            // Calculate additional amount needed
-            const baseAmountNeeded = nextTierRequiredAmount - stakedValue.amount;
-            // Add fee adjustment: amount = target / (1 - fee_rate)
-            const withFee = baseAmountNeeded / (1 - FEE_RATE);
-            // Round to 8 decimal places
-            requiredForNext = Math.ceil(withFee * 100000000) / 100000000;
+            // Calculate additional amount needed with fee adjustment
+            const baseAmountNeeded = totalAmountForNext - stakedValue.amount;
+            // Add fee adjustment and round to 8 decimals
+            additionalAmountNeeded = Math.ceil(baseAmountNeeded / (1 - FEE_RATE) * 100000000) / 100000000;
         }
     }
 
@@ -139,11 +140,13 @@ export const calculateTierProgress = (
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
         requiredForCurrent,
-        requiredForNext,
+        requiredForNext: additionalAmountNeeded,
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
-        symbol: stakedValue.symbol
+        symbol: stakedValue.symbol,
+        totalAmountForNext,
+        additionalAmountNeeded
     };
   } catch (error) {
     console.error('Error in calculateTierProgress:', error);
