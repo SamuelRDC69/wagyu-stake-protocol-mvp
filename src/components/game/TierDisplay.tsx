@@ -55,8 +55,19 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     : 0;
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - prevTierThreshold);
 
-  const normalizedTier = tierProgress.currentTier.tier.toLowerCase() as 
-    'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
+  // Convert contract tier name to UI variant
+  const getVariant = (tier: string) => {
+    switch (tier.toLowerCase()) {
+      case 'supplier': return 'supplier';
+      case 'merchant': return 'merchant';
+      case 'trader': return 'trader';
+      case 'marketmkr': return 'market-maker';
+      case 'exchange': return 'exchange';
+      default: return 'default';
+    }
+  };
+
+  const variant = getVariant(tierProgress.currentTier.tier);
 
   return (
     <Card className="w-full crystal-bg group">
@@ -69,7 +80,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <span className="text-white">{tierProgress.currentTier.tier_name}</span>
             {isUpgradeAvailable && (
               <Badge 
-                variant={normalizedTier}
+                variant={variant}
                 className="animate-pulse ml-2"
               >
                 Tier Up Ready!
@@ -77,7 +88,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             )}
           </CardTitle>
           <Badge 
-            variant={normalizedTier}
+            variant={variant}
             className="ml-2 transition-all shine-effect"
           >
             {`${parseFloat(tierProgress.currentTier.weight)}x Power`}
