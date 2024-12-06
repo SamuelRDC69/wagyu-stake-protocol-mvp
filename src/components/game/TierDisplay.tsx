@@ -18,25 +18,19 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   isUpgradeAvailable,
   isLoading
 }) => {
-  if (isLoading) {
+  if (isLoading || !tierProgress) {
     return (
       <Card className="w-full">
         <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-slate-700 rounded w-1/4" />
-            <div className="h-4 bg-slate-700 rounded w-1/2" />
-            <div className="h-4 bg-slate-700 rounded w-1/3" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!tierProgress) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6">
-          <p className="text-center text-slate-400">No tier data available</p>
+          {isLoading ? (
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-slate-700 rounded w-1/4" />
+              <div className="h-4 bg-slate-700 rounded w-1/2" />
+              <div className="h-4 bg-slate-700 rounded w-1/3" />
+            </div>
+          ) : (
+            <p className="text-center text-slate-400">No tier data available</p>
+          )}
         </CardContent>
       </Card>
     );
@@ -47,7 +41,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const { 
     currentStakedAmount, 
-    requiredForNext, 
+    requiredForNext, // This is the actual amount needed to reach next tier
     symbol,
     nextTier,
     prevTier,
@@ -55,16 +49,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     totalStaked
   } = tierProgress;
 
-  // Always calculate safe unstake amount, even for max tier
+  // Calculate safe unstake amount (this is working correctly)
   const prevTierThreshold = prevTier 
     ? (parseFloat(prevTier.staked_up_to_percent) / 100) * parseFloat(totalStaked)
     : 0;
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - prevTierThreshold);
 
-  // Calculate remaining amount needed for next tier
-  const remainingForNext = requiredForNext 
-    ? Math.max(0, requiredForNext)
-    : null;
+  // Use requiredForNext directly as it's now calculated correctly
+  const additionalAmountNeeded = requiredForNext ?? 0;
 
   const normalizedTier = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as 
     'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
@@ -105,23 +97,22 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               tierConfig.progressColor
             )}
           />
-          {/* Always show safe unstake amount */}
           <div className="flex justify-between text-xs text-slate-400">
             <span>Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}</span>
-            {nextTier && remainingForNext !== null && (
-              <span>Next Tier: {formatNumber(remainingForNext)} {symbol}</span>
+            {nextTier && typeof additionalAmountNeeded === 'number' && (
+              <span>For Next Tier: {formatNumber(additionalAmountNeeded)} {symbol}</span>
             )}
           </div>
         </div>
 
-        {nextTier && remainingForNext !== null && (
+        {nextTier && typeof additionalAmountNeeded === 'number' && (
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
             <p className="text-slate-400 mb-2">Progress to {nextTier.tier_name}</p>
             <p className={cn("font-medium", tierConfig.color)}>
-              {remainingForNext <= 0 ? (
+              {additionalAmountNeeded <= 0 ? (
                 'Ready to Advance!'
               ) : (
-                `Need ${formatNumber(remainingForNext)} ${symbol} more`
+                `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
               )}
             </p>
             <p className="text-xs text-slate-500 mt-1">
