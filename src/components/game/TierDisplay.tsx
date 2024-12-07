@@ -76,7 +76,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             )}
           </CardTitle>
           <Badge 
-            variant="outline"
+            variant="default"
             className={cn(
               "ml-2 transition-all shine-effect",
               tierConfig.borderColor,
