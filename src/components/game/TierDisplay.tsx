@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,20 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   isUpgradeAvailable,
   isLoading
 }) => {
+  useEffect(() => {
+    if (tierProgress) {
+      console.log('TierProgress Debug:', {
+        currentTier: tierProgress.currentTier,
+        nextTier: tierProgress.nextTier,
+        totalAmountForNext: tierProgress.totalAmountForNext,
+        additionalAmountNeeded: tierProgress.additionalAmountNeeded,
+        currentStakedAmount: tierProgress.currentStakedAmount,
+        totalStaked: tierProgress.totalStaked,
+        progress: tierProgress.progress,
+      });
+    }
+  }, [tierProgress]);
+
   if (isLoading || !tierProgress) {
     return (
       <Card className="w-full">
@@ -49,6 +63,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     progress,
     requiredForCurrent,
   } = tierProgress;
+
+  // Debug log values used in display
+  console.log('Display Values:', {
+    totalAmountForNext,
+    additionalAmountNeeded,
+    currentStakedAmount,
+    nextTierPercent: nextTier?.staked_up_to_percent
+  });
 
   // Safe unstake is what can be unstaked while keeping current tier
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
