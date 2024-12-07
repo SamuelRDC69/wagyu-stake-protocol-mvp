@@ -88,7 +88,6 @@ export const calculateTierProgress = (
         symbol: stakedValue.symbol,
         prevTier,
         nextTier: undefined,
-        requiredForNext: undefined,
         totalAmountForNext: undefined,
         additionalAmountNeeded: undefined
       };
@@ -98,33 +97,33 @@ export const calculateTierProgress = (
     const prevTier = tierIndex > 0 ? sortedTiers[tierIndex - 1] : undefined;
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
-    // Calculate required amounts
+    // Calculate thresholds
     const currentThresholdPercent = parseFloat(currentTier.staked_up_to_percent);
     const prevThresholdPercent = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
 
     // Required amount for current tier (used for safe unstake calculation)
     const requiredForCurrent = (currentThresholdPercent / 100) * totalValue.amount;
 
-    // Calculate both total needed and additional amount needed for next tier
+    // Calculate total needed and additional amount needed for next tier
     let totalAmountForNext: number | undefined;
     let additionalAmountNeeded: number | undefined;
-
+    
     if (nextTier) {
-        // Calculate total amount needed for next tier percentage
+        // Calculate the amount needed for next tier threshold
         const nextTierThresholdPercent = parseFloat(nextTier.staked_up_to_percent);
-        totalAmountForNext = (nextTierThresholdPercent / 100) * totalValue.amount;
+        totalAmountForNext = Math.ceil(((nextTierThresholdPercent / 100) * totalValue.amount) * 100000000) / 100000000;
 
         if (stakedValue.amount >= totalAmountForNext) {
             additionalAmountNeeded = 0;
         } else {
-            // Calculate additional amount needed with fee adjustment
+            // Calculate how much more is needed including the fee
             const baseAmountNeeded = totalAmountForNext - stakedValue.amount;
             // Add fee adjustment and round to 8 decimals
-            additionalAmountNeeded = Math.ceil(baseAmountNeeded / (1 - FEE_RATE) * 100000000) / 100000000;
+            additionalAmountNeeded = Math.ceil((baseAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
         }
     }
 
-    // Calculate progress between current tier boundaries
+    // Calculate progress within current tier boundaries
     let progress: number;
     if (prevTier) {
         const range = currentThresholdPercent - prevThresholdPercent;
@@ -140,7 +139,7 @@ export const calculateTierProgress = (
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
         requiredForCurrent,
-        requiredForNext: additionalAmountNeeded,
+        requiredForNext: additionalAmountNeeded, // For backward compatibility
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
