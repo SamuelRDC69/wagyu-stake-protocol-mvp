@@ -37,7 +37,7 @@ const TIER_CONFIG = {
     bgColor: 'bg-purple-500/10',
     icon: TrendingUp,
   },
-  'market maker': {
+  'marketmkr': {
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     icon: BarChart3,
