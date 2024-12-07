@@ -16,10 +16,9 @@ export interface TierProgress {
   stakedAmount: string;
   currentStakedAmount: number;
   symbol: string;  
-  // Add new fields for clearer tier amount displays
+  // Fields for tier amounts
   totalAmountForNext?: number;  // Total amount needed for next tier
   additionalAmountNeeded?: number;  // Additional amount needed with fee adjustment
 }
 
-// Using the contract tier names directly
 export type TierVariant = 'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
