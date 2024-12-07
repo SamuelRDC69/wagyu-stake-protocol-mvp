@@ -46,10 +46,42 @@ export const TIER_CONFIG = {
 } as const;
 
 /**
- * Calculate exactly like the contract: amount needed for a given percentage of pool
+ * Calculate stake needed for a target percentage considering current stake's effect on pool
  */
-const calculateRequiredAmount = (totalPool: number, percentage: number): number => {
-    return Math.ceil((totalPool * percentage / 100) * 100000000) / 100000000;
+const calculateRequiredStake = (poolTotal: number, targetPercent: number, currentStake: number): number => {
+    // Remove current stake from pool to get base pool
+    const basePool = poolTotal - currentStake;
+    
+    // Calculate required stake to achieve target percentage of resulting pool
+    // If x is required stake and P is pool without stake:
+    // x / (P + x) = target%/100
+    // Solving for x: x = (P * target%) / (100 - target%)
+    return Math.ceil((basePool * targetPercent) / (100 - targetPercent) * 100000000) / 100000000;
+};
+
+/**
+ * Calculate total required stake and additional needed with fee adjustment
+ */
+const calculateRequiredAmounts = (
+    poolTotal: number, 
+    targetPercent: number, 
+    currentStake: number
+): { totalRequired: number; additionalNeeded: number } => {
+    if (targetPercent >= 100) {
+        return {
+            totalRequired: poolTotal,
+            additionalNeeded: Math.ceil(((poolTotal - currentStake) / (1 - FEE_RATE)) * 100000000) / 100000000
+        };
+    }
+
+    const totalRequired = calculateRequiredStake(poolTotal, targetPercent, currentStake);
+    const rawAdditional = Math.max(0, totalRequired - currentStake);
+    const withFee = Math.ceil((rawAdditional / (1 - FEE_RATE)) * 100000000) / 100000000;
+
+    return {
+        totalRequired,
+        additionalNeeded: withFee
+    };
 };
 
 /**
@@ -57,15 +89,6 @@ const calculateRequiredAmount = (totalPool: number, percentage: number): number 
  */
 const calculateStakedPercent = (stakedAmount: number, totalPool: number): number => {
     return Math.min((stakedAmount / totalPool) * 100, 100);
-};
-
-/**
- * Calculate additional amount needed with fee adjustment
- */
-const calculateAdditionalNeeded = (requiredAmount: number, currentAmount: number): number => {
-    if (currentAmount >= requiredAmount) return 0;
-    const rawNeeded = requiredAmount - currentAmount;
-    return Math.ceil((rawNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
 };
 
 /**
@@ -126,14 +149,14 @@ export const calculateTierProgress = (
 
     if (nextTier) {
         const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
+        const required = calculateRequiredAmounts(
+            totalValue.amount,
+            nextTierPercent,
+            stakedValue.amount
+        );
         
-        if (nextTierPercent === 100) {
-            totalAmountForNext = totalValue.amount;
-            additionalAmountNeeded = calculateAdditionalNeeded(totalValue.amount, stakedValue.amount);
-        } else {
-            totalAmountForNext = calculateRequiredAmount(totalValue.amount, nextTierPercent);
-            additionalAmountNeeded = calculateAdditionalNeeded(totalAmountForNext, stakedValue.amount);
-        }
+        totalAmountForNext = required.totalRequired;
+        additionalAmountNeeded = required.additionalNeeded;
     }
 
     // Calculate progress between tier boundaries
@@ -149,19 +172,17 @@ export const calculateTierProgress = (
         progress = (stakedPercent / currentThresholdPercent) * 100;
     }
 
-    // Calculate safe unstake amount - amount that can be unstaked while keeping previous tier
-    const requiredForCurrent = prevTier 
-        ? calculateRequiredAmount(totalValue.amount, parseFloat(prevTier.staked_up_to_percent))
+    // Calculate required amount for previous tier (for safe unstake)
+    const prevTierRequired = prevTier 
+        ? calculateRequiredStake(totalValue.amount, parseFloat(prevTier.staked_up_to_percent), stakedValue.amount)
         : 0;
-
-    const safeUnstake = Math.max(0, stakedValue.amount - requiredForCurrent);
 
     return {
         currentTier,
         nextTier,
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
-        requiredForCurrent,
+        requiredForCurrent: prevTierRequired,
         requiredForNext: additionalAmountNeeded,
         totalStaked,
         stakedAmount,
