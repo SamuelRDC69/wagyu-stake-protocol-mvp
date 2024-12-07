@@ -140,7 +140,7 @@ export const calculateTierProgress = (
 
     // Calculate safe unstake amount - this is the amount that can be unstaked
     // while maintaining the previous tier's percentage requirement
-    const currentTotal = totalValue.amount;
+    const currentTotal = totalValue.amount - stakedValue.amount; // Updated pool size after unstake
     const requiredForPrevTier = prevTier 
         ? (currentTotal * parseFloat(prevTier.staked_up_to_percent)) / 100
         : 0;
