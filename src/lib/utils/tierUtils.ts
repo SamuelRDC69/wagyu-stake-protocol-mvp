@@ -3,7 +3,7 @@ import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
 import { cn } from '@/lib/utils';
 
-// Match contract tier names to UI styles
+// Tier configuration with styling and icons
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -42,6 +42,12 @@ export const TIER_CONFIG = {
   },
 } as const;
 
+function sortTiers(tiers: TierEntity[]): TierEntity[] {
+  return [...tiers].sort((a, b) => 
+    parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+  );
+}
+
 /**
  * Calculates tier progress exactly matching contract behavior
  */
@@ -58,15 +64,12 @@ export const calculateTierProgress = (
       return null;
     }
 
-    // Calculate percentage exactly like contract:
-    // user_staked_percent = (user_stake_amount / total_staked_quantity) * 100
+    // Calculate percentage exactly like contract
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
     stakedPercent = Math.min(stakedPercent, 100);
 
-    // Sort tiers by staked_up_to_percent ascending (matching contract's index)
-    const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-    );
+    // Sort tiers by percentage ascending
+    const sortedTiers = sortTiers(tiers);
 
     // Find current tier using contract's lower_bound logic
     const tierIndex = sortedTiers.findIndex(
@@ -104,7 +107,7 @@ export const calculateTierProgress = (
     // Calculate required amounts
     const requiredForCurrent = (prevThresholdPercent * totalValue.amount) / 100;
 
-    // Calculate next tier requirements
+    // Calculate next tier requirements if exists
     let totalAmountForNext: number | undefined;
     let additionalAmountNeeded: number | undefined;
 
@@ -113,6 +116,7 @@ export const calculateTierProgress = (
       // Calculate exact amount needed for next tier
       totalAmountForNext = (nextTierPercent * totalValue.amount) / 100;
       
+      // Calculate additional amount needed
       if (stakedValue.amount < totalAmountForNext) {
         additionalAmountNeeded = totalAmountForNext - stakedValue.amount;
       } else {
@@ -120,7 +124,7 @@ export const calculateTierProgress = (
       }
     }
 
-    // Calculate progress based on current tier boundaries
+    // Calculate progress
     let progress: number;
     if (prevTier && currentThresholdPercent !== prevThresholdPercent) {
       progress = ((stakedPercent - prevThresholdPercent) / 
@@ -153,7 +157,6 @@ export const calculateTierProgress = (
 
 /**
  * Gets tier styling configuration
- * Matches contract tier names to UI styles
  */
 export const getTierConfig = (tier: string) => {
   // Normalize contract tier name to match UI config
@@ -172,7 +175,6 @@ export const getProgressColor = (progress: number): string => {
 
 /**
  * Checks if user can upgrade to next tier
- * Uses contract's percentage calculation
  */
 export const isTierUpgradeAvailable = (
   currentStaked: string,
@@ -186,17 +188,15 @@ export const isTierUpgradeAvailable = (
     
     const stakedPercent = (stakedValue / totalValue) * 100;
     
-    // Sort tiers by percentage descending for upgrades
-    const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
-    );
+    // Sort tiers by percentage ascending to match contract
+    const sortedTiers = sortTiers(tiers);
     
     const currentTierIndex = sortedTiers.findIndex(
       t => t.tier === currentTier.tier
     );
     
-    if (currentTierIndex > 0) {
-      const nextTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
+    if (currentTierIndex < sortedTiers.length - 1) {
+      const nextTierThreshold = parseFloat(sortedTiers[currentTierIndex + 1].staked_up_to_percent);
       return stakedPercent >= nextTierThreshold;
     }
     
