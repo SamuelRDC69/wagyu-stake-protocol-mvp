@@ -1,4 +1,3 @@
-// src/lib/types/tier.ts
 export interface TierEntity {
   tier: string;               
   tier_name: string;          
@@ -16,10 +15,11 @@ export interface TierProgress {
   totalStaked: string;
   stakedAmount: string;
   currentStakedAmount: number;
-  additionalAmountNeeded: number;
-  totalAmountForNext: number;
-  symbol: string;  // Added to support token display
+  symbol: string;  
+  // Add new fields for clearer tier amount displays
+  totalAmountForNext?: number;  // Total amount needed for next tier
+  additionalAmountNeeded?: number;  // Additional amount needed with fee adjustment
 }
 
-// Using the existing tier types from Leaderboard.tsx
+// Using the contract tier names directly
 export type TierVariant = 'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
