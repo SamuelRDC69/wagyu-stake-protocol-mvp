@@ -55,6 +55,7 @@ export const calculateTierProgress = (
   tiers: TierEntity[]
 ): TierProgress | null => {
   try {
+    // Parse values with proper token amounts, handling decimal precision
     const stakedValue = parseTokenString(stakedAmount);
     const totalValue = parseTokenString(totalStaked);
     
@@ -62,11 +63,11 @@ export const calculateTierProgress = (
       return null;
     }
 
-    // Calculate percentage exactly like the contract
+    // Calculate percentage exactly like the contract: (user_stake / total_pool_stake) * 100
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
-    stakedPercent = Math.min(stakedPercent, 100);
+    stakedPercent = Math.min(stakedPercent, 100); // Cap at 100% like contract
 
-    // Sort tiers by staked_up_to_percent ascending (like contract index)
+    // Sort tiers by staked_up_to_percent ascending (matching contract's index)
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
@@ -77,14 +78,14 @@ export const calculateTierProgress = (
     );
 
     if (tierIndex === -1) {
-      // Beyond all thresholds, use highest tier
+      // User is beyond all thresholds, use highest tier
       const highestTier = sortedTiers[sortedTiers.length - 1];
       const prevTier = sortedTiers[sortedTiers.length - 2];
       
       return {
         currentTier: highestTier,
         progress: 100,
-        requiredForCurrent: stakedValue.amount,
+        requiredForCurrent: parseFloat(highestTier.staked_up_to_percent) * totalValue.amount / 100,
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
@@ -100,58 +101,52 @@ export const calculateTierProgress = (
     const prevTier = tierIndex > 0 ? sortedTiers[tierIndex - 1] : undefined;
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
-    // Calculate amounts for next tier using contract's direct percentage method
-    let totalAmountForNext: number | undefined;
-    let additionalAmountNeeded: number | undefined;
-
-    if (nextTier) {
-        // Get exact amount needed for next tier's percentage
-        const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
-        const requiredAmount = (totalValue.amount * nextTierPercent) / 100;
-        
-        // Round to 8 decimal places (WAX precision)
-        totalAmountForNext = Math.ceil(requiredAmount * 100000000) / 100000000;
-
-        if (stakedValue.amount >= totalAmountForNext) {
-            additionalAmountNeeded = 0;
-        } else {
-            // Calculate additional needed with fee
-            const rawAmountNeeded = totalAmountForNext - stakedValue.amount;
-            additionalAmountNeeded = Math.ceil((rawAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
-        }
-    }
-
-    // Calculate progress between tier boundaries
+    // Calculate current tier requirements exactly like contract
     const currentThresholdPercent = parseFloat(currentTier.staked_up_to_percent);
     const prevThresholdPercent = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
     
-    let progress: number;
-    if (prevTier) {
-        const range = currentThresholdPercent - prevThresholdPercent;
-        const position = stakedPercent - prevThresholdPercent;
-        progress = (position / range) * 100;
-    } else {
-        progress = (stakedPercent / currentThresholdPercent) * 100;
+    // Calculate required amounts and progress
+    let totalAmountForNext: number | undefined;
+    let additionalAmountNeeded: number | undefined;
+    let requiredForCurrent = (prevThresholdPercent * totalValue.amount) / 100;
+
+    if (nextTier) {
+      const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
+      totalAmountForNext = (nextTierPercent * totalValue.amount) / 100;
+      
+      if (stakedValue.amount < totalAmountForNext) {
+        // Calculate exact additional amount needed, with fee consideration
+        additionalAmountNeeded = Math.ceil(
+          ((totalAmountForNext - stakedValue.amount) / (1 - FEE_RATE)) * 100000000
+        ) / 100000000;
+      } else {
+        additionalAmountNeeded = 0;
+      }
     }
 
-    // Calculate safe unstake amount using contract's percentage method
-    const requiredForCurrent = prevTier 
-        ? (totalValue.amount * parseFloat(prevTier.staked_up_to_percent)) / 100
-        : 0;
+    // Calculate progress exactly like contract
+    let progress: number;
+    if (prevThresholdPercent === currentThresholdPercent) {
+      progress = 100;
+    } else {
+      progress = ((stakedPercent - prevThresholdPercent) / 
+                 (currentThresholdPercent - prevThresholdPercent)) * 100;
+    }
 
     return {
-        currentTier,
-        nextTier,
-        prevTier,
-        progress: Math.min(Math.max(0, progress), 100),
-        requiredForCurrent,
-        requiredForNext: additionalAmountNeeded,
-        totalStaked,
-        stakedAmount,
-        currentStakedAmount: stakedValue.amount,
-        symbol: stakedValue.symbol,
-        totalAmountForNext,
-        additionalAmountNeeded
+      currentTier,
+      nextTier,
+      prevTier,
+      progress: Math.min(Math.max(0, progress), 100),
+      requiredForCurrent: Math.ceil(requiredForCurrent * 100000000) / 100000000,
+      totalStaked,
+      stakedAmount,
+      currentStakedAmount: stakedValue.amount,
+      symbol: stakedValue.symbol,
+      totalAmountForNext: totalAmountForNext 
+        ? Math.ceil(totalAmountForNext * 100000000) / 100000000 
+        : undefined,
+      additionalAmountNeeded
     };
   } catch (error) {
     console.error('Error in calculateTierProgress:', error);
