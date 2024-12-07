@@ -3,6 +3,8 @@ import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
 import { cn } from '@/lib/utils';
 
+const FEE_RATE = 0.003; // 0.3% fee
+
 // Tier configuration with styling and icons
 export const TIER_CONFIG = {
   supplier: {
@@ -88,7 +90,10 @@ export const calculateTierProgress = (
       totalAmountForNext = (nextTierThreshold * totalValue.amount) / 100;
       
       if (stakedValue.amount < totalAmountForNext) {
-        additionalAmountNeeded = totalAmountForNext - stakedValue.amount;
+        // Calculate raw amount needed first
+        const rawAmountNeeded = totalAmountForNext - stakedValue.amount;
+        // Adjust for 0.3% fee: amount = rawAmount / (1 - fee)
+        additionalAmountNeeded = rawAmountNeeded / (1 - FEE_RATE);
       } else {
         additionalAmountNeeded = 0;
       }
@@ -132,6 +137,7 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
+  // Just normalize the tier name without any special ordering
   const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
   return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
