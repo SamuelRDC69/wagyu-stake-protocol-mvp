@@ -44,7 +44,7 @@ export const TIER_CONFIG = {
   },
 } as const;
 
-function getDisplayTier(currentTier: TierEntity, tiers: TierEntity[]): TierEntity {
+function getDisplayTier(currentTier: TierEntity, tiers: TierEntity[], forward: boolean = true): TierEntity {
   // Sort by percentage
   const sortedTiers = [...tiers].sort((a, b) => 
     parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
@@ -53,9 +53,11 @@ function getDisplayTier(currentTier: TierEntity, tiers: TierEntity[]): TierEntit
   // Find current tier index
   const currentIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
   
-  // Move up one tier for display only if possible
-  if (currentIndex < sortedTiers.length - 1) {
+  // Move tier according to direction if possible
+  if (forward && currentIndex < sortedTiers.length - 1) {
     return sortedTiers[currentIndex + 1];
+  } else if (!forward && currentIndex > 0) {
+    return sortedTiers[currentIndex - 1];
   }
   
   return currentTier;
@@ -94,8 +96,8 @@ export const calculateTierProgress = (
     const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
     const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
 
-    // Get display tier (one tier up)
-    const displayTier = getDisplayTier(currentTier, tiers);
+    // Get display tiers (one up for current tier, but keep nextTier as is for progress text)
+    const displayTier = getDisplayTier(currentTier, tiers, true);
 
     // Calculate amounts needed for next tier
     let totalAmountForNext: number | undefined;
@@ -116,8 +118,8 @@ export const calculateTierProgress = (
       }
     }
 
-    // Calculate amount needed to maintain current tier
-    const currentTierThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
+    // Calculate amount needed to maintain current tier (for safe unstake)
+    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
     const requiredForCurrent = (currentTierThreshold * totalValue.amount) / 100;
 
     // Calculate progress to next tier
@@ -135,8 +137,8 @@ export const calculateTierProgress = (
     const applyPrecision = (value: number) => Math.round(value * 100000000) / 100000000;
 
     return {
-      currentTier: displayTier, // Use display tier here
-      nextTier,
+      currentTier: displayTier, // Use display tier for current tier name
+      nextTier, // Keep actual next tier for progress text
       prevTier,
       progress: Math.min(Math.max(0, progress), 100),
       requiredForCurrent: applyPrecision(requiredForCurrent),
