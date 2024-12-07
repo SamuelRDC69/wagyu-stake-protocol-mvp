@@ -64,21 +64,34 @@ export const calculateTierProgress = (
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
     stakedPercent = Math.min(stakedPercent, 100);
 
-    // Sort tiers by percentage threshold ascending
-    const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-    );
+    // Find current tier - use contract's lower_bound logic but preserve tier order
+    let currentTierIndex = -1;
+    let lowestMatchingThreshold = Infinity;
+    tiers.forEach((tier, index) => {
+      const threshold = parseFloat(tier.staked_up_to_percent);
+      if (threshold <= stakedPercent && threshold <= lowestMatchingThreshold) {
+        lowestMatchingThreshold = threshold;
+        currentTierIndex = index;
+      }
+    });
 
-    // Find current tier using contract's lower_bound logic
-    const tierIndex = sortedTiers.findIndex(
-      tier => parseFloat(tier.staked_up_to_percent) > stakedPercent
-    );
+    // If no tier found, use base tier
+    if (currentTierIndex === -1) {
+      currentTierIndex = tiers.length - 1;
+    }
 
-    // If no tier found (percentage higher than all thresholds), use last tier
-    const currentTierIndex = tierIndex === -1 ? sortedTiers.length - 1 : Math.max(0, tierIndex - 1);
-    const currentTier = sortedTiers[currentTierIndex];
-    const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
-    const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
+    const currentTier = tiers[currentTierIndex];
+    const nextTierIndex = tiers.findIndex(tier => 
+      parseFloat(tier.staked_up_to_percent) > stakedPercent
+    );
+    const nextTier = nextTierIndex !== -1 ? tiers[nextTierIndex] : undefined;
+
+    // Find prev tier
+    const prevTierThreshold = Math.max(...tiers
+      .map(t => parseFloat(t.staked_up_to_percent))
+      .filter(p => p < parseFloat(currentTier.staked_up_to_percent))
+    );
+    const prevTier = tiers.find(t => parseFloat(t.staked_up_to_percent) === prevTierThreshold);
 
     // Calculate amounts needed for next tier
     let totalAmountForNext: number | undefined;
@@ -100,8 +113,9 @@ export const calculateTierProgress = (
     }
 
     // Calculate amount needed to maintain current tier
-    const currentTierThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
-    const requiredForCurrent = (currentTierThreshold * totalValue.amount) / 100;
+    const requiredForCurrent = prevTier 
+      ? (parseFloat(prevTier.staked_up_to_percent) * totalValue.amount) / 100 
+      : 0;
 
     // Calculate progress to next tier
     let progress: number;
@@ -137,7 +151,6 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  // Just normalize the tier name without any special ordering
   const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
   return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
@@ -160,19 +173,15 @@ export const isTierUpgradeAvailable = (
     
     const stakedPercent = (stakedValue / totalValue) * 100;
     
-    // Sort tiers by threshold ascending
-    const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+    // Use original tier array order
+    const currentTierIndex = tiers.findIndex(t => t.tier === currentTier.tier);
+    
+    // Find next tier in sequence that has a higher threshold
+    const nextTier = tiers.find(t => 
+      parseFloat(t.staked_up_to_percent) > parseFloat(currentTier.staked_up_to_percent)
     );
     
-    // Find current tier's position
-    const currentTierIndex = sortedTiers.findIndex(
-      t => t.tier === currentTier.tier
-    );
-    
-    // Check if we exceed the next tier's threshold
-    if (currentTierIndex < sortedTiers.length - 1) {
-      const nextTier = sortedTiers[currentTierIndex + 1];
+    if (nextTier) {
       return stakedPercent > parseFloat(nextTier.staked_up_to_percent);
     }
     
