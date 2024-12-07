@@ -5,6 +5,9 @@ import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
+// Explicit tier order (low to high)
+const TIER_ORDER = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'];
+
 // Tier configuration with styling and icons
 export const TIER_CONFIG = {
   supplier: {
@@ -44,6 +47,14 @@ export const TIER_CONFIG = {
   },
 } as const;
 
+function sortTiersByProgression(tiers: TierEntity[]): TierEntity[] {
+  return [...tiers].sort((a, b) => {
+    const aIndex = TIER_ORDER.indexOf(a.tier.toLowerCase());
+    const bIndex = TIER_ORDER.indexOf(b.tier.toLowerCase());
+    return aIndex - bIndex;
+  });
+}
+
 /**
  * Calculates tier progress exactly matching contract behavior
  */
@@ -79,6 +90,13 @@ export const calculateTierProgress = (
     const currentTier = sortedTiers[currentTierIndex];
     const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
     const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
+
+    // Get properly ordered tiers for display
+    const orderedTiers = sortTiersByProgression(tiers);
+    const orderedCurrentTier = orderedTiers.find(t => t.tier === currentTier.tier);
+    const currentOrderIndex = orderedTiers.findIndex(t => t.tier === currentTier.tier);
+    const orderedNextTier = currentOrderIndex < orderedTiers.length - 1 ? orderedTiers[currentOrderIndex + 1] : undefined;
+    const orderedPrevTier = currentOrderIndex > 0 ? orderedTiers[currentOrderIndex - 1] : undefined;
 
     // Calculate amounts needed for next tier
     let totalAmountForNext: number | undefined;
@@ -118,9 +136,9 @@ export const calculateTierProgress = (
     const applyPrecision = (value: number) => Math.round(value * 100000000) / 100000000;
 
     return {
-      currentTier,
-      nextTier,
-      prevTier,
+      currentTier: orderedCurrentTier || currentTier,
+      nextTier: orderedNextTier || nextTier,
+      prevTier: orderedPrevTier || prevTier,
       progress: Math.min(Math.max(0, progress), 100),
       requiredForCurrent: applyPrecision(requiredForCurrent),
       totalStaked,
@@ -137,7 +155,6 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  // Just normalize the tier name without any special ordering
   const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
   return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
@@ -161,9 +178,7 @@ export const isTierUpgradeAvailable = (
     const stakedPercent = (stakedValue / totalValue) * 100;
     
     // Sort tiers by threshold ascending
-    const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-    );
+    const sortedTiers = sortTiersByProgression(tiers);
     
     // Find current tier's position
     const currentTierIndex = sortedTiers.findIndex(
