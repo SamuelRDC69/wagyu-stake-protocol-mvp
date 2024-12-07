@@ -1,6 +1,4 @@
 import { TierEntity, TierProgress } from '@/lib/types/tier';
-import { StakedEntity } from '@/lib/types/staked';
-import { PoolEntity } from '@/lib/types/pool';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from '@/lib/utils/tokenUtils';
 import { cn } from '@/lib/utils';
@@ -104,26 +102,25 @@ export const calculateTierProgress = (
     // Required amount for current tier (used for safe unstake calculation)
     const requiredForCurrent = (currentThresholdPercent / 100) * totalValue.amount;
 
-    // Calculate total needed and additional amount needed for next tier
+    // Calculate both amounts for next tier
     let totalAmountForNext: number | undefined;
     let additionalAmountNeeded: number | undefined;
-    
+
     if (nextTier) {
-        // Calculate the amount needed for next tier threshold
+        // Calculate exact amount needed for next tier percentage
         const nextTierThresholdPercent = parseFloat(nextTier.staked_up_to_percent);
         totalAmountForNext = Math.ceil(((nextTierThresholdPercent / 100) * totalValue.amount) * 100000000) / 100000000;
 
         if (stakedValue.amount >= totalAmountForNext) {
             additionalAmountNeeded = 0;
         } else {
-            // Calculate how much more is needed including the fee
+            // Calculate the additional amount needed with fee
             const baseAmountNeeded = totalAmountForNext - stakedValue.amount;
-            // Add fee adjustment and round to 8 decimals
             additionalAmountNeeded = Math.ceil((baseAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
         }
     }
 
-    // Calculate progress within current tier boundaries
+    // Calculate progress between current tier boundaries
     let progress: number;
     if (prevTier) {
         const range = currentThresholdPercent - prevThresholdPercent;
@@ -139,7 +136,7 @@ export const calculateTierProgress = (
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
         requiredForCurrent,
-        requiredForNext: additionalAmountNeeded, // For backward compatibility
+        requiredForNext: additionalAmountNeeded, // Keep for backward compatibility
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
@@ -162,38 +159,4 @@ export const getProgressColor = (progress: number): string => {
   if (progress < 33) return TIER_CONFIG.supplier.progressColor;
   if (progress < 66) return TIER_CONFIG.marketmkr.progressColor;
   return TIER_CONFIG.exchange.progressColor;
-};
-
-export const isTierUpgradeAvailable = (
-  currentStaked: string,
-  totalStaked: string,
-  currentTier: TierEntity,
-  tiers: TierEntity[]
-): boolean => {
-  try {
-    const { amount: stakedValue } = parseTokenString(currentStaked);
-    const { amount: totalValue } = parseTokenString(totalStaked);
-    const stakedPercent = (stakedValue / totalValue) * 100;
-    
-    // Sort tiers in descending order
-    const sortedTiers = [...tiers].sort((a, b) => 
-      parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
-    );
-    
-    // Find index of current tier
-    const currentTierIndex = sortedTiers.findIndex(
-      t => t.tier === currentTier.tier
-    );
-    
-    // If not the highest tier and exceeds current tier's threshold
-    if (currentTierIndex > 0) {
-      const nextTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
-      return stakedPercent >= nextTierThreshold;
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('Error in isTierUpgradeAvailable:', error);
-    return false;
-  }
 };
