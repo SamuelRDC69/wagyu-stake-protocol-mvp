@@ -46,49 +46,54 @@ export const TIER_CONFIG = {
 } as const;
 
 /**
- * Calculate stake needed for a target percentage considering current stake's effect on pool
- */
-const calculateRequiredStake = (poolTotal: number, targetPercent: number, currentStake: number): number => {
-    // Remove current stake from pool to get base pool
-    const basePool = poolTotal - currentStake;
-    
-    // Calculate required stake to achieve target percentage of resulting pool
-    // If x is required stake and P is pool without stake:
-    // x / (P + x) = target%/100
-    // Solving for x: x = (P * target%) / (100 - target%)
-    return Math.ceil((basePool * targetPercent) / (100 - targetPercent) * 100000000) / 100000000;
-};
-
-/**
- * Calculate total required stake and additional needed with fee adjustment
- */
-const calculateRequiredAmounts = (
-    poolTotal: number, 
-    targetPercent: number, 
-    currentStake: number
-): { totalRequired: number; additionalNeeded: number } => {
-    if (targetPercent >= 100) {
-        return {
-            totalRequired: poolTotal,
-            additionalNeeded: Math.ceil(((poolTotal - currentStake) / (1 - FEE_RATE)) * 100000000) / 100000000
-        };
-    }
-
-    const totalRequired = calculateRequiredStake(poolTotal, targetPercent, currentStake);
-    const rawAdditional = Math.max(0, totalRequired - currentStake);
-    const withFee = Math.ceil((rawAdditional / (1 - FEE_RATE)) * 100000000) / 100000000;
-
-    return {
-        totalRequired,
-        additionalNeeded: withFee
-    };
-};
-
-/**
  * Calculate percentage exactly like the contract
  */
 const calculateStakedPercent = (stakedAmount: number, totalPool: number): number => {
     return Math.min((stakedAmount / totalPool) * 100, 100);
+};
+
+/**
+ * Calculate safe unstake amount to maintain previous tier
+ */
+const calculateSafeUnstake = (
+    currentStake: number,
+    totalPool: number,
+    prevTierPercent: number
+): number => {
+    // Calculate minimum required for previous tier
+    const minRequired = (totalPool * prevTierPercent) / 100;
+    return Math.max(0, currentStake - minRequired);
+};
+
+/**
+ * Calculate incremental amount needed for next tier
+ */
+const calculateIncrementalNeed = (
+    currentStake: number,
+    totalPool: number,
+    targetTierPercent: number
+): { totalNeeded: number; additionalNeeded: number } => {
+    // Calculate the target amount including current stake
+    const targetAmount = Math.ceil((totalPool * targetTierPercent / 100) * 100000000) / 100000000;
+    
+    // If we're already at or above target, no additional needed
+    if (currentStake >= targetAmount) {
+        return {
+            totalNeeded: currentStake,
+            additionalNeeded: 0
+        };
+    }
+
+    // Calculate raw additional amount needed
+    const rawAdditional = targetAmount - currentStake;
+    
+    // Apply fee to additional amount
+    const withFee = Math.ceil((rawAdditional / (1 - FEE_RATE)) * 100000000) / 100000000;
+
+    return {
+        totalNeeded: currentStake + withFee,
+        additionalNeeded: withFee
+    };
 };
 
 /**
@@ -149,14 +154,20 @@ export const calculateTierProgress = (
 
     if (nextTier) {
         const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
-        const required = calculateRequiredAmounts(
-            totalValue.amount,
-            nextTierPercent,
-            stakedValue.amount
-        );
-        
-        totalAmountForNext = required.totalRequired;
-        additionalAmountNeeded = required.additionalNeeded;
+        if (nextTierPercent === 100) {
+            // Handle Exchange tier differently
+            totalAmountForNext = totalValue.amount;
+            const rawAdditional = totalValue.amount - stakedValue.amount;
+            additionalAmountNeeded = Math.ceil((rawAdditional / (1 - FEE_RATE)) * 100000000) / 100000000;
+        } else {
+            const required = calculateIncrementalNeed(
+                stakedValue.amount,
+                totalValue.amount,
+                nextTierPercent
+            );
+            totalAmountForNext = required.totalNeeded;
+            additionalAmountNeeded = required.additionalNeeded;
+        }
     }
 
     // Calculate progress between tier boundaries
@@ -172,9 +183,13 @@ export const calculateTierProgress = (
         progress = (stakedPercent / currentThresholdPercent) * 100;
     }
 
-    // Calculate required amount for previous tier (for safe unstake)
-    const prevTierRequired = prevTier 
-        ? calculateRequiredStake(totalValue.amount, parseFloat(prevTier.staked_up_to_percent), stakedValue.amount)
+    // Calculate safe unstake amount
+    const safeUnstakeAmount = prevTier 
+        ? calculateSafeUnstake(
+            stakedValue.amount,
+            totalValue.amount,
+            parseFloat(prevTier.staked_up_to_percent)
+          )
         : 0;
 
     return {
@@ -182,7 +197,7 @@ export const calculateTierProgress = (
         nextTier,
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
-        requiredForCurrent: prevTierRequired,
+        requiredForCurrent: safeUnstakeAmount,
         requiredForNext: additionalAmountNeeded,
         totalStaked,
         stakedAmount,
@@ -227,20 +242,16 @@ export const isTierUpgradeAvailable = (
     const { amount: stakedValue } = parseTokenString(currentStaked);
     const { amount: totalValue } = parseTokenString(totalStaked);
     
-    // Calculate percentage exactly like contract
     const stakedPercent = calculateStakedPercent(stakedValue, totalValue);
     
-    // Sort tiers in descending order for upgrade check
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
     );
     
-    // Find index of current tier
     const currentTierIndex = sortedTiers.findIndex(
       t => t.tier === currentTier.tier
     );
     
-    // Check if can upgrade
     if (currentTierIndex > 0) {
       const nextTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
       return stakedPercent >= nextTierThreshold;
