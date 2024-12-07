@@ -47,6 +47,7 @@ export const TIER_CONFIG = {
 
 /**
  * Calculates progress and requirements for tier advancement
+ * Matches the contract's calculation method exactly
  */
 export const calculateTierProgress = (
   stakedAmount: string,
@@ -54,7 +55,6 @@ export const calculateTierProgress = (
   tiers: TierEntity[]
 ): TierProgress | null => {
   try {
-    // Parse token strings using the safe parser
     const stakedValue = parseTokenString(stakedAmount);
     const totalValue = parseTokenString(totalStaked);
     
@@ -66,26 +66,25 @@ export const calculateTierProgress = (
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
     stakedPercent = Math.min(stakedPercent, 100);
 
-    // Sort tiers by staked_up_to_percent ascending (like contract's index)
+    // Sort tiers by staked_up_to_percent ascending (like contract index)
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find first tier where threshold >= staked percentage (lower_bound)
+    // Find current tier using contract's lower_bound logic
     const tierIndex = sortedTiers.findIndex(
       tier => parseFloat(tier.staked_up_to_percent) >= stakedPercent
     );
 
     if (tierIndex === -1) {
-      // No tier found means we're beyond all thresholds, use highest tier
+      // Beyond all thresholds, use highest tier
       const highestTier = sortedTiers[sortedTiers.length - 1];
       const prevTier = sortedTiers[sortedTiers.length - 2];
-      const highestThreshold = parseFloat(highestTier.staked_up_to_percent);
       
       return {
         currentTier: highestTier,
         progress: 100,
-        requiredForCurrent: (highestThreshold / 100) * totalValue.amount,
+        requiredForCurrent: stakedValue.amount,
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
@@ -101,44 +100,31 @@ export const calculateTierProgress = (
     const prevTier = tierIndex > 0 ? sortedTiers[tierIndex - 1] : undefined;
     const nextTier = tierIndex < sortedTiers.length - 1 ? sortedTiers[tierIndex + 1] : undefined;
 
-    // Calculate thresholds
-    const currentThresholdPercent = parseFloat(currentTier.staked_up_to_percent);
-    const prevThresholdPercent = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
-
-    // Required amount for current tier (used for safe unstake calculation)
-    const requiredForCurrent = (currentThresholdPercent / 100) * totalValue.amount;
-
-    // Calculate both amounts for next tier
+    // Calculate amounts for next tier using contract's direct percentage method
     let totalAmountForNext: number | undefined;
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-        // Get the next tier's required percentage
-        const nextTierThresholdPercent = parseFloat(nextTier.staked_up_to_percent);
-        
-        // Calculate the total pool value
-        const totalPoolValue = totalValue.amount;
-        
-        // Calculate exact amount needed to reach next tier's percentage
-        // We multiply by totalPoolValue to get the actual amount needed
-        const baseAmountNeeded = (nextTierThresholdPercent / 100) * totalPoolValue;
+        // Get exact amount needed for next tier's percentage
+        const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
+        const requiredAmount = (totalValue.amount * nextTierPercent) / 100;
         
         // Round to 8 decimal places (WAX precision)
-        totalAmountForNext = Math.ceil(baseAmountNeeded * 100000000) / 100000000;
+        totalAmountForNext = Math.ceil(requiredAmount * 100000000) / 100000000;
 
         if (stakedValue.amount >= totalAmountForNext) {
-            // If user already has enough staked, they need 0 more
             additionalAmountNeeded = 0;
         } else {
-            // Calculate how much more they need including the fee
+            // Calculate additional needed with fee
             const rawAmountNeeded = totalAmountForNext - stakedValue.amount;
-            // Apply fee to the total additional amount needed
-            // Fee formula: additional = base / (1 - fee_rate)
             additionalAmountNeeded = Math.ceil((rawAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
         }
     }
 
-    // Calculate progress between current tier boundaries
+    // Calculate progress between tier boundaries
+    const currentThresholdPercent = parseFloat(currentTier.staked_up_to_percent);
+    const prevThresholdPercent = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
+    
     let progress: number;
     if (prevTier) {
         const range = currentThresholdPercent - prevThresholdPercent;
@@ -148,13 +134,18 @@ export const calculateTierProgress = (
         progress = (stakedPercent / currentThresholdPercent) * 100;
     }
 
+    // Calculate safe unstake amount using contract's percentage method
+    const requiredForCurrent = prevTier 
+        ? (totalValue.amount * parseFloat(prevTier.staked_up_to_percent)) / 100
+        : 0;
+
     return {
         currentTier,
         nextTier,
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
         requiredForCurrent,
-        requiredForNext: additionalAmountNeeded, // Keep for backward compatibility
+        requiredForNext: additionalAmountNeeded,
         totalStaked,
         stakedAmount,
         currentStakedAmount: stakedValue.amount,
@@ -187,6 +178,7 @@ export const getProgressColor = (progress: number): string => {
 
 /**
  * Checks if user can upgrade to next tier
+ * Uses contract's simple percentage calculation
  */
 export const isTierUpgradeAvailable = (
   currentStaked: string,
@@ -197,6 +189,8 @@ export const isTierUpgradeAvailable = (
   try {
     const { amount: stakedValue } = parseTokenString(currentStaked);
     const { amount: totalValue } = parseTokenString(totalStaked);
+    
+    // Calculate percentage exactly like the contract
     const stakedPercent = (stakedValue / totalValue) * 100;
     
     // Sort tiers in descending order for checking upgrades
