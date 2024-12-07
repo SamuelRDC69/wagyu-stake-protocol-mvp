@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
-// Tier configuration remains the same
+// Tier configuration with styling and icons
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -45,8 +45,27 @@ export const TIER_CONFIG = {
   },
 } as const;
 
-const calculateAmountForPercentage = (totalPool: number, targetPercent: number): number => {
-    return (totalPool * targetPercent) / 100;
+/**
+ * Calculate exactly like the contract: amount needed for a given percentage of pool
+ */
+const calculateRequiredAmount = (totalPool: number, percentage: number): number => {
+    return Math.ceil((totalPool * percentage / 100) * 100000000) / 100000000;
+};
+
+/**
+ * Calculate percentage exactly like the contract
+ */
+const calculateStakedPercent = (stakedAmount: number, totalPool: number): number => {
+    return Math.min((stakedAmount / totalPool) * 100, 100);
+};
+
+/**
+ * Calculate additional amount needed with fee adjustment
+ */
+const calculateAdditionalNeeded = (requiredAmount: number, currentAmount: number): number => {
+    if (currentAmount >= requiredAmount) return 0;
+    const rawNeeded = requiredAmount - currentAmount;
+    return Math.ceil((rawNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
 };
 
 /**
@@ -66,15 +85,14 @@ export const calculateTierProgress = (
     }
 
     // Calculate percentage exactly like the contract
-    let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
-    stakedPercent = Math.min(stakedPercent, 100);
+    const stakedPercent = calculateStakedPercent(stakedValue.amount, totalValue.amount);
 
     // Sort tiers by staked_up_to_percent ascending
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find current tier using contract's logic
+    // Find current tier using contract's lower_bound logic
     const tierIndex = sortedTiers.findIndex(
       tier => parseFloat(tier.staked_up_to_percent) >= stakedPercent
     );
@@ -109,20 +127,12 @@ export const calculateTierProgress = (
     if (nextTier) {
         const nextTierPercent = parseFloat(nextTier.staked_up_to_percent);
         
-        // Calculate amount needed for next tier based on total pool
         if (nextTierPercent === 100) {
-            totalAmountForNext = Infinity;
-            additionalAmountNeeded = Infinity;
+            totalAmountForNext = totalValue.amount;
+            additionalAmountNeeded = calculateAdditionalNeeded(totalValue.amount, stakedValue.amount);
         } else {
-            totalAmountForNext = calculateAmountForPercentage(totalValue.amount, nextTierPercent);
-            
-            if (stakedValue.amount >= totalAmountForNext) {
-                additionalAmountNeeded = 0;
-            } else {
-                // Calculate additional needed with fee
-                const rawAmountNeeded = totalAmountForNext - stakedValue.amount;
-                additionalAmountNeeded = Math.ceil((rawAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
-            }
+            totalAmountForNext = calculateRequiredAmount(totalValue.amount, nextTierPercent);
+            additionalAmountNeeded = calculateAdditionalNeeded(totalAmountForNext, stakedValue.amount);
         }
     }
 
@@ -139,17 +149,19 @@ export const calculateTierProgress = (
         progress = (stakedPercent / currentThresholdPercent) * 100;
     }
 
-    // Calculate safe unstake amount based on previous tier requirement
-    const requiredForPrevTier = prevTier 
-        ? calculateAmountForPercentage(totalValue.amount, parseFloat(prevTier.staked_up_to_percent))
+    // Calculate safe unstake amount - amount that can be unstaked while keeping previous tier
+    const requiredForCurrent = prevTier 
+        ? calculateRequiredAmount(totalValue.amount, parseFloat(prevTier.staked_up_to_percent))
         : 0;
+
+    const safeUnstake = Math.max(0, stakedValue.amount - requiredForCurrent);
 
     return {
         currentTier,
         nextTier,
         prevTier,
         progress: Math.min(Math.max(0, progress), 100),
-        requiredForCurrent: requiredForPrevTier,
+        requiredForCurrent,
         requiredForNext: additionalAmountNeeded,
         totalStaked,
         stakedAmount,
@@ -195,9 +207,9 @@ export const isTierUpgradeAvailable = (
     const { amount: totalValue } = parseTokenString(totalStaked);
     
     // Calculate percentage exactly like contract
-    const stakedPercent = (stakedValue / totalValue) * 100;
+    const stakedPercent = calculateStakedPercent(stakedValue, totalValue);
     
-    // Sort tiers in descending order
+    // Sort tiers in descending order for upgrade check
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
     );
