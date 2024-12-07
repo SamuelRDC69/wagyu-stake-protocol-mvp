@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
+// Tier configuration with styling and icons
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -43,6 +44,9 @@ export const TIER_CONFIG = {
   },
 } as const;
 
+/**
+ * Calculates progress and requirements for tier advancement
+ */
 export const calculateTierProgress = (
   stakedAmount: string,
   totalStaked: string,
@@ -150,13 +154,56 @@ export const calculateTierProgress = (
   }
 };
 
+/**
+ * Gets tier styling configuration
+ */
 export const getTierConfig = (tier: string) => {
   const contractTierName = tier.toLowerCase();
   return TIER_CONFIG[contractTierName as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
 
+/**
+ * Gets progress bar color based on completion percentage
+ */
 export const getProgressColor = (progress: number): string => {
   if (progress < 33) return TIER_CONFIG.supplier.progressColor;
   if (progress < 66) return TIER_CONFIG.marketmkr.progressColor;
   return TIER_CONFIG.exchange.progressColor;
+};
+
+/**
+ * Checks if user can upgrade to next tier
+ */
+export const isTierUpgradeAvailable = (
+  currentStaked: string,
+  totalStaked: string,
+  currentTier: TierEntity,
+  tiers: TierEntity[]
+): boolean => {
+  try {
+    const { amount: stakedValue } = parseTokenString(currentStaked);
+    const { amount: totalValue } = parseTokenString(totalStaked);
+    const stakedPercent = (stakedValue / totalValue) * 100;
+    
+    // Sort tiers in descending order for checking upgrades
+    const sortedTiers = [...tiers].sort((a, b) => 
+      parseFloat(b.staked_up_to_percent) - parseFloat(a.staked_up_to_percent)
+    );
+    
+    // Find index of current tier
+    const currentTierIndex = sortedTiers.findIndex(
+      t => t.tier === currentTier.tier
+    );
+    
+    // If not the highest tier and exceeds current tier's threshold
+    if (currentTierIndex > 0) {
+      const nextTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
+      return stakedPercent >= nextTierThreshold;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error in isTierUpgradeAvailable:', error);
+    return false;
+  }
 };
