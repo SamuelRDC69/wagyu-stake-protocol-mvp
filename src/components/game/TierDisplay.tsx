@@ -1,3 +1,4 @@
+// src/components/game/TierDisplay.tsx
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -50,7 +51,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     totalStaked
   } = tierProgress;
 
-  // Calculate safe unstake amount
+  // Calculate safe unstake amount (amount that can be unstaked while keeping current tier)
   const prevTierThreshold = prevTier 
     ? (parseFloat(prevTier.staked_up_to_percent) / 100) * parseFloat(totalStaked)
     : 0;
