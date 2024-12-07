@@ -1,6 +1,7 @@
-import { TierEntity, TierProgress } from '@/lib/types/tier';
+// src/lib/utils/tierUtils.ts
+import { TierEntity, TierProgress } from '../types/tier';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
-import { parseTokenString } from '@/lib/utils/tokenUtils';
+import { parseTokenString } from './tokenUtils';
 import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
@@ -53,6 +54,7 @@ export const calculateTierProgress = (
   tiers: TierEntity[]
 ): TierProgress | null => {
   try {
+    // Parse token strings using the safe parser
     const stakedValue = parseTokenString(stakedAmount);
     const totalValue = parseTokenString(totalStaked);
     
@@ -64,7 +66,7 @@ export const calculateTierProgress = (
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
     stakedPercent = Math.min(stakedPercent, 100);
 
-    // Sort tiers by staked_up_to_percent ascending
+    // Sort tiers by staked_up_to_percent ascending (like contract's index)
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
@@ -111,16 +113,28 @@ export const calculateTierProgress = (
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-        // Calculate exact amount needed for next tier percentage
+        // Get the next tier's required percentage
         const nextTierThresholdPercent = parseFloat(nextTier.staked_up_to_percent);
-        totalAmountForNext = Math.ceil(((nextTierThresholdPercent / 100) * totalValue.amount) * 100000000) / 100000000;
+        
+        // Calculate the total pool value
+        const totalPoolValue = totalValue.amount;
+        
+        // Calculate exact amount needed to reach next tier's percentage
+        // We multiply by totalPoolValue to get the actual amount needed
+        const baseAmountNeeded = (nextTierThresholdPercent / 100) * totalPoolValue;
+        
+        // Round to 8 decimal places (WAX precision)
+        totalAmountForNext = Math.ceil(baseAmountNeeded * 100000000) / 100000000;
 
         if (stakedValue.amount >= totalAmountForNext) {
+            // If user already has enough staked, they need 0 more
             additionalAmountNeeded = 0;
         } else {
-            // Calculate the additional amount needed with fee
-            const baseAmountNeeded = totalAmountForNext - stakedValue.amount;
-            additionalAmountNeeded = Math.ceil((baseAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
+            // Calculate how much more they need including the fee
+            const rawAmountNeeded = totalAmountForNext - stakedValue.amount;
+            // Apply fee to the total additional amount needed
+            // Fee formula: additional = base / (1 - fee_rate)
+            additionalAmountNeeded = Math.ceil((rawAmountNeeded / (1 - FEE_RATE)) * 100000000) / 100000000;
         }
     }
 
