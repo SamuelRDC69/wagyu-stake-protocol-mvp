@@ -48,14 +48,11 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     nextTier,
     prevTier,
     progress,
-    totalStaked
+    requiredForCurrent,
   } = tierProgress;
 
   // Calculate safe unstake amount (amount that can be unstaked while keeping current tier)
-  const prevTierThreshold = prevTier 
-    ? (parseFloat(prevTier.staked_up_to_percent) / 100) * parseFloat(totalStaked)
-    : 0;
-  const safeUnstakeAmount = Math.max(0, currentStakedAmount - prevTierThreshold);
+  const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
 
   // Convert contract tier name to UI variant
   const getVariant = (tier: string) => {
@@ -116,9 +113,11 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
             <p className="text-slate-400 mb-2">Progress to {nextTier.tier_name}</p>
             <div className="space-y-1">
-              <p className="text-sm text-slate-300">
-                Total needed: {formatNumber(totalAmountForNext!)} {symbol}
-              </p>
+              {totalAmountForNext && (
+                <p className="text-sm text-slate-300">
+                  Total needed: {formatNumber(totalAmountForNext)} {symbol}
+                </p>
+              )}
               <p className={cn("font-medium", tierConfig.color)}>
                 {additionalAmountNeeded <= 0 ? (
                   'Ready to Advance!'
