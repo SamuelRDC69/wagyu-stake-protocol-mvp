@@ -115,8 +115,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             value={progress} 
             className="h-2"
             indicatorClassName={cn(
-              "transition-all duration-500",
-              tierConfig.progressColor
+              "h-full w-full flex-1 transition-all",
+            tierConfig.progressColor
             )}
           />
           <div className="flex justify-between text-xs text-slate-400">
