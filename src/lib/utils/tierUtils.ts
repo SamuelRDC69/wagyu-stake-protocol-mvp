@@ -44,25 +44,6 @@ export const TIER_CONFIG = {
   },
 } as const;
 
-function getDisplayTier(currentTier: TierEntity, tiers: TierEntity[], forward: boolean = true): TierEntity {
-  // Sort by percentage
-  const sortedTiers = [...tiers].sort((a, b) => 
-    parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-  );
-  
-  // Find current tier index
-  const currentIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
-  
-  // Move tier according to direction if possible
-  if (forward && currentIndex < sortedTiers.length - 1) {
-    return sortedTiers[currentIndex + 1];
-  } else if (!forward && currentIndex > 0) {
-    return sortedTiers[currentIndex - 1];
-  }
-  
-  return currentTier;
-}
-
 export const calculateTierProgress = (
   stakedAmount: string,
   totalStaked: string,
@@ -96,9 +77,6 @@ export const calculateTierProgress = (
     const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
     const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
 
-    // Get display tiers (one up for current tier, but keep nextTier as is for progress text)
-    const displayTier = getDisplayTier(currentTier, tiers, true);
-
     // Calculate amounts needed for next tier
     let totalAmountForNext: number | undefined;
     let additionalAmountNeeded: number | undefined;
@@ -118,9 +96,11 @@ export const calculateTierProgress = (
       }
     }
 
-    // Calculate amount needed to maintain current tier (for safe unstake)
-    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
-    const requiredForCurrent = (currentTierThreshold * totalValue.amount) / 100;
+    // For safe unstake: at lowest tier, you can unstake down to 0
+    // Otherwise, you need to maintain the current tier's threshold
+    const requiredForCurrent = prevTier 
+      ? (parseFloat(prevTier.staked_up_to_percent) * totalValue.amount) / 100
+      : 0;
 
     // Calculate progress to next tier
     let progress: number;
@@ -128,7 +108,10 @@ export const calculateTierProgress = (
       const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
       const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
       const range = nextTierThreshold - currentTierThreshold;
-      progress = ((stakedPercent - currentTierThreshold) / range) * 100;
+      // For lowest tier, calculate progress from 0 to threshold
+      progress = currentTierThreshold === 0 
+        ? (stakedPercent / nextTierThreshold) * 100
+        : ((stakedPercent - currentTierThreshold) / range) * 100;
     } else {
       progress = 100; // At highest tier
     }
@@ -137,8 +120,8 @@ export const calculateTierProgress = (
     const applyPrecision = (value: number) => Math.round(value * 100000000) / 100000000;
 
     return {
-      currentTier: displayTier, // Use display tier for current tier name
-      nextTier, // Keep actual next tier for progress text
+      currentTier, // Use actual contract tier
+      nextTier,
       prevTier,
       progress: Math.min(Math.max(0, progress), 100),
       requiredForCurrent: applyPrecision(requiredForCurrent),
@@ -156,7 +139,8 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
+  // Match UserStatus.tsx tier normalization
+  const normalizedTier = tier.toLowerCase().replace(' ', '-');
   return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
 
