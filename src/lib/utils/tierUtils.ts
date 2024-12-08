@@ -66,17 +66,16 @@ export const calculateTierProgress = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find your actual tier by finding highest threshold you exceed
-    const currentTierIndex = sortedTiers.reduce((highest, tier, index) => {
-      if (stakedPercent > parseFloat(tier.staked_up_to_percent)) {
-        return index;
-      }
-      return highest;
-    }, 0);
-
-    const currentTier = sortedTiers[currentTierIndex];
-    const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
-    const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
+    // Match contract's lower_bound logic exactly
+    const currentTierIndex = sortedTiers.findIndex(
+      tier => parseFloat(tier.staked_up_to_percent) >= stakedPercent
+    );
+    
+    // If no tier found (above all thresholds), use last tier
+    const finalIndex = currentTierIndex === -1 ? sortedTiers.length - 1 : currentTierIndex;
+    const currentTier = sortedTiers[finalIndex];
+    const nextTier = finalIndex < sortedTiers.length - 1 ? sortedTiers[finalIndex + 1] : undefined;
+    const prevTier = finalIndex > 0 ? sortedTiers[finalIndex - 1] : undefined;
 
     // Calculate amounts needed for next tier
     let totalAmountForNext: number | undefined;
@@ -117,7 +116,7 @@ export const calculateTierProgress = (
     const applyPrecision = (value: number) => Math.round(value * 100000000) / 100000000;
 
     return {
-      currentTier, // Use actual tier
+      currentTier,
       nextTier,
       prevTier,
       progress: Math.min(Math.max(0, progress), 100),
@@ -159,23 +158,17 @@ export const isTierUpgradeAvailable = (
     
     const stakedPercent = (stakedValue / totalValue) * 100;
     
-    // Sort tiers by threshold ascending
+    // Find tier with next highest threshold
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
     
-    // Find current tier's position
-    const currentTierIndex = sortedTiers.findIndex(
-      t => t.tier === currentTier.tier
+    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+    const nextTier = sortedTiers.find(tier => 
+      parseFloat(tier.staked_up_to_percent) > currentThreshold
     );
     
-    // Check if we exceed the next tier's threshold
-    if (currentTierIndex < sortedTiers.length - 1) {
-      const nextTier = sortedTiers[currentTierIndex + 1];
-      return stakedPercent > parseFloat(nextTier.staked_up_to_percent);
-    }
-    
-    return false;
+    return nextTier ? stakedPercent >= parseFloat(nextTier.staked_up_to_percent) : false;
   } catch (error) {
     console.error('Error in isTierUpgradeAvailable:', error);
     return false;
