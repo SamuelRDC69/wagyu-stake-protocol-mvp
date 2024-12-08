@@ -1,3 +1,4 @@
+// src/components/game/TierDisplay.tsx
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -50,8 +51,22 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     requiredForCurrent,
   } = tierProgress;
 
-  // Safe unstake is what can be unstaked while keeping current tier
+  // Calculate safe unstake amount (amount that can be unstaked while keeping current tier)
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
+
+  // Convert contract tier name to UI variant
+  const getVariant = (tier: string) => {
+    switch (tier.toLowerCase()) {
+      case 'supplier': return 'supplier';
+      case 'merchant': return 'merchant';
+      case 'trader': return 'trader';
+      case 'marketmkr': return 'market-maker';
+      case 'exchange': return 'exchange';
+      default: return 'default';
+    }
+  };
+
+  const variant = getVariant(tierProgress.currentTier.tier);
 
   return (
     <Card className="w-full crystal-bg group">
@@ -64,24 +79,16 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <span className="text-white">{tierProgress.currentTier.tier_name}</span>
             {isUpgradeAvailable && (
               <Badge 
-                variant="default"
-                className={cn(
-                  "animate-pulse ml-2",
-                  tierConfig.bgColor,
-                  tierConfig.color
-                )}
+                variant={variant}
+                className="animate-pulse ml-2"
               >
                 Tier Up Ready!
               </Badge>
             )}
           </CardTitle>
           <Badge 
-            variant="outline"
-            className={cn(
-              "ml-2 transition-all shine-effect",
-              tierConfig.borderColor,
-              tierConfig.color
-            )}
+            variant={variant}
+            className="ml-2 transition-all shine-effect"
           >
             {`${parseFloat(tierProgress.currentTier.weight)}x Power`}
           </Badge>
