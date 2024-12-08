@@ -66,13 +66,14 @@ export const calculateTierProgress = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find current tier using contract's lower_bound logic
-    const tierIndex = sortedTiers.findIndex(
-      tier => parseFloat(tier.staked_up_to_percent) > stakedPercent
-    );
+    // Find your actual tier by finding highest threshold you exceed
+    const currentTierIndex = sortedTiers.reduce((highest, tier, index) => {
+      if (stakedPercent > parseFloat(tier.staked_up_to_percent)) {
+        return index;
+      }
+      return highest;
+    }, 0);
 
-    // If no tier found (percentage higher than all thresholds), use last tier
-    const currentTierIndex = tierIndex === -1 ? sortedTiers.length - 1 : Math.max(0, tierIndex - 1);
     const currentTier = sortedTiers[currentTierIndex];
     const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
     const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
@@ -96,8 +97,7 @@ export const calculateTierProgress = (
       }
     }
 
-    // For safe unstake: at lowest tier, you can unstake down to 0
-    // Otherwise, you need to maintain the current tier's threshold
+    // For safe unstake: can unstake down to the prevTier threshold
     const requiredForCurrent = prevTier 
       ? (parseFloat(prevTier.staked_up_to_percent) * totalValue.amount) / 100
       : 0;
@@ -108,10 +108,7 @@ export const calculateTierProgress = (
       const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
       const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
       const range = nextTierThreshold - currentTierThreshold;
-      // For lowest tier, calculate progress from 0 to threshold
-      progress = currentTierThreshold === 0 
-        ? (stakedPercent / nextTierThreshold) * 100
-        : ((stakedPercent - currentTierThreshold) / range) * 100;
+      progress = range === 0 ? 100 : ((stakedPercent - currentTierThreshold) / range) * 100;
     } else {
       progress = 100; // At highest tier
     }
@@ -120,7 +117,7 @@ export const calculateTierProgress = (
     const applyPrecision = (value: number) => Math.round(value * 100000000) / 100000000;
 
     return {
-      currentTier, // Use actual contract tier
+      currentTier, // Use actual tier
       nextTier,
       prevTier,
       progress: Math.min(Math.max(0, progress), 100),
