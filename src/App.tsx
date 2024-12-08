@@ -16,6 +16,7 @@ const sessionKit = new SessionKit({
   ],
 })
 
+
 function App() {
   const [session, setSession] = useState<Session | undefined>()
   const [isRestoring, setIsRestoring] = useState(true)
