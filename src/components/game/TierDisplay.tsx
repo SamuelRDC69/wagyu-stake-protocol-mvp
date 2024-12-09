@@ -45,7 +45,6 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     additionalAmountNeeded,
     symbol,
     nextTier,
-    prevTier,
     progress,
     requiredForCurrent,
   } = tierProgress;
@@ -53,27 +52,25 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   // Calculate safe unstake amount (amount that can be unstaked while keeping current tier)
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
 
-  // Get progress color based on tier
+  // Get progress color based on exact contract tier names
   const getProgressColor = (tier: string): string => {
     switch (tier.toLowerCase()) {
-      case 'bronze': return 'bg-amber-500';
-      case 'silver': return 'bg-slate-300';
-      case 'gold': return 'bg-yellow-500';
+      case 'supplier': return 'bg-emerald-500';
+      case 'merchant': return 'bg-blue-500';
       case 'trader': return 'bg-purple-500';
-      case 'market maker': return 'bg-blue-500';
+      case 'marketmkr': return 'bg-amber-500';
       case 'exchange': return 'bg-red-500';
-      default: return 'bg-purple-500';
+      default: return 'bg-emerald-500';
     }
   };
 
-  // Convert contract tier name to UI variant
+  // Convert contract tier name to UI variant - using exact contract names
   const getVariant = (tier: string) => {
     switch (tier.toLowerCase()) {
-      case 'bronze': return 'bronze';
-      case 'silver': return 'silver';
-      case 'gold': return 'gold';
+      case 'supplier': return 'supplier';
+      case 'merchant': return 'merchant';
       case 'trader': return 'trader';
-      case 'market maker': return 'market-maker';
+      case 'marketmkr': return 'market-maker';
       case 'exchange': return 'exchange';
       default: return 'default';
     }
