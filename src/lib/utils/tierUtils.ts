@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
-// Tier configuration with styling and icons
+// Tier configuration with styling and icons remains the same
 export const TIER_CONFIG = {
   supplier: {
     color: 'text-emerald-500',
@@ -44,9 +44,48 @@ export const TIER_CONFIG = {
   },
 } as const;
 
-/**
- * Calculates tier progress exactly matching contract behavior
- */
+// New function to calculate safe unstake amount
+export const calculateSafeUnstakeAmount = (
+  stakedAmount: string,
+  totalStaked: string,
+  tiers: TierEntity[],
+  currentTier: TierEntity
+): number => {
+  try {
+    const { amount: stakedValue } = parseTokenString(stakedAmount);
+    const { amount: totalValue } = parseTokenString(totalStaked);
+    
+    if (totalValue === 0) return 0;
+
+    // Sort tiers by percentage threshold ascending
+    const sortedTiers = [...tiers].sort((a, b) => 
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+    );
+
+    // Find current tier's position
+    const currentTierIndex = sortedTiers.findIndex(
+      tier => tier.tier === currentTier.tier
+    );
+
+    // Get threshold for current tier
+    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
+
+    // Calculate minimum amount needed to maintain current tier
+    const minRequired = (currentTierThreshold * totalValue) / 100;
+
+    // Calculate safe unstake amount (accounting for fee)
+    const rawSafeAmount = stakedValue - minRequired;
+    const safeAmount = Math.max(0, rawSafeAmount * (1 - FEE_RATE));
+
+    // Apply WAX precision (8 decimal places)
+    return Math.floor(safeAmount * 100000000) / 100000000;
+  } catch (error) {
+    console.error('Error calculating safe unstake amount:', error);
+    return 0;
+  }
+};
+
+// Original calculateTierProgress remains the same
 export const calculateTierProgress = (
   stakedAmount: string,
   totalStaked: string,
@@ -100,7 +139,7 @@ export const calculateTierProgress = (
     }
 
     // Calculate amount needed to maintain current tier
-    const currentTierThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
+    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
     const requiredForCurrent = (currentTierThreshold * totalValue.amount) / 100;
 
     // Calculate progress to next tier
@@ -136,8 +175,8 @@ export const calculateTierProgress = (
   }
 };
 
+// Rest of the utility functions remain the same
 export const getTierConfig = (tier: string) => {
-  // Just normalize the tier name without any special ordering
   const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
   return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
