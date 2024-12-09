@@ -39,9 +39,20 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  // Use the contract's tier instead of the calculated one
+  // Define tier progression
+  const tierProgression = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'];
+  
+  // Use the contract's tier
   const tierConfig = getTierConfig(stakedData.tier);
   const TierIcon = tierConfig.icon;
+
+  // Find next tier in progression
+  const currentTierIndex = tierProgression.indexOf(stakedData.tier.toLowerCase());
+  const nextTierName = currentTierIndex < tierProgression.length - 1 
+    ? tierProgression[currentTierIndex + 1] 
+    : null;
+
+  const nextTierConfig = nextTierName ? getTierConfig(nextTierName) : null;
 
   const { 
     currentStakedAmount, 
@@ -97,7 +108,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             className="h-2"
             indicatorClassName={cn(
               "transition-all duration-500",
-              progressColor
+              tierConfig.color.replace('text-', 'bg-')
             )}
           />
           <div className="flex justify-between text-xs text-slate-400">
@@ -107,24 +118,32 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
         {nextTier && typeof additionalAmountNeeded === 'number' && (
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <p className="text-slate-400 mb-2">Progress to {nextTier.tier}</p>
-            <div className="space-y-1">
-              {totalAmountForNext && (
-                <p className="text-sm text-slate-300">
-                  Total needed: {formatNumber(totalAmountForNext)} {symbol}
-                </p>
-              )}
-              <p className={cn("font-medium", tierConfig.color)}>
-                {additionalAmountNeeded <= 0 ? (
-                  'Ready to Advance!'
-                ) : (
-                  `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
-                )}
+            {nextTierName ? (
+              <>
+                <p className="text-slate-400 mb-2">Progress to {nextTierName}</p>
+                <div className="space-y-1">
+                  {totalAmountForNext && (
+                    <p className="text-sm text-slate-300">
+                      Total needed: {formatNumber(totalAmountForNext)} {symbol}
+                    </p>
+                  )}
+                  <p className={cn("font-medium", nextTierConfig?.color || tierConfig.color)}>
+                    {additionalAmountNeeded <= 0 ? (
+                      'Ready to Advance!'
+                    ) : (
+                      `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Currently staking {formatNumber(currentStakedAmount)} {symbol}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className={cn("text-center font-medium", tierConfig.color)}>
+                Maximum Tier Reached!
               </p>
-              <p className="text-xs text-slate-500">
-                Currently staking {formatNumber(currentStakedAmount)} {symbol}
-              </p>
-            </div>
+            )}
           </div>
         )}
       </CardContent>
