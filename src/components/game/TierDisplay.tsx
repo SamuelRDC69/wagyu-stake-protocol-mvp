@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TierProgress } from '@/lib/types/tier';
+import { StakedEntity } from '@/lib/types/staked'; // Add this import
 import { getTierConfig } from '@/lib/utils/tierUtils';
 import { formatNumber } from '@/lib/utils/formatUtils';
 import { cn } from '@/lib/utils';
@@ -11,14 +12,16 @@ interface TierDisplayProps {
   tierProgress?: TierProgress;
   isUpgradeAvailable: boolean;
   isLoading?: boolean;
+  stakedData?: StakedEntity; // Add this prop
 }
 
 export const TierDisplay: React.FC<TierDisplayProps> = ({
   tierProgress,
   isUpgradeAvailable,
-  isLoading
+  isLoading,
+  stakedData // Add this prop
 }) => {
-  if (isLoading || !tierProgress) {
+  if (isLoading || !tierProgress || !stakedData) {
     return (
       <Card className="w-full">
         <CardContent className="p-6">
@@ -36,7 +39,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  const tierConfig = getTierConfig(tierProgress.currentTier.tier);
+  // Use the contract's tier instead of the calculated one
+  const tierConfig = getTierConfig(stakedData.tier);
   const TierIcon = tierConfig.icon;
 
   const { 
@@ -56,9 +60,9 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     return config?.color || 'bg-purple-500';
   };
 
-  const variant = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as
+  const variant = stakedData.tier.toLowerCase().replace(' ', '-') as
     'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
-  const progressColor = getProgressColor(tierProgress.currentTier.tier);
+  const progressColor = getProgressColor(stakedData.tier);
 
   return (
     <Card className="w-full crystal-bg group">
@@ -68,7 +72,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
               <TierIcon className={cn("w-6 h-6", tierConfig.color)} />
             </div>
-            <span className="text-white">{tierProgress.currentTier.tier}</span>
+            <span className="text-white">{stakedData.tier}</span>
             {isUpgradeAvailable && (
               <Badge 
                 variant={variant}
