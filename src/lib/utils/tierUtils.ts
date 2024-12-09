@@ -1,52 +1,42 @@
 import { TierEntity, TierProgress } from '../types/tier';
-import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
+import { Store, Building2, TrendingUp, BarChart3, Crown } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
-import { cn } from '@/lib/utils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
-// Tier configuration with styling and icons
 export const TIER_CONFIG = {
-  supplier: {
-    color: 'text-emerald-500',
-    bgColor: 'bg-emerald-500/10',
-    progressColor: 'bg-emerald-500',
-    borderColor: 'border-emerald-500/20',
-    icon: Store,
+  bronze: {
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
+    icon: Crown,
   },
-  merchant: {
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-    progressColor: 'bg-blue-500',
-    borderColor: 'border-blue-500/20',
+  silver: {
+    color: 'text-slate-300',
+    bgColor: 'bg-slate-300/10',
     icon: Building2,
+  },
+  gold: {
+    color: 'text-yellow-500',
+    bgColor: 'bg-yellow-500/10',
+    icon: Crown,
   },
   trader: {
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
-    progressColor: 'bg-purple-500',
-    borderColor: 'border-purple-500/20',
     icon: TrendingUp,
   },
-  marketmkr: {
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    progressColor: 'bg-amber-500',
-    borderColor: 'border-amber-500/20',
+  'market maker': {
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
     icon: BarChart3,
   },
   exchange: {
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
-    progressColor: 'bg-red-500',
-    borderColor: 'border-red-500/20',
     icon: Building2,
   },
 } as const;
 
-/**
- * Calculates tier progress exactly matching contract behavior
- */
 export const calculateTierProgress = (
   stakedAmount: string,
   totalStaked: string,
@@ -64,18 +54,30 @@ export const calculateTierProgress = (
     let stakedPercent = (stakedValue.amount / totalValue.amount) * 100;
     stakedPercent = Math.min(stakedPercent, 100);
 
-    // Sort tiers by percentage threshold ascending
+    // Sort tiers by staked_up_to_percent ascending (same as contract's index)
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find current tier using contract's lower_bound logic
-    const tierIndex = sortedTiers.findIndex(
-      tier => parseFloat(tier.staked_up_to_percent) > stakedPercent
+    // Implement lower_bound logic exactly like the contract
+    const currentTierIndex = sortedTiers.findIndex(
+      tier => parseFloat(tier.staked_up_to_percent) >= stakedPercent
     );
 
-    // If no tier found (percentage higher than all thresholds), use last tier
-    const currentTierIndex = tierIndex === -1 ? sortedTiers.length - 1 : Math.max(0, tierIndex - 1);
+    // If no tier found or empty pool, use first tier
+    if (currentTierIndex === -1) {
+      const highestTier = sortedTiers[sortedTiers.length - 1];
+      return {
+        currentTier: highestTier,
+        progress: 100,
+        requiredForCurrent: parseFloat(highestTier.staked_up_to_percent),
+        totalStaked,
+        stakedAmount,
+        currentStakedAmount: stakedValue.amount,
+        symbol: stakedValue.symbol
+      };
+    }
+
     const currentTier = sortedTiers[currentTierIndex];
     const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
     const prevTier = currentTierIndex > 0 ? sortedTiers[currentTierIndex - 1] : undefined;
@@ -85,14 +87,11 @@ export const calculateTierProgress = (
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-      // Need to exceed the threshold percentage
       const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
       totalAmountForNext = (nextTierThreshold * totalValue.amount) / 100;
       
       if (stakedValue.amount < totalAmountForNext) {
-        // Calculate raw amount needed first
         const rawAmountNeeded = totalAmountForNext - stakedValue.amount;
-        // Adjust for 0.3% fee: amount = rawAmount / (1 - fee)
         additionalAmountNeeded = rawAmountNeeded / (1 - FEE_RATE);
       } else {
         additionalAmountNeeded = 0;
@@ -137,17 +136,12 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  // Just normalize the tier name without any special ordering
-  const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
-  return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
+  // Direct mapping using exact tier names from contract
+  const key = tier.toLowerCase();
+  return TIER_CONFIG[key as keyof typeof TIER_CONFIG] || TIER_CONFIG.bronze;
 };
 
-export const getProgressColor = (progress: number): string => {
-  if (progress < 33) return TIER_CONFIG.supplier.progressColor;
-  if (progress < 66) return TIER_CONFIG.marketmkr.progressColor;
-  return TIER_CONFIG.exchange.progressColor;
-};
-
+// Rest of functions remain the same - they operate on the tier data after it's correctly determined
 export const isTierUpgradeAvailable = (
   currentStaked: string,
   totalStaked: string,
