@@ -362,6 +362,7 @@ const handleUnstake = async (amount: string) => {
                     <TierDisplay 
                       tierProgress={tierProgress}
                       isUpgradeAvailable={canUpgradeTier}
+                      stakedData={playerStake}
                     />
                   )}
                   
