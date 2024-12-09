@@ -134,7 +134,7 @@ export const calculateTierProgress = (
 export const getTierConfig = (tier: string) => {
   // Direct mapping using exact tier names from contract
   const key = tier.toLowerCase();
-  return TIER_CONFIG[key as keyof typeof TIER_CONFIG] || TIER_CONFIG.bronze;
+  return TIER_CONFIG[key as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
 };
 
 // Rest of functions remain the same - they operate on the tier data after it's correctly determined
