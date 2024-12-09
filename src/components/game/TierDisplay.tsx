@@ -36,18 +36,18 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  const tierConfig = getTierConfig(tierProgress.currentTier.tier);
-  const TierIcon = tierConfig.icon;
+  // Get the current tier from the contract-stored data instead of calculating it
+  const currentTier = tiers.find(t => t.tier === tierProgress.currentTier.tier);
+  // Get the next tier (if any) from sorted thresholds
+  const sortedTiers = [...tiers].sort((a, b) => 
+    parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+  );
+  const currentTierIndex = sortedTiers.findIndex(t => t.tier === tierProgress.currentTier.tier);
+  const nextTier = currentTierIndex < sortedTiers.length - 1 ? sortedTiers[currentTierIndex + 1] : undefined;
 
-  const { 
-    currentStakedAmount, 
-    totalAmountForNext,
-    additionalAmountNeeded,
-    symbol,
-    nextTier,
-    progress,
-    requiredForCurrent,
-  } = tierProgress;
+  if (!currentTier) return null;
+  const tierConfig = getTierConfig(currentTier.tier);
+  const TierIcon = tierConfig.icon;
 
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
 
