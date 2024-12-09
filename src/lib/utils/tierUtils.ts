@@ -1,10 +1,4 @@
 import { TierEntity, TierProgress } from '../types/tier';
-import { Store, Building2, TrendingUp, BarChart3, Crown } from 'lucide-react';
-import { parseTokenString } from './tokenUtils';
-
-const FEE_RATE = 0.003; // 0.3% fee
-
-import { TierEntity, TierProgress } from '../types/tier';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
 
