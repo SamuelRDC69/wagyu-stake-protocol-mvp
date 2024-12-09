@@ -4,30 +4,32 @@ import { parseTokenString } from './tokenUtils';
 
 const FEE_RATE = 0.003; // 0.3% fee
 
+import { TierEntity, TierProgress } from '../types/tier';
+import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
+import { parseTokenString } from './tokenUtils';
+
+const FEE_RATE = 0.003; // 0.3% fee
+
+// Updated to match exact contract tier names
 export const TIER_CONFIG = {
-  bronze: {
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    icon: Crown,
+  supplier: {
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/10',
+    icon: Store,
   },
-  silver: {
-    color: 'text-slate-300',
-    bgColor: 'bg-slate-300/10',
+  merchant: {
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
     icon: Building2,
-  },
-  gold: {
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-500/10',
-    icon: Crown,
   },
   trader: {
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     icon: TrendingUp,
   },
-  'market maker': {
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
+  marketmkr: {
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500/10',
     icon: BarChart3,
   },
   exchange: {
