@@ -51,19 +51,14 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
 
-  // Get progress color based on exact contract tier names
+  // Match the tier colors from UserStatus
   const getProgressColor = (tier: string): string => {
-    switch (tier.toLowerCase()) {
-      case 'supplier': return 'bg-emerald-500';
-      case 'merchant': return 'bg-blue-500';
-      case 'trader': return 'bg-purple-500';
-      case 'marketmkr': return 'bg-amber-500';
-      case 'exchange': return 'bg-red-500';
-      default: return 'bg-emerald-500';
-    }
+    const config = getTierConfig(tier);
+    return config?.color || 'bg-purple-500';
   };
 
-  const variant = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-');
+  const variant = tierProgress.currentTier.tier.toLowerCase().replace(' ', '-') as
+    'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
   const progressColor = getProgressColor(tierProgress.currentTier.tier);
 
   return (
@@ -74,7 +69,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
               <TierIcon className={cn("w-6 h-6", tierConfig.color)} />
             </div>
-            <span className="text-white">{tierProgress.currentTier.tier}</span>
+            <span className="text-white">{tierProgress.currentTier.tier_name}</span>
             {isUpgradeAvailable && (
               <Badge 
                 variant={variant as any}
@@ -109,7 +104,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
         {nextTier && typeof additionalAmountNeeded === 'number' && (
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <p className="text-slate-400 mb-2">Progress to {nextTier.tier}</p>
+            <p className="text-slate-400 mb-2">Progress to {nextTier.tier_name}</p>
             <div className="space-y-1">
               {totalAmountForNext && (
                 <p className="text-sm text-slate-300">
