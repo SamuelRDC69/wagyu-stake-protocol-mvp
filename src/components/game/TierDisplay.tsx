@@ -1,4 +1,3 @@
-// src/components/game/TierDisplay.tsx
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -54,19 +53,34 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   // Calculate safe unstake amount (amount that can be unstaked while keeping current tier)
   const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
 
+  // Get progress color based on tier
+  const getProgressColor = (tier: string): string => {
+    switch (tier.toLowerCase()) {
+      case 'bronze': return 'bg-amber-500';
+      case 'silver': return 'bg-slate-300';
+      case 'gold': return 'bg-yellow-500';
+      case 'trader': return 'bg-purple-500';
+      case 'market maker': return 'bg-blue-500';
+      case 'exchange': return 'bg-red-500';
+      default: return 'bg-purple-500';
+    }
+  };
+
   // Convert contract tier name to UI variant
   const getVariant = (tier: string) => {
     switch (tier.toLowerCase()) {
-      case 'supplier': return 'supplier';
-      case 'merchant': return 'merchant';
+      case 'bronze': return 'bronze';
+      case 'silver': return 'silver';
+      case 'gold': return 'gold';
       case 'trader': return 'trader';
-      case 'marketmkr': return 'market-maker';
+      case 'market maker': return 'market-maker';
       case 'exchange': return 'exchange';
       default: return 'default';
     }
   };
 
   const variant = getVariant(tierProgress.currentTier.tier);
+  const progressColor = getProgressColor(tierProgress.currentTier.tier);
 
   return (
     <Card className="w-full crystal-bg group">
@@ -101,7 +115,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             className="h-2"
             indicatorClassName={cn(
               "transition-all duration-500",
-              tierConfig.progressColor
+              progressColor
             )}
           />
           <div className="flex justify-between text-xs text-slate-400">
