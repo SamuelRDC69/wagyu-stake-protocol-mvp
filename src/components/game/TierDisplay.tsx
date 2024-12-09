@@ -69,10 +69,10 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
               <TierIcon className={cn("w-6 h-6", tierConfig.color)} />
             </div>
-            <span className="text-white">{tierProgress.currentTier.tier_name}</span>
+            <span className="text-white">{tierProgress.currentTier.tier}</span>
             {isUpgradeAvailable && (
               <Badge 
-                variant={variant as any}
+                variant={variant}
                 className="animate-pulse ml-2"
               >
                 Tier Up Ready!
@@ -80,7 +80,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             )}
           </CardTitle>
           <Badge 
-            variant={variant as any}
+            variant={variant}
             className="ml-2 transition-all shine-effect"
           >
             {`${parseFloat(tierProgress.currentTier.weight)}x Power`}
@@ -104,7 +104,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
         {nextTier && typeof additionalAmountNeeded === 'number' && (
           <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            <p className="text-slate-400 mb-2">Progress to {nextTier.tier_name}</p>
+            <p className="text-slate-400 mb-2">Progress to {nextTier.tier}</p>
             <div className="space-y-1">
               {totalAmountForNext && (
                 <p className="text-sm text-slate-300">
