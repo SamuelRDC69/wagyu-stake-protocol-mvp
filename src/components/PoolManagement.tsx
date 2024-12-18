@@ -22,18 +22,20 @@ const PoolManagement = ({
 }: PoolManagementProps) => {
   // Fixed initial state with all required properties
   const [newPool, setNewPool] = useState({
-    staked_token_contract: '',
-    staked_token_symbol: '',
-    total_staked_quantity: '0.00000000 WAX',
-    total_staked_weight: '',
-    reward_pool: {
-      quantity: '',
-      contract: 'eosio.token'
-    },
-    emission_unit: 86400,
-    emission_rate: 100,
-    last_emission_updated_at: new Date().toISOString()
-  });
+  staked_token_contract: '',
+  staked_token_symbol: '',
+  total_staked_quantity: '0.00000000 WAX',
+  total_staked_weight: '',
+  reward_pool: {
+    quantity: '',
+    contract: 'eosio.token'
+  },
+  emission_unit: 86400,
+  emission_rate: 100,
+  emission_start_at: new Date().toISOString(),
+  emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+  last_emission_updated_at: new Date().toISOString()
+});
 
   const [weightUpdateForm, setWeightUpdateForm] = useState({
     poolId: '',
@@ -194,46 +196,80 @@ const PoolManagement = ({
   </p>
 </div>
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">
-              Emission Unit (seconds)
-            </label>
-            <input
-              type="number"
-              value={newPool.emission_unit}
-              onChange={(e) => setNewPool({ ...newPool, emission_unit: parseInt(e.target.value) })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              min="1"
-              required
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              86400 = daily, 3600 = hourly
-            </p>
-          </div>
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Emission Unit (seconds)
+  </label>
+  <input
+    type="number"
+    value={newPool.emission_unit}
+    onChange={(e) => setNewPool({ ...newPool, emission_unit: parseInt(e.target.value) })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    min="1"
+    required
+  />
+  <p className="mt-1 text-xs text-slate-500">
+    86400 = daily, 3600 = hourly
+  </p>
+</div>
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">
-              Emission Rate
-            </label>
-            <input
-              type="number"
-              value={newPool.emission_rate}
-              onChange={(e) => setNewPool({ ...newPool, emission_rate: parseInt(e.target.value) })}
-              className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
-              min="1"
-              required
-            />
-          </div>
-        </div>
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Emission Rate
+  </label>
+  <input
+    type="number"
+    value={newPool.emission_rate}
+    onChange={(e) => setNewPool({ ...newPool, emission_rate: parseInt(e.target.value) })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    min="1"
+    required
+  />
+</div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2"
-        >
-          <Plus className="w-4 h-4"/>
-          Create Pool
-        </button>
+{/* New Emission Start Date field */}
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Emission Start Date
+  </label>
+  <input
+    type="datetime-local"
+    value={newPool.emission_start_at.slice(0, 16)} 
+    onChange={(e) => setNewPool({
+      ...newPool,
+      emission_start_at: new Date(e.target.value).toISOString()
+    })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    required
+  />
+</div>
+
+{/* New Emission End Date field */}
+<div>
+  <label className="block text-sm text-slate-400 mb-1">
+    Emission End Date
+  </label>
+  <input
+    type="datetime-local"
+    value={newPool.emission_end_at.slice(0, 16)}
+    onChange={(e) => setNewPool({
+      ...newPool,
+      emission_end_at: new Date(e.target.value).toISOString()
+    })}
+    className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+    required
+  />
+</div>
+</div>
+
+<button
+  type="submit"
+  disabled={loading}
+  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center justify-center gap-2"
+>
+  <Plus className="w-4 h-4"/>
+  Create Pool
+</button>
       </form>
 
       {/* Pool Weight Update Section */}
