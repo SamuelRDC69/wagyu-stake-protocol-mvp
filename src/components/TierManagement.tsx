@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Layers, Plus, Trash2 } from 'lucide-react';
 
+// Constants
+const DECIMAL_PLACES = 18;
+
 interface TierEntity {
   id?: string;
   tier: string;
@@ -25,8 +28,8 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
   });
 
   const [inputValues, setInputValues] = useState({
-    weight: '1.00000000',
-    staked_up_to_percent: '0.00000000'
+    weight: `1.${'0'.repeat(DECIMAL_PLACES)}`,
+    staked_up_to_percent: `0.${'0'.repeat(DECIMAL_PLACES)}`
   });
 
   const [errors, setErrors] = useState({
@@ -39,11 +42,11 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
       return true;
     }
 
-    const decimalRegex = /^\d*\.?\d{0,8}$/;
+    const decimalRegex = new RegExp(`^\\d*\\.?\\d{0,${DECIMAL_PLACES}}$`);
     if (!decimalRegex.test(value)) {
       setErrors(prev => ({
         ...prev,
-        [field]: 'Please enter a valid number with up to 8 decimal places'
+        [field]: `Please enter a valid number with up to ${DECIMAL_PLACES} decimal places`
       }));
       return false;
     }
@@ -99,30 +102,28 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
 
   const formatDecimalValue = (value: number | string): string => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return isNaN(numValue) ? '0.00000000' : numValue.toFixed(8);
+    return isNaN(numValue) ? `0.${'0'.repeat(DECIMAL_PLACES)}` : numValue.toFixed(DECIMAL_PLACES);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Ensure all required fields are present and valid
       if (!newTier.tier || !newTier.tier_name) {
         console.error('Missing required fields');
         return;
       }
 
-      // Parse and validate the numeric values
       const validatedTier = {
         ...newTier,
-        weight: parseFloat(newTier.weight.toString()),
-        staked_up_to_percent: parseFloat(newTier.staked_up_to_percent.toString())
+        weight: parseFloat(formatDecimalValue(newTier.weight)),
+        staked_up_to_percent: parseFloat(formatDecimalValue(newTier.staked_up_to_percent))
       };
 
       console.log('Submitting tier:', validatedTier);
       await onAddTier(validatedTier);
       
-      // Reset form after successful submission
+      // Reset form
       setNewTier({
         tier: '',
         tier_name: '',
@@ -131,8 +132,8 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
       });
       
       setInputValues({
-        weight: '1.00000000',
-        staked_up_to_percent: '0.00000000'
+        weight: `1.${'0'.repeat(DECIMAL_PLACES)}`,
+        staked_up_to_percent: `0.${'0'.repeat(DECIMAL_PLACES)}`
       });
     } catch (error) {
       console.error('Error adding tier:', error);
@@ -197,14 +198,14 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
               className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
                 errors.weight ? 'border border-red-500' : ''
               }`}
-              placeholder="e.g., 1.00000000"
+              placeholder={`e.g., 1.${'0'.repeat(DECIMAL_PLACES)}`}
               required
             />
             {errors.weight ? (
               <p className="mt-1 text-xs text-red-400">{errors.weight}</p>
             ) : (
               <p className="mt-1 text-xs text-slate-500">
-                Enter a value between 0 and 10 with up to 8 decimal places
+                Enter a value between 0 and 10 with up to {DECIMAL_PLACES} decimal places
               </p>
             )}
           </div>
@@ -221,14 +222,14 @@ const TierManagement = ({ tiers = [], onAddTier, onRemoveTier, loading }: TierMa
               className={`w-full bg-slate-900 rounded-lg px-3 py-2 text-white ${
                 errors.staked_up_to_percent ? 'border border-red-500' : ''
               }`}
-              placeholder="e.g., 25.00000000"
+              placeholder={`e.g., 25.${'0'.repeat(DECIMAL_PLACES)}`}
               required
             />
             {errors.staked_up_to_percent ? (
               <p className="mt-1 text-xs text-red-400">{errors.staked_up_to_percent}</p>
             ) : (
               <p className="mt-1 text-xs text-slate-500">
-                Enter a percentage between 0 and 100 with up to 8 decimal places
+                Enter a percentage between 0 and 100 with up to {DECIMAL_PLACES} decimal places
               </p>
             )}
           </div>
