@@ -74,10 +74,15 @@ function App() {
   }
 
 // Add this handler to App.tsx alongside other handlers
-const handleSetConfig = async (cooldown: number, vault: string) => {
+const handleSetConfig = async (
+  cooldown: number, 
+  vault: string,
+  feeVault: string,
+  feeBasisPoints: number
+) => {
   try {
     setLoading(true)
-    await actions.setConfig(cooldown, vault)
+    await actions.setConfig(cooldown, vault, feeVault, feeBasisPoints)
     toast({
       title: 'Success',
       description: 'Configuration updated successfully'
@@ -93,7 +98,6 @@ const handleSetConfig = async (cooldown: number, vault: string) => {
     setLoading(false)
   }
 }
-
 
   // Tier Management Handlers
   const handleAddTier = async (tierData: Omit<TierEntity, 'id'>) => {
@@ -307,7 +311,9 @@ const handleSetPoolWeight = async (poolId: number, weight: string) => {
     const formData = new FormData(e.currentTarget);
     handleSetConfig(
       parseInt(formData.get('cooldown') as string),
-      formData.get('vault') as string
+      formData.get('vault') as string,
+      formData.get('feeVault') as string,
+      parseInt(formData.get('feeBasisPoints') as string)
     );
   }}>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -340,6 +346,39 @@ const handleSetPoolWeight = async (poolId: number, weight: string) => {
           placeholder="e.g., stakevault"
           required
         />
+      </div>
+
+      <div>
+        <label className="block text-sm text-slate-400 mb-1">
+          Fee Vault Account
+        </label>
+        <input
+          name="feeVault"
+          type="text"
+          defaultValue={config?.fee_vault_account}
+          className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+          placeholder="e.g., feevault"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm text-slate-400 mb-1">
+          Stake Fee (basis points)
+        </label>
+        <input
+          name="feeBasisPoints"
+          type="number"
+          defaultValue={config?.stake_fee_basis_points}
+          className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
+          placeholder="e.g., 100 (1%)"
+          min="0"
+          max="10000"
+          required
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          100 basis points = 1%
+        </p>
       </div>
     </div>
 
