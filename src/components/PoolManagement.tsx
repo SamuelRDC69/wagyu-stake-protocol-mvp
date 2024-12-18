@@ -21,7 +21,7 @@ const PoolManagement = ({
   loading 
 }: PoolManagementProps) => {
   // Fixed initial state with all required properties
-  const [newPool, setNewPool] = useState({
+const [newPool, setNewPool] = useState({
   staked_token_contract: '',
   staked_token_symbol: '',
   total_staked_quantity: '0.00000000 WAX',
@@ -32,8 +32,8 @@ const PoolManagement = ({
   },
   emission_unit: 86400,
   emission_rate: 100,
-  emission_start_at: new Date().toISOString(),
-  emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+  emission_start_at: new Date().toISOString(),   // Added
+  emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),  // Added
   last_emission_updated_at: new Date().toISOString()
 });
 
@@ -73,30 +73,32 @@ const PoolManagement = ({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  try {
+    const formattedData = formatPoolData(newPool);
+    await onAddPool(formattedData);
     
-    try {
-      const formattedData = formatPoolData(newPool);
-      await onAddPool(formattedData);
-      
-      // Reset form with all required properties
-      setNewPool({
-        staked_token_contract: '',
-        staked_token_symbol: '',
-        total_staked_quantity: '0.00000000 WAX',
-        total_staked_weight: '',
-        reward_pool: {
-          quantity: '',
-          contract: 'eosio.token'
-        },
-        emission_unit: 86400,
-        emission_rate: 100,
-        last_emission_updated_at: new Date().toISOString()
-      });
-    } catch (e) {
-      console.error('Error formatting pool data:', e);
-    }
-  };
+    // Reset form with all required properties
+    setNewPool({
+      staked_token_contract: '',
+      staked_token_symbol: '',
+      total_staked_quantity: '0.00000000 WAX',
+      total_staked_weight: '',
+      reward_pool: {
+        quantity: '',
+        contract: 'eosio.token'
+      },
+      emission_unit: 86400,
+      emission_rate: 100,
+      emission_start_at: new Date().toISOString(),  // Added
+      emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),  // Added
+      last_emission_updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Error formatting pool data:', e);
+  }
+};
 
 
   return (
