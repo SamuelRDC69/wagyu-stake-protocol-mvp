@@ -53,8 +53,18 @@ export const useContract = (session: Session | null) => {
   // Contract Actions
   const actions = {
     // Config Management
-    setConfig: async (cooldown: number, vault: string) => 
-      handleTransaction('setconfig', { cooldown_seconds_per_claim: cooldown, vault_account: vault }),
+    setConfig: async (
+      cooldown: number, 
+      vault: string, 
+      feeVault: string, 
+      feeBasisPoints: number
+    ) => 
+      handleTransaction('setconfig', { 
+        cooldown_seconds_per_claim: cooldown, 
+        vault_account: vault,
+        fee_vault_account: feeVault,
+        stake_fee_basis_points: feeBasisPoints
+      }),
     
     setMaintenance: async (enabled: boolean) => 
       handleTransaction('maintenance', { maintenance: enabled }),
@@ -76,19 +86,33 @@ export const useContract = (session: Session | null) => {
     
     // Pool Management
     setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) =>
-      handleTransaction('setpool', data),
+      handleTransaction('setpool', {
+        staked_token_contract: data.staked_token_contract,
+        staked_token_symbol: data.staked_token_symbol,
+        total_staked_weight: data.total_staked_weight,
+        reward_pool: data.reward_pool,
+        emission_unit: data.emission_unit,
+        emission_rate: data.emission_rate,
+        emission_start_at: new Date(data.emission_start_at).toISOString(),
+        emission_end_at: new Date(data.emission_end_at).toISOString()
+      }),
     
     setPoolActive: async (poolId: number, isActive: boolean) =>
-      handleTransaction('setpoolact', { pool_id: poolId, is_active: isActive }),
+      handleTransaction('setpoolact', { 
+        pool_id: poolId, 
+        is_active: isActive 
+      }),
     
     removePool: async (poolId: number) =>
-      handleTransaction('removepool', { pool_id: poolId }),
+      handleTransaction('removepool', { 
+        pool_id: poolId 
+      }),
 
     setPoolWeight: async (pool_id: number, total_staked_weight: string) =>
       handleTransaction('setpweight', { 
         pool_id, 
         total_staked_weight 
-    })
+      })
   }
 
   // Queries
@@ -99,6 +123,7 @@ export const useContract = (session: Session | null) => {
     },
     
     getTiers: () => getTableRows<TierEntity>('tiers'),
+    
     getPools: () => getTableRows<PoolEntity>('pools'),
     
     getStats: async () => {
