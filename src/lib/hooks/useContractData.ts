@@ -23,7 +23,7 @@ export function useContractData() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const lastFetchRef = useRef<number>(0);
-  const FETCH_COOLDOWN = 5000; // 5 seconds minimum between fetches
+  const FETCH_COOLDOWN = 60000; // 60 seconds minimum between fetches
 
   const fetchData = async () => {
     if (!session) return null;
