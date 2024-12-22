@@ -42,11 +42,16 @@ const PoolManagement = ({
     weight: ''
   });
 
+
   const validateEmissionRate = (value: string): boolean => {
     if (value === '' || value === '.') return true;
     const decimalRegex = /^\d*\.?\d{0,8}$/;
     return decimalRegex.test(value) && parseFloat(value) >= 0;
   };
+
+    const formatTimePoint = (dateString: string): string => {
+  return (new Date(dateString).getTime() * 1000).toString(); // Convert to microseconds
+};
 
   const formatEmissionRateForChain = (value: string): number => {
     const amount = parseFloat(value || '0');
@@ -54,35 +59,35 @@ const PoolManagement = ({
   };
 
   const formatPoolData = (data: typeof newPool): Omit<PoolEntity, 'pool_id' | 'is_active'> => {
-    const symbol = data.staked_token_symbol.toUpperCase();
-    
-    const total_staked_weight = data.total_staked_weight.includes(' ') 
-      ? data.total_staked_weight.split(' ').map((part: string, i: number) => {
-          if (i === 0) return parseFloat(part).toFixed(8);
-          return part.toUpperCase();
-        }).join(' ')
-      : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
+  const symbol = data.staked_token_symbol.toUpperCase();
+  
+  const total_staked_weight = data.total_staked_weight.includes(' ') 
+    ? data.total_staked_weight.split(' ').map((part: string, i: number) => {
+        if (i === 0) return parseFloat(part).toFixed(8);
+        return part.toUpperCase();
+      }).join(' ')
+    : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
 
-    const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
-    const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
-    const formatted_reward_pool = {
-      quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
-      contract: data.reward_pool.contract || 'eosio.token'
-    };
-
-    return {
-      staked_token_contract: data.staked_token_contract,
-      staked_token_symbol: symbol,
-      total_staked_quantity: '0.00000000 WAX',
-      total_staked_weight,
-      reward_pool: formatted_reward_pool,
-      emission_unit: data.emission_unit,
-      emission_rate: data.emission_rate,
-      emission_start_at: data.emission_start_at,
-      emission_end_at: data.emission_end_at,
-      last_emission_updated_at: data.last_emission_updated_at
-    };
+  const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
+  const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
+  const formatted_reward_pool = {
+    quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
+    contract: data.reward_pool.contract || 'eosio.token'
   };
+
+  return {
+    staked_token_contract: data.staked_token_contract,
+    staked_token_symbol: symbol,
+    total_staked_quantity: '0.00000000 WAX',
+    total_staked_weight,
+    reward_pool: formatted_reward_pool,
+    emission_unit: data.emission_unit,
+    emission_rate: data.emission_rate,
+    emission_start_at: formatTimePoint(data.emission_start_at),
+    emission_end_at: formatTimePoint(data.emission_end_at),
+    last_emission_updated_at: formatTimePoint(data.last_emission_updated_at)
+  };
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
