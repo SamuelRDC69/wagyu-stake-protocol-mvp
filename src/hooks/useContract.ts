@@ -105,6 +105,7 @@ setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) => {
     emission_end_at: parseInt(data.emission_end_at),
     last_emission_updated_at: parseInt(data.emission_start_at)
   });
+  },
     
     setPoolActive: async (poolId: number, isActive: boolean) =>
       handleTransaction('setpoolact', { 
