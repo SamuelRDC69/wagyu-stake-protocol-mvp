@@ -152,7 +152,7 @@ const PoolManagement = ({
     }
   };
 
-  return (
+ return (
     <div className="bg-slate-800 rounded-lg p-6">
       <div className="flex items-center gap-2 mb-6">
         <Database className="w-5 h-5 text-blue-400"/>
