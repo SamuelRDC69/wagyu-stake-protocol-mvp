@@ -48,18 +48,19 @@ const PoolManagement = ({
     return decimalRegex.test(value) && parseFloat(value) >= 0;
   };
 
-  const formatTimePoint = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    
-    // Ensure date is in the future
-    if (date <= now) {
-      date.setMinutes(now.getMinutes() + 5);
-    }
-    
-    // Convert to microseconds and ensure it's a string
-    return (BigInt(date.getTime()) * BigInt(1000)).toString();
-  };
+const formatTimePoint = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  
+  // Ensure date is in the future
+  if (date <= now) {
+    date.setMinutes(now.getMinutes() + 5);
+  }
+  
+  // Convert to microseconds and ensure it's a proper number format
+  // This matches EOSIO's time_point format expectations
+  return Math.floor(date.getTime() * 1000).toString();
+};
 
   const formatEmissionRateForChain = (value: string): number => {
     const amount = parseFloat(value || '0');
