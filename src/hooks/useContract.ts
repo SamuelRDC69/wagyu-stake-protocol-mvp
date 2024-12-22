@@ -8,29 +8,32 @@ export const useContract = (session: Session | null) => {
   const [error, setError] = useState<string | null>(null)
 
   const handleTransaction = async (action: string, data: any) => {
-    if (!session) throw new Error('No session available')
-    
-    setLoading(true)
-    setError(null)
-    
-    try {
-      const result = await session.transact({
-        action: {
-          account: CONTRACT_ACCOUNT,
-          name: action,
-          authorization: [session.permissionLevel],
-          data: data
-        }
-      })
-      return result
-    } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Transaction failed'
-      setError(errorMsg)
-      throw new Error(errorMsg)
-    } finally {
-      setLoading(false)
-    }
+  if (!session) throw new Error('No session available')
+  
+  setLoading(true)
+  setError(null)
+  
+  try {
+    console.log('Sending transaction:', { action, data });
+    const result = await session.transact({
+      action: {
+        account: CONTRACT_ACCOUNT,
+        name: action,
+        authorization: [session.permissionLevel],
+        data: data
+      }
+    })
+    console.log('Transaction result:', result);
+    return result
+  } catch (e) {
+    console.error('Transaction error:', e);
+    const errorMsg = e instanceof Error ? e.message : 'Transaction failed'
+    setError(errorMsg)
+    throw new Error(errorMsg)
+  } finally {
+    setLoading(false)
   }
+}
 
   const getTableRows = async <T>(table: string, scope = CONTRACT_ACCOUNT): Promise<T[]> => {
     if (!session) throw new Error('No session available')
