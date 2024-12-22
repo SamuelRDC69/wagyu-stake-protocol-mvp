@@ -87,19 +87,24 @@ export const useContract = (session: Session | null) => {
     removeTier: async (tier: string) =>
       handleTransaction('removetier', { tier }),
     
-// Pool Management
-setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) =>
-  handleTransaction('setpool', {
+setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) => {
+  // Parse symbol
+  const [precision, symbol] = data.staked_token_symbol.split(',');
+  
+  return handleTransaction('setpool', {
     staked_token_contract: data.staked_token_contract,
-    staked_token_symbol: data.staked_token_symbol,
+    staked_token_symbol: {
+      precision: parseInt(precision),
+      symbol: symbol
+    },
     total_staked_weight: data.total_staked_weight,
     reward_pool: data.reward_pool,
-    emission_unit: data.emission_unit,
-    emission_rate: data.emission_rate,
-    emission_start_at: data.emission_start_at,      // Already in microseconds
-    emission_end_at: data.emission_end_at,          // Already in microseconds
-    last_emission_updated_at: data.emission_start_at // Use start time as last update
-  }),
+    emission_unit: parseInt(data.emission_unit.toString()),
+    emission_rate: parseInt(data.emission_rate.toString()),
+    emission_start_at: parseInt(data.emission_start_at),
+    emission_end_at: parseInt(data.emission_end_at),
+    last_emission_updated_at: parseInt(data.emission_start_at)
+  });
     
     setPoolActive: async (poolId: number, isActive: boolean) =>
       handleTransaction('setpoolact', { 
