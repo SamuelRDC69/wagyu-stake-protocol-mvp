@@ -12,7 +12,6 @@ interface PoolManagementProps {
   loading?: boolean;
 }
 
-
 const PoolManagement = ({ 
   pools, 
   onAddPool, 
@@ -32,7 +31,7 @@ const PoolManagement = ({
     },
     emission_unit: 86400,
     emission_rate: 0,
-    emission_start_at: new Date().toISOString(),
+    emission_start_at: new Date(Date.now() + 300000).toISOString(), // 5 minutes in future
     emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     last_emission_updated_at: new Date().toISOString()
   });
@@ -43,60 +42,94 @@ const PoolManagement = ({
     weight: ''
   });
 
-
   const validateEmissionRate = (value: string): boolean => {
     if (value === '' || value === '.') return true;
     const decimalRegex = /^\d*\.?\d{0,8}$/;
     return decimalRegex.test(value) && parseFloat(value) >= 0;
   };
 
-    const formatTimePoint = (dateString: string): string => {
-  return (new Date(dateString).getTime() * 1000).toString(); // Convert to microseconds
-};
+  const formatTimePoint = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Ensure date is in the future
+    if (date <= now) {
+      date.setMinutes(now.getMinutes() + 5);
+    }
+    
+    // Convert to microseconds and ensure it's a string
+    return (BigInt(date.getTime()) * BigInt(1000)).toString();
+  };
 
   const formatEmissionRateForChain = (value: string): number => {
     const amount = parseFloat(value || '0');
     return Math.floor(amount * 100000000); // 8 decimals precision
   };
 
+  const validatePoolData = (data: typeof newPool): void => {
+    const startDate = new Date(data.emission_start_at);
+    const endDate = new Date(data.emission_end_at);
+    const now = new Date();
+
+    if (startDate <= now) {
+      throw new Error('Emission start time must be in the future');
+    }
+
+    if (endDate <= startDate) {
+      throw new Error('Emission end time must be after start time');
+    }
+
+    if (!data.staked_token_symbol.includes(',')) {
+      throw new Error('Token symbol must include precision (e.g., 8,WAX)');
+    }
+  };
+
   const formatPoolData = (data: typeof newPool): Omit<PoolEntity, 'pool_id' | 'is_active'> => {
-  const symbol = data.staked_token_symbol.toUpperCase();
-  
-  const total_staked_weight = data.total_staked_weight.includes(' ') 
-    ? data.total_staked_weight.split(' ').map((part: string, i: number) => {
-        if (i === 0) return parseFloat(part).toFixed(8);
-        return part.toUpperCase();
-      }).join(' ')
-    : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
+    const symbol = data.staked_token_symbol.toUpperCase();
+    
+    const total_staked_weight = data.total_staked_weight.includes(' ') 
+      ? data.total_staked_weight.split(' ').map((part: string, i: number) => {
+          if (i === 0) return parseFloat(part).toFixed(8);
+          return part.toUpperCase();
+        }).join(' ')
+      : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
 
-  const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
-  const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
-  const formatted_reward_pool = {
-    quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
-    contract: data.reward_pool.contract || 'eosio.token'
-  };
+    const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
+    const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
+    const formatted_reward_pool = {
+      quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
+      contract: data.reward_pool.contract || 'eosio.token'
+    };
 
-  return {
-    staked_token_contract: data.staked_token_contract,
-    staked_token_symbol: symbol,
-    total_staked_quantity: '0.00000000 WAX',
-    total_staked_weight,
-    reward_pool: formatted_reward_pool,
-    emission_unit: data.emission_unit,
-    emission_rate: data.emission_rate,
-    emission_start_at: formatTimePoint(data.emission_start_at),
-    emission_end_at: formatTimePoint(data.emission_end_at),
-    last_emission_updated_at: formatTimePoint(data.last_emission_updated_at)
+    return {
+      staked_token_contract: data.staked_token_contract,
+      staked_token_symbol: symbol,
+      total_staked_quantity: '0.00000000 WAX',
+      total_staked_weight,
+      reward_pool: formatted_reward_pool,
+      emission_unit: data.emission_unit,
+      emission_rate: data.emission_rate,
+      emission_start_at: formatTimePoint(data.emission_start_at),
+      emission_end_at: formatTimePoint(data.emission_end_at),
+      last_emission_updated_at: formatTimePoint(data.last_emission_updated_at)
+    };
   };
-};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      // Validate data first
+      validatePoolData(newPool);
+      console.log('Pool data validation passed');
+
       const formattedData = formatPoolData(newPool);
+      console.log('Formatted pool data:', formattedData);
+
       await onAddPool(formattedData);
+      console.log('Pool created successfully');
       
+      // Reset form
       setNewPool({
         staked_token_contract: '',
         staked_token_symbol: '',
@@ -108,13 +141,14 @@ const PoolManagement = ({
         },
         emission_unit: 86400,
         emission_rate: 0,
-        emission_start_at: new Date().toISOString(),
+        emission_start_at: new Date(Date.now() + 300000).toISOString(), // 5 minutes in future
         emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         last_emission_updated_at: new Date().toISOString()
       });
       setEmissionRateInput('0.00000000');
     } catch (e) {
-      console.error('Error formatting pool data:', e);
+      console.error('Error creating pool:', e);
+      alert(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
