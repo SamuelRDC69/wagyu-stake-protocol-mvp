@@ -12,6 +12,7 @@ interface PoolManagementProps {
   loading?: boolean;
 }
 
+
 const PoolManagement = ({ 
   pools, 
   onAddPool, 
