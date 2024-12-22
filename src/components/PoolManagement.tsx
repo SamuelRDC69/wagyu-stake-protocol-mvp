@@ -67,23 +67,38 @@ const formatTimePoint = (dateString: string): string => {
     return Math.floor(amount * 100000000); // 8 decimals precision
   };
 
-  const validatePoolData = (data: typeof newPool): void => {
-    const startDate = new Date(data.emission_start_at);
-    const endDate = new Date(data.emission_end_at);
-    const now = new Date();
+const validatePoolData = (data: typeof newPool): void => {
+  const startDate = new Date(data.emission_start_at);
+  const endDate = new Date(data.emission_end_at);
+  const now = new Date();
 
-    if (startDate <= now) {
-      throw new Error('Emission start time must be in the future');
-    }
+  if (startDate <= now) {
+    throw new Error('Emission start time must be in the future');
+  }
 
-    if (endDate <= startDate) {
-      throw new Error('Emission end time must be after start time');
-    }
+  if (endDate <= startDate) {
+    throw new Error('Emission end time must be after start time');
+  }
 
-    if (!data.staked_token_symbol.includes(',')) {
-      throw new Error('Token symbol must include precision (e.g., 8,WAX)');
-    }
-  };
+  if (!data.staked_token_symbol.includes(',')) {
+    throw new Error('Token symbol must include precision (e.g., 8,WAX)');
+  }
+
+  // Validate time point conversion
+  const startTimePoint = formatTimePoint(data.emission_start_at);
+  const endTimePoint = formatTimePoint(data.emission_end_at);
+  
+  if (!startTimePoint || !endTimePoint) {
+    throw new Error('Invalid date format');
+  }
+
+  try {
+    parseInt(startTimePoint);
+    parseInt(endTimePoint);
+  } catch (e) {
+    throw new Error('Invalid time format');
+  }
+};
 
   const formatPoolData = (data: typeof newPool): Omit<PoolEntity, 'pool_id' | 'is_active'> => {
     const symbol = data.staked_token_symbol.toUpperCase();
@@ -116,19 +131,22 @@ const formatTimePoint = (dateString: string): string => {
     };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      // Validate data first
-      validatePoolData(newPool);
-      console.log('Pool data validation passed');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  try {
+    validatePoolData(newPool);
+    console.log('Pool data validation passed');
 
-      const formattedData = formatPoolData(newPool);
-      console.log('Formatted pool data:', formattedData);
+    const formattedData = formatPoolData(newPool);
+    console.log('Formatted data to send:', {
+      ...formattedData,
+      emission_start_at: parseInt(formattedData.emission_start_at),
+      emission_end_at: parseInt(formattedData.emission_end_at),
+      last_emission_updated_at: parseInt(formattedData.emission_start_at)
+    });
 
-      await onAddPool(formattedData);
-      console.log('Pool created successfully');
+    await onAddPool(formattedData);
       
       // Reset form
       setNewPool({
@@ -147,11 +165,11 @@ const formatTimePoint = (dateString: string): string => {
         last_emission_updated_at: new Date().toISOString()
       });
       setEmissionRateInput('0.00000000');
-    } catch (e) {
-      console.error('Error creating pool:', e);
-      alert(e instanceof Error ? e.message : 'An error occurred');
-    }
-  };
+  } catch (e) {
+    console.error('Error creating pool:', e);
+    alert(e instanceof Error ? e.message : 'An error occurred');
+  }
+};
 
  return (
     <div className="bg-slate-800 rounded-lg p-6">
