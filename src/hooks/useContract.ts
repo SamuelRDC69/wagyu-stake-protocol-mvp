@@ -88,15 +88,12 @@ export const useContract = (session: Session | null) => {
       handleTransaction('removetier', { tier }),
     
 setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) => {
-  // Parse symbol
-  const [precision, symbol] = data.staked_token_symbol.split(',');
+  // Parse symbol properly
+  const [precision, symbolCode] = data.staked_token_symbol.split(',');
   
   return handleTransaction('setpool', {
     staked_token_contract: data.staked_token_contract,
-    staked_token_symbol: {
-      precision: parseInt(precision),
-      symbol: symbol
-    },
+    staked_token_symbol: symbolCode,  // Just send the symbol code
     total_staked_weight: data.total_staked_weight,
     reward_pool: data.reward_pool,
     emission_unit: parseInt(data.emission_unit.toString()),
@@ -105,7 +102,7 @@ setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) => {
     emission_end_at: parseInt(data.emission_end_at),
     last_emission_updated_at: parseInt(data.emission_start_at)
   });
-  },
+},
     
     setPoolActive: async (poolId: number, isActive: boolean) =>
       handleTransaction('setpoolact', { 
