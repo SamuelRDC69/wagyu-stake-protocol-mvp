@@ -88,12 +88,12 @@ export const useContract = (session: Session | null) => {
       handleTransaction('removetier', { tier }),
     
 setPool: async (data: Omit<PoolEntity, 'pool_id' | 'is_active'>) => {
-  // Parse symbol properly
+  // Parse symbol from "8,WAX" format to proper symbol format
   const [precision, symbolCode] = data.staked_token_symbol.split(',');
   
   return handleTransaction('setpool', {
     staked_token_contract: data.staked_token_contract,
-    staked_token_symbol: symbolCode,  // Just send the symbol code
+    staked_token_symbol: `${parseInt(precision)},${symbolCode}`,  // Proper EOSIO symbol format
     total_staked_weight: data.total_staked_weight,
     reward_pool: data.reward_pool,
     emission_unit: parseInt(data.emission_unit.toString()),
