@@ -1,6 +1,6 @@
 export const CONTRACTS = {
   STAKING: {
-    NAME: 'testingonstk',
+    NAME: 'stakingdapp1',
     TABLES: {
       POOLS: 'pools',
       STAKEDS: 'stakeds',
