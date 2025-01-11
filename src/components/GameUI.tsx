@@ -171,13 +171,24 @@ useEffect(() => {
       }
     };
 
+    // Optimistically update the UI first
+    if (playerStake) {
+      const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
+      setPlayerStake({
+        ...playerStake,
+        cooldown_end_at: newCooldownEnd,
+        last_claimed_at: new Date().toISOString()
+      });
+    }
+
     await session.transact({ actions: [action] });
-    // Wait a moment for blockchain to update
-    await delay(2000);
-    await refreshData();
+    // Refresh data in background
+    refreshData();
   } catch (error) {
     console.error('Claim error:', error);
     setError('Failed to claim rewards');
+    // Revert optimistic update by refreshing data
+    refreshData();
   }
 };
 
@@ -199,17 +210,39 @@ const handleStake = async (amount: string) => {
       }
     };
 
+    // Optimistically update the UI
+    const newStakedQuantity = playerStake 
+      ? (parseFloat(playerStake.staked_quantity) + parseFloat(formattedAmount)).toFixed(8) + ` ${symbol}`
+      : `${formattedAmount} ${symbol}`;
+      
+    const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
+    
+    setPlayerStake(prev => prev ? {
+      ...prev,
+      staked_quantity: newStakedQuantity,
+      cooldown_end_at: newCooldownEnd,
+      last_claimed_at: new Date().toISOString()
+    } : {
+      pool_id: selectedPool.pool_id,
+      staked_quantity: newStakedQuantity,
+      tier: 'bronze', // Will be updated by refresh
+      last_claimed_at: new Date().toISOString(),
+      cooldown_end_at: newCooldownEnd
+    });
+
     await session.transact({ actions: [action] });
-    await delay(2000);
-    await refreshData();
+    // Refresh data in background
+    refreshData();
   } catch (error) {
     console.error('Stake error:', error);
     setError('Failed to stake tokens');
+    // Revert optimistic update
+    refreshData();
   }
 };
 
 const handleUnstake = async (amount: string) => {
-  if (!session || !selectedPool) return;
+  if (!session || !selectedPool || !playerStake) return;
   
   try {
     const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
@@ -225,12 +258,30 @@ const handleUnstake = async (amount: string) => {
       }
     };
 
+    // Optimistically update the UI
+    const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
+    const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
+
+    if (newStakedAmount <= 0) {
+      // If unstaking everything, remove the stake entry
+      setPlayerStake(undefined);
+    } else {
+      setPlayerStake({
+        ...playerStake,
+        staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
+        cooldown_end_at: newCooldownEnd,
+        last_claimed_at: new Date().toISOString()
+      });
+    }
+
     await session.transact({ actions: [action] });
-    await delay(2000);
-    await refreshData();
+    // Refresh data in background
+    refreshData();
   } catch (error) {
     console.error('Unstake error:', error);
     setError('Failed to unstake tokens');
+    // Revert optimistic update
+    refreshData();
   }
 };
 
