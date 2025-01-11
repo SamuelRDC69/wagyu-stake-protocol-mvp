@@ -144,7 +144,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
           <CardTitle>Your Status</CardTitle>
           {stakedData && tierConfig && (
 <Badge 
-  variant={stakedData.tier.toLowerCase() as TierVariant}
+  variant={stakedData.tier.toLowerCase().replace(/\s+/g, '') as TierVariant}
   className={cn("animate-pulse", tierConfig?.color)}
 >
   {stakedData.tier}
