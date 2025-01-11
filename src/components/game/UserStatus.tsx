@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { CooldownTimer } from './CooldownTimer';
 import {
   Dialog,
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "../ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,16 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "../ui/alert-dialog";
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { TrendingDown, Timer, TrendingUp } from 'lucide-react';
-import { StakedEntity } from '@/lib/types/staked';
-import { ConfigEntity } from '@/lib/types/config';
-import { formatLastAction } from '@/lib/utils/dateUtils';
-import { formatTokenAmount, parseTokenString } from '@/lib/utils/tokenUtils';
-import { getTierConfig } from '@/lib/utils/tierUtils';
-import { cn } from '@/lib/utils';
+import { StakedEntity } from '../../lib/types/staked';
+import { ConfigEntity } from '../../lib/types/config';
+import { formatLastAction } from '../../lib/utils/dateUtils';
+import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils';
+import { getTierColor } from '../../lib/utils/tierUtils';
+import { cn } from '../../lib/utils';
 
 interface UserStatusProps {
   stakedData?: StakedEntity;
@@ -61,7 +61,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
 
   if (isLoading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-slate-700 rounded w-1/4" />
@@ -75,7 +75,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
 
   if (!config) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardContent className="p-6">
           <p className="text-center text-slate-400">Loading configuration...</p>
         </CardContent>
@@ -134,18 +134,15 @@ export const UserStatus: React.FC<UserStatusProps> = ({
     }
   };
 
-  const tierConfig = stakedData ? getTierConfig(stakedData.tier) : undefined;
-
   return (
     <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
-          {stakedData && tierConfig && (
+          {stakedData && (
             <Badge 
-              variant={stakedData.tier.toLowerCase().replace(' ', '-') as
-                'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange'}
-              className={cn("animate-pulse", tierConfig.color)}
+              variant={stakedData.tier.toLowerCase() as 'bronze' | 'silver' | 'gold'}
+              className={cn("animate-pulse", getTierColor(stakedData.tier))}
             >
               {stakedData.tier}
             </Badge>
@@ -159,14 +156,14 @@ export const UserStatus: React.FC<UserStatusProps> = ({
               <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Staked Amount</span>
-                  <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
+                  <span className="text-purple-200 font-medium">
                     {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Last Claim</span>
-                  <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
+                  <span className="text-purple-200 font-medium">
                     {formatLastAction(stakedData.last_claimed_at)}
                   </span>
                 </div>
@@ -190,7 +187,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
             <Button
               className={cn(
                 "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                tierConfig?.color
+                stakedData?.tier ? getTierColor(stakedData.tier) : "text-purple-200"
               )}
               onClick={() => setStakeDialogOpen(true)}
               disabled={isProcessing}
@@ -204,7 +201,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                 <Button
                   className={cn(
                     "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                    tierConfig?.color
+                    getTierColor(stakedData.tier)
                   )}
                   onClick={handleClaim}
                   disabled={isProcessing}
@@ -214,16 +211,16 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                 </Button>
 
                 <AlertDialog open={isConfirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-  <AlertDialogTrigger>
-    <Button
-      variant="destructive"
-      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
-      disabled={isProcessing}
-    >
-      <TrendingDown className="w-4 h-4 mr-2" />
-      Unstake
-    </Button>
-  </AlertDialogTrigger>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
+                      disabled={isProcessing}
+                    >
+                      <TrendingDown className="w-4 h-4 mr-2" />
+                      Unstake
+                    </Button>
+                  </AlertDialogTrigger>
                   <AlertDialogContent className="bg-slate-900 text-white border border-slate-700/50">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -284,7 +281,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                     disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
                     className={cn(
                       "ml-2 bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                      tierConfig?.color
+                      stakedData?.tier ? getTierColor(stakedData.tier) : "text-purple-200"
                     )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Stake'}
@@ -294,7 +291,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
+<Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
             <DialogContent className="bg-slate-900 text-white border border-slate-700/50">
               <DialogHeader>
                 <DialogTitle>Unstake Tokens</DialogTitle>
@@ -327,7 +324,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
                     disabled={isProcessing || !unstakeAmount || parseFloat(unstakeAmount) <= 0}
                     className={cn(
                       "ml-2 bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                      tierConfig?.color
+                      stakedData?.tier ? getTierColor(stakedData.tier) : "text-purple-200"
                     )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Unstake'}
