@@ -21,21 +21,35 @@ export const CooldownTimer: React.FC<CooldownTimerProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft(cooldownEndAt));
   const [progress, setProgress] = useState(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
+  
+  // Reset timer when cooldownEndAt changes
+  useEffect(() => {
+    setTimeLeft(calculateTimeLeft(cooldownEndAt));
+    setProgress(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
+  }, [cooldownEndAt, cooldownSeconds]);
 
   const updateTimer = useCallback(() => {
     const newTimeLeft = calculateTimeLeft(cooldownEndAt);
+    const newProgress = calculateCooldownProgress(cooldownEndAt, cooldownSeconds);
+    
     setTimeLeft(newTimeLeft);
-    setProgress(calculateCooldownProgress(cooldownEndAt, cooldownSeconds));
-    if (newTimeLeft === 0) {
+    setProgress(newProgress);
+
+    if (newTimeLeft === 0 && timeLeft !== 0) {
       onComplete?.();
     }
-  }, [cooldownEndAt, cooldownSeconds, onComplete]);
+  }, [cooldownEndAt, cooldownSeconds, onComplete, timeLeft]);
 
   useEffect(() => {
+    // Initial update
     updateTimer();
+    
+    // Start interval
     const interval = setInterval(updateTimer, 1000);
+    
+    // Cleanup interval on unmount or when cooldownEndAt changes
     return () => clearInterval(interval);
-  }, [updateTimer]);
+  }, [updateTimer, cooldownEndAt]);
 
   const ready = isActionReady(cooldownEndAt);
 
@@ -56,7 +70,7 @@ export const CooldownTimer: React.FC<CooldownTimerProps> = ({
       <Progress 
         value={progress} 
         className="h-1.5"
-        indicatorClassName={ready ? 'bg-green-500' : 'bg-yellow-500'}
+        color={ready ? 'bg-green-500' : 'bg-yellow-500'}
       />
       
       {ready && (
