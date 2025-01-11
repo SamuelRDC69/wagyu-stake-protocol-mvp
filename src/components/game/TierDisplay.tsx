@@ -72,7 +72,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   };
 
   const variant = stakedData.tier.toLowerCase().replace(' ', '-') as
-    'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange';
+    'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
   const progressColor = getProgressColor(stakedData.tier);
 
   return (
