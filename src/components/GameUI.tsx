@@ -225,10 +225,10 @@ setPlayerStake(prev => prev ? {
 } : {
   pool_id: selectedPool.pool_id,
   staked_quantity: newStakedQuantity,
-  tier: 'supplier', // Using your correct initial tier
+  tier: 'supplier', // Using the correct initial tier
   last_claimed_at: new Date().toISOString(),
   cooldown_end_at: newCooldownEnd,
-  owner: session.actor.toString() // Adding the required owner field
+  owner: session.actor.toString() // Required field
 });
 
     await session.transact({ actions: [action] });
