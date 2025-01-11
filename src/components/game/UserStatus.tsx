@@ -142,13 +142,12 @@ export const UserStatus: React.FC<UserStatusProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
           {stakedData && tierConfig && (
-            <Badge 
-              variant={stakedData.tier.toLowerCase().replace(' ', '-') as
-                'supplier' | 'merchant' | 'trader' | 'market-maker' | 'exchange'}
-              className={cn("animate-pulse", tierConfig.color)}
-            >
-              {stakedData.tier}
-            </Badge>
+<Badge 
+  variant={stakedData.tier.toLowerCase() as TierVariant}
+  className={cn("animate-pulse", tierConfig?.color)}
+>
+  {stakedData.tier}
+</Badge>
           )}
         </div>
       </CardHeader>
