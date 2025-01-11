@@ -217,18 +217,19 @@ const handleStake = async (amount: string) => {
       
     const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
     
-    setPlayerStake(prev => prev ? {
-      ...prev,
-      staked_quantity: newStakedQuantity,
-      cooldown_end_at: newCooldownEnd,
-      last_claimed_at: new Date().toISOString()
-    } : {
-      pool_id: selectedPool.pool_id,
-      staked_quantity: newStakedQuantity,
-      tier: 'bronze', // Will be updated by refresh
-      last_claimed_at: new Date().toISOString(),
-      cooldown_end_at: newCooldownEnd
-    });
+setPlayerStake(prev => prev ? {
+  ...prev,
+  staked_quantity: newStakedQuantity,
+  cooldown_end_at: newCooldownEnd,
+  last_claimed_at: new Date().toISOString()
+} : {
+  pool_id: selectedPool.pool_id,
+  staked_quantity: newStakedQuantity,
+  tier: 'supplier', // Using your correct initial tier
+  last_claimed_at: new Date().toISOString(),
+  cooldown_end_at: newCooldownEnd,
+  owner: session.actor.toString() // Adding the required owner field
+});
 
     await session.transact({ actions: [action] });
     // Refresh data in background
