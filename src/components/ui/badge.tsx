@@ -17,7 +17,7 @@ const badgeVariants = cva(
         supplier: "border-emerald-500/20 bg-emerald-500/10 text-emerald-500",
         merchant: "border-blue-500/20 bg-blue-500/10 text-blue-500",
         trader: "border-purple-500/20 bg-purple-500/10 text-purple-500",
-        "marketmkr": "border-amber-500/20 bg-amber-500/10 text-amber-500",
+        marketmkr: "border-amber-500/20 bg-amber-500/10 text-amber-500",
         exchange: "border-red-500/20 bg-red-500/10 text-red-500",
       },
     },
