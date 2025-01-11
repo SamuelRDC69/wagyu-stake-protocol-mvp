@@ -12,7 +12,6 @@ interface PoolStatsProps {
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
 
-  // Validation function from project knowledge
   const isValidPoolData = (data: any): data is PoolEntity => {
     return (
       data &&
@@ -30,20 +29,28 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     if (!poolData || !isValidPoolData(poolData)) return;
 
     const calculateCurrentRewards = () => {
-      // Get initial rewards from the pool
-      const [initialAmount] = poolData.reward_pool.quantity.split(' ');
-      const baseRewards = parseFloat(initialAmount);
-
-      // Calculate time elapsed since last emission update
-      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = new Date().getTime();
-      const elapsedSeconds = (currentTime - lastUpdate) / 1000;
-
-      // Calculate new emissions based on contract logic
-      const newEmissions = (elapsedSeconds / poolData.emission_unit) * poolData.emission_rate;
-      
-      // Return total current rewards (base + new emissions)
-      return Math.round((baseRewards + newEmissions) * 100000000) / 100000000;
+      try {
+        // Parse initial rewards from the pool maintaining precision
+        const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+        const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
+        
+        // Calculate time elapsed since last emission update
+        const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+        const currentTime = new Date().getTime();
+        const elapsedMilliseconds = currentTime - lastUpdate;
+        const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
+        
+        // Calculate emissions using integer arithmetic like the contract
+        const emissionPeriods = Math.floor(elapsedSeconds / poolData.emission_unit);
+        const emissionAmount = BigInt(emissionPeriods) * BigInt(poolData.emission_rate);
+        
+        // Convert back to floating point with proper precision
+        const totalAmount = Number(initialAmount + Number(emissionAmount));
+        return totalAmount / 100000000; // Convert back to 8 decimal places
+      } catch (error) {
+        console.error('Error calculating rewards:', error);
+        return 0;
+      }
     };
 
     // Set initial value
@@ -59,14 +66,14 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
 
   if (isLoading) {
     return (
-      <Card className="w-full crystal-bg group">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             {[1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
+              <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
                 <div className="w-8 h-8 bg-purple-500/20 rounded animate-pulse" />
                 <div className="space-y-2 flex-1">
                   <div className="h-4 bg-slate-700 rounded w-1/2 animate-pulse" />
@@ -83,7 +90,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
   if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
-      <Card className="w-full crystal-bg group">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
@@ -94,12 +101,11 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   }
 
-  // Format token string safely
   const formatTokenString = (value: string): { amount: string; symbol: string } => {
     try {
       const [amount, symbol = 'WAX'] = value.split(' ');
       return {
-        amount: parseFloat(amount).toFixed(8),
+        amount: parseFloat(amount).toFixed(8), // Maintain 8 decimal places
         symbol
       };
     } catch (e) {
@@ -111,18 +117,17 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     }
   };
 
-  // Parse values
   const totalStaked = formatTokenString(poolData.total_staked_quantity);
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
   return (
-    <Card className="w-full crystal-bg group">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Pool Statistics</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all">
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
             <Shield className="w-8 h-8 text-purple-500" />
             <div>
               <p className="text-sm text-slate-400">Total Staked</p>
@@ -131,7 +136,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all">
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
             <TrendingUp className="w-8 h-8 text-purple-500" />
             <div>
               <p className="text-sm text-slate-400">Rewards</p>
