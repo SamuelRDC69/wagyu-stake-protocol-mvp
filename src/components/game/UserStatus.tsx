@@ -30,6 +30,7 @@ import { formatLastAction } from '../../lib/utils/dateUtils';
 import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils';
 import { getTierConfig } from '../../lib/utils/tierUtils';
 import { cn } from '../../lib/utils';
+import { TierVariant } from '../../lib/types/tier';
 
 interface UserStatusProps {
   stakedData?: StakedEntity;
