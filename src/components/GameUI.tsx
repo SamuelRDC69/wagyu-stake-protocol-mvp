@@ -171,7 +171,9 @@ useEffect(() => {
       }
     };
 
-    // Optimistically update the UI first
+    await session.transact({ actions: [action] });
+    
+    // Update UI only after transaction succeeds
     if (playerStake) {
       const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
       setPlayerStake({
@@ -180,14 +182,11 @@ useEffect(() => {
         last_claimed_at: new Date().toISOString()
       });
     }
-
-    await session.transact({ actions: [action] });
-    // Refresh data in background
+    
     refreshData();
   } catch (error) {
     console.error('Claim error:', error);
     setError('Failed to claim rewards');
-    // Revert optimistic update by refreshing data
     refreshData();
   }
 };
@@ -210,34 +209,33 @@ const handleStake = async (amount: string) => {
       }
     };
 
-    // Optimistically update the UI
+    await session.transact({ actions: [action] });
+
+    // Update UI only after transaction succeeds
     const newStakedQuantity = playerStake 
       ? (parseFloat(playerStake.staked_quantity) + parseFloat(formattedAmount)).toFixed(8) + ` ${symbol}`
       : `${formattedAmount} ${symbol}`;
       
     const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
     
-setPlayerStake(prev => prev ? {
-  ...prev,
-  staked_quantity: newStakedQuantity,
-  cooldown_end_at: newCooldownEnd,
-  last_claimed_at: new Date().toISOString()
-} : {
-  pool_id: selectedPool.pool_id,
-  staked_quantity: newStakedQuantity,
-  tier: 'supplier', // Using the correct initial tier
-  last_claimed_at: new Date().toISOString(),
-  cooldown_end_at: newCooldownEnd,
-  owner: session.actor.toString() // Required field
-});
+    setPlayerStake(prev => prev ? {
+      ...prev,
+      staked_quantity: newStakedQuantity,
+      cooldown_end_at: newCooldownEnd,
+      last_claimed_at: new Date().toISOString()
+    } : {
+      pool_id: selectedPool.pool_id,
+      staked_quantity: newStakedQuantity,
+      tier: 'supplier',
+      last_claimed_at: new Date().toISOString(),
+      cooldown_end_at: newCooldownEnd,
+      owner: session.actor.toString()
+    });
 
-    await session.transact({ actions: [action] });
-    // Refresh data in background
     refreshData();
   } catch (error) {
     console.error('Stake error:', error);
     setError('Failed to stake tokens');
-    // Revert optimistic update
     refreshData();
   }
 };
@@ -259,12 +257,13 @@ const handleUnstake = async (amount: string) => {
       }
     };
 
-    // Optimistically update the UI
+    await session.transact({ actions: [action] });
+
+    // Update UI only after transaction succeeds
     const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
     const newCooldownEnd = new Date(Date.now() + (config?.cooldown_seconds_per_claim ?? 60) * 1000).toISOString();
 
     if (newStakedAmount <= 0) {
-      // If unstaking everything, remove the stake entry
       setPlayerStake(undefined);
     } else {
       setPlayerStake({
@@ -275,13 +274,10 @@ const handleUnstake = async (amount: string) => {
       });
     }
 
-    await session.transact({ actions: [action] });
-    // Refresh data in background
     refreshData();
   } catch (error) {
     console.error('Unstake error:', error);
     setError('Failed to unstake tokens');
-    // Revert optimistic update
     refreshData();
   }
 };
