@@ -1,29 +1,47 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { TierProgress } from '@/lib/types/tier';
-import { StakedEntity } from '@/lib/types/staked'; // Add this import
-import { getTierConfig } from '@/lib/utils/tierUtils';
+import { TierProgress, TierEntity } from '@/lib/types/tier';
+import { StakedEntity } from '@/lib/types/staked';
+import { getTierConfig, calculateSafeUnstakeAmount } from '@/lib/utils/tierUtils';
 import { formatNumber } from '@/lib/utils/formatUtils';
+import { parseTokenString } from '@/lib/utils/tokenUtils';
 import { cn } from '@/lib/utils';
 
 interface TierDisplayProps {
   tierProgress?: TierProgress;
   isUpgradeAvailable: boolean;
   isLoading?: boolean;
-  stakedData?: StakedEntity; // Add this prop
+  stakedData?: StakedEntity;
+  totalStaked?: string; // Add this prop for tier calculations
+  allTiers?: TierEntity[]; // Add this prop for tier calculations
 }
 
 export const TierDisplay: React.FC<TierDisplayProps> = ({
   tierProgress,
   isUpgradeAvailable,
   isLoading,
-  stakedData // Add this prop
+  stakedData,
+  totalStaked,
+  allTiers
 }) => {
+  // Calculate safe unstake amount
+  const safeUnstakeAmount = useMemo(() => {
+    if (!stakedData?.staked_quantity || !totalStaked || !allTiers || !tierProgress?.currentTier) {
+      return 0;
+    }
+    return calculateSafeUnstakeAmount(
+      stakedData.staked_quantity,
+      totalStaked,
+      allTiers,
+      tierProgress.currentTier
+    );
+  }, [stakedData, totalStaked, allTiers, tierProgress]);
+
   if (isLoading || !tierProgress || !stakedData) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg">
         <CardContent className="p-6">
           {isLoading ? (
             <div className="animate-pulse space-y-4">
@@ -39,41 +57,32 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  // Define tier progression
+  // Use the contract's tier progression
   const tierProgression = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'];
   
-  // Use the contract's tier
+  // Get tier config using the actual tier from staked data
   const tierConfig = getTierConfig(stakedData.tier);
   const TierIcon = tierConfig.icon;
 
-  // Find next tier in progression
+  // Find current position in progression
   const currentTierIndex = tierProgression.indexOf(stakedData.tier.toLowerCase());
   const nextTierName = currentTierIndex < tierProgression.length - 1 
     ? tierProgression[currentTierIndex + 1] 
     : null;
-
   const nextTierConfig = nextTierName ? getTierConfig(nextTierName) : null;
 
+  // Extract values from tier progress
   const { 
     currentStakedAmount, 
     totalAmountForNext,
     additionalAmountNeeded,
     symbol,
-    nextTier,
     progress,
     requiredForCurrent,
   } = tierProgress;
 
-  const safeUnstakeAmount = Math.max(0, currentStakedAmount - requiredForCurrent);
-
-  const getProgressColor = (tier: string): string => {
-    const config = getTierConfig(tier);
-    return config?.color || 'bg-purple-500';
-  };
-
-  const variant = stakedData.tier.toLowerCase().replace(' ', '-') as
+  const variant = stakedData.tier.toLowerCase().replace(/\s+/g, '') as
     'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
-  const progressColor = getProgressColor(stakedData.tier);
 
   return (
     <Card className="w-full crystal-bg group">
@@ -87,7 +96,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             {isUpgradeAvailable && (
               <Badge 
                 variant={variant}
-                className="animate-pulse ml-2"
+                className="animate-pulse ml-2 shine-effect"
               >
                 Tier Up Ready!
               </Badge>
@@ -111,39 +120,59 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               tierConfig.color.replace('text-', 'bg-')
             )}
           />
-          <div className="flex justify-between text-xs text-slate-400">
-            <span>Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}</span>
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-400">
+              Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}
+            </span>
+            <span className={cn(
+              "font-medium",
+              isUpgradeAvailable ? "text-green-400" : "text-slate-400"
+            )}>
+              {progress.toFixed(1)}%
+            </span>
           </div>
         </div>
 
-        {nextTier && typeof additionalAmountNeeded === 'number' && (
-          <div className="p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-            {nextTierName ? (
-              <>
-                <p className="text-slate-400 mb-2">Progress to {nextTierName}</p>
-                <div className="space-y-1">
-                  {totalAmountForNext && (
-                    <p className="text-sm text-slate-300">
-                      Total needed: {formatNumber(totalAmountForNext)} {symbol}
-                    </p>
-                  )}
-                  <p className={cn("font-medium", nextTierConfig?.color || tierConfig.color)}>
-                    {additionalAmountNeeded <= 0 ? (
-                      'Ready to Advance!'
-                    ) : (
-                      `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Currently staking {formatNumber(currentStakedAmount)} {symbol}
-                  </p>
+        {nextTierName && typeof additionalAmountNeeded === 'number' && (
+          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-slate-400">Progress to {nextTierName}</p>
+              {nextTierConfig && (
+                <div className={cn("p-2 rounded-lg", nextTierConfig.bgColor)}>
+                  <TierIcon className={cn("w-4 h-4", nextTierConfig.color)} />
                 </div>
-              </>
-            ) : (
-              <p className={cn("text-center font-medium", tierConfig.color)}>
-                Maximum Tier Reached!
+              )}
+            </div>
+            <div className="space-y-2">
+              {totalAmountForNext && (
+                <p className="text-sm text-slate-300">
+                  Total needed: {formatNumber(totalAmountForNext)} {symbol}
+                </p>
+              )}
+              <p className={cn(
+                "font-medium",
+                additionalAmountNeeded <= 0 ? "text-green-400" : nextTierConfig?.color
+              )}>
+                {additionalAmountNeeded <= 0 
+                  ? 'Ready to Advance!'
+                  : `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
+                }
               </p>
-            )}
+              <p className="text-xs text-slate-500">
+                Currently staking {formatNumber(currentStakedAmount)} {symbol}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentTierIndex === tierProgression.length - 1 && (
+          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 text-center">
+            <p className={cn("text-lg font-medium", tierConfig.color)}>
+              Maximum Tier Reached!
+            </p>
+            <p className="text-sm text-slate-400 mt-1">
+              Enjoying maximum staking rewards
+            </p>
           </div>
         )}
       </CardContent>
