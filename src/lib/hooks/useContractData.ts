@@ -1,135 +1,135 @@
-import { useState, useContext, useRef } from 'react';
-import { ContractKit } from '@wharfkit/contract';
-import { Name } from '@wharfkit/session';
-import { Serializer, Asset } from '@wharfkit/antelope';
+// src/lib/hooks/useContractData.ts
+import { useState, useContext, useCallback, useEffect } from 'react';
 import { WharfkitContext } from '../wharfkit/context';
-import { CONTRACTS } from '../wharfkit/contracts';
 import { PoolEntity } from '../types/pool';
 import { StakedEntity } from '../types/staked';
 import { TierEntity } from '../types/tier';
 import { ConfigEntity } from '../types/config';
 
-interface RawStakeData {
-  pool_id: Name;
-  staked_quantity: Asset;
-  tier: Name;
-  last_claimed_at: string;
-  cooldown_end_at: string;
-  owner?: string;
+// API endpoints
+const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
+
+// Default tiers (will be replaced with API data when available)
+const DEFAULT_TIERS: TierEntity[] = [
+  {
+    tier: "supplier",
+    tier_name: "Supplier",
+    weight: "1.0",
+    staked_up_to_percent: "0.5"
+  },
+  {
+    tier: "merchant",
+    tier_name: "Merchant",
+    weight: "1.05",
+    staked_up_to_percent: "2.5"
+  },
+  {
+    tier: "trader",
+    tier_name: "Trader",
+    weight: "1.10",
+    staked_up_to_percent: "5.0"
+  },
+  {
+    tier: "marketmkr",
+    tier_name: "Market Maker",
+    weight: "1.15",
+    staked_up_to_percent: "10.0"
+  },
+  {
+    tier: "exchange",
+    tier_name: "Exchange",
+    weight: "1.20",
+    staked_up_to_percent: "100.0"
+  }
+];
+
+// Default config (will be replaced with API data when available)
+const DEFAULT_CONFIG: ConfigEntity = {
+  maintenance: 0,
+  cooldown_seconds_per_claim: 60,
+  vault_account: "stakevault"
+};
+
+interface StakingData {
+  pools: PoolEntity[];
+  stakes: StakedEntity[];
+  tiers: TierEntity[];
+  config: ConfigEntity;
+}
+
+async function fetchFromAPI<T>(endpoint: string): Promise<T> {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`API fetch error for ${endpoint}:`, error);
+    throw error;
+  }
 }
 
 export function useContractData() {
   const { session } = useContext(WharfkitContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const lastFetchRef = useRef<number>(0);
-  const FETCH_COOLDOWN = 60000; // 60 seconds minimum between fetches
+  const [lastFetch, setLastFetch] = useState(0);
+  const FETCH_COOLDOWN = 5000; // 5 seconds minimum between fetches
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!session) return null;
     
     // Rate limiting
     const now = Date.now();
-    if (now - lastFetchRef.current < FETCH_COOLDOWN) {
+    if (now - lastFetch < FETCH_COOLDOWN) {
       return null;
     }
 
     setLoading(true);
     
     try {
-      lastFetchRef.current = now;
-      const contractKit = new ContractKit({
-        client: session.client
-      });
+      // Fetch pools data
+      const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
       
-      const contract = await contractKit.load(CONTRACTS.STAKING.NAME);
-      
-      // Get all table instances
-      const poolsTable = contract.table(CONTRACTS.STAKING.TABLES.POOLS);
-      const tiersTable = contract.table(CONTRACTS.STAKING.TABLES.TIERS);
-      const configTable = contract.table(CONTRACTS.STAKING.TABLES.CONFIG);
-      const stakesTable = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS);
+      // Fetch user staking data
+      const stakingResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
+        `/user/${session.actor.toString()}`
+      );
 
-      // Get scopes for stakes table
-      const scopesCursor = await stakesTable.scopes();
-      const scopes = await scopesCursor.all();
-      console.log("Scopes: ", scopes);
+      setLastFetch(now);
 
-      // Fetch all stakes data for each scope
-      const allStakesPromises = scopes.map(async (scope: any) => {
-        const table = contract.table(CONTRACTS.STAKING.TABLES.STAKEDS, scope.scope.toString());
-        const stakes = await table.all();
-        return stakes.map((stake: RawStakeData) => {
-          return {
-            pool_id: Number(stake.pool_id.toString()),
-            staked_quantity: stake.staked_quantity.toString(),
-            tier: stake.tier.toString(),
-            last_claimed_at: stake.last_claimed_at,
-            cooldown_end_at: stake.cooldown_end_at,
-            owner: scope.scope.toString()
-          };
-        });
-      });
-
-      // Fetch all data in parallel
-      const [poolsData, tiersData, configData, ...stakesData] = await Promise.all([
-        poolsTable.all(),
-        tiersTable.all(),
-        configTable.get(),
-        ...allStakesPromises
-      ]);
-
-      // Transform pools data
-      const pools: PoolEntity[] = poolsData.map(pool => ({
-        pool_id: Number(pool.pool_id.toString()),
-        staked_token_contract: pool.staked_token_contract.toString(),
-        total_staked_quantity: pool.total_staked_quantity.toString(),
-        total_staked_weight: pool.total_staked_weight.toString(),
-        reward_pool: {
-          quantity: pool.reward_pool.quantity.toString(),
-          contract: pool.reward_pool.contract.toString()
-        },
-        emission_unit: Number(pool.emission_unit),
-        emission_rate: Number(pool.emission_rate),
-        last_emission_updated_at: pool.last_emission_updated_at.toString(),
-        is_active: Number(pool.is_active)
-      }));
-
-      // Transform tiers data
-      const tiers: TierEntity[] = tiersData.map(tier => ({
-        tier: tier.tier.toString(),
-        tier_name: tier.tier_name,
-        weight: tier.weight.toString(),
-        staked_up_to_percent: tier.staked_up_to_percent.toString()
-      }));
-
-      // Transform config data
-      const config: ConfigEntity = {
-        maintenance: Number(configData?.maintenance),
-        cooldown_seconds_per_claim: Number(configData?.cooldown_seconds_per_claim),
-        vault_account: configData?.vault_account.toString()
+      // Return combined data
+      const stakingData: StakingData = {
+        pools: poolsResponse.pools,
+        stakes: stakingResponse.stakingDetails,
+        tiers: DEFAULT_TIERS,
+        config: DEFAULT_CONFIG
       };
 
-      // Flatten and transform stakes data
-      const stakes = stakesData.flat();
-
-      console.log('Transformed data:', { pools, stakes, tiers, config });
-
-      return {
-        pools,
-        stakes,
-        tiers,
-        config
-      };
+      return stakingData;
 
     } catch (error: unknown) {
-      console.error('Error details:', error);
-      setError(error instanceof Error ? error : new Error('An unknown error occurred'));
+      console.error('Error fetching data:', error);
+      setError(error instanceof Error ? error : new Error('Unknown error occurred'));
       return null;
     } finally {
       setLoading(false);
     }
-  };
+  }, [session, lastFetch]);
+
+  // Set up automatic refresh when session exists
+  useEffect(() => {
+    if (!session) return;
+
+    // Initial fetch
+    fetchData();
+
+    // Set up periodic refresh
+    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [session, fetchData]);
 
   return {
     fetchData,
