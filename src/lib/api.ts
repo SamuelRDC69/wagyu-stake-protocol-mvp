@@ -27,15 +27,48 @@ class APIError extends Error {
 
 async function fetchAPI<T>(endpoint: string): Promise<T> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    console.log(`Fetching from: ${API_BASE_URL}${endpoint}`);
+    
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'omit', // Don't send credentials
+      cache: 'no-cache', // Don't use cache
+    });
     
     if (!response.ok) {
+      console.error(`API Error Response:`, {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
       throw new APIError(`API Error: ${response.statusText}`, response.status);
     }
 
-    const data = await response.json();
-    return data as T;
+    const text = await response.text(); // Get response as text first
+    console.log('API Response text:', text);
+
+    try {
+      const data = JSON.parse(text);
+      console.log('Parsed API Response:', data);
+      return data as T;
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      throw new Error(`Failed to parse API response: ${parseError.message}`);
+    }
+
   } catch (error) {
+    console.error('Detailed API Error:', {
+      error,
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
     if (error instanceof APIError) {
       throw error;
     }
@@ -44,52 +77,35 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
 }
 
 export async function fetchPools(): Promise<PoolEntity[]> {
-  const response = await fetchAPI<PoolsResponse>('/pools');
-  return response.pools;
+  try {
+    const response = await fetchAPI<PoolsResponse>('/pools');
+    console.log('Pools response:', response);
+    if (!response.pools) {
+      console.error('No pools data in response:', response);
+      return [];
+    }
+    return response.pools;
+  } catch (error) {
+    console.error('Error fetching pools:', error);
+    return []; // Return empty array instead of throwing
+  }
 }
 
 export async function fetchUserStaking(username: string): Promise<StakedEntity[]> {
   if (!username) {
     return [];
   }
-  const response = await fetchAPI<UserStakingResponse>(`/user/${username}`);
-  return response.stakingDetails;
-}
-
-// Add websocket connection for real-time updates if needed
-let ws: WebSocket | null = null;
-
-export function connectWebSocket(onMessage: (data: any) => void): void {
-  if (ws) {
-    ws.close();
-  }
-
-  ws = new WebSocket('wss://maestrobeatz.servegame.com:3003/kek-staking/ws');
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      onMessage(data);
-    } catch (error) {
-      console.error('WebSocket message parsing error:', error);
+  try {
+    const response = await fetchAPI<UserStakingResponse>(`/user/${username}`);
+    console.log('User staking response:', response);
+    if (!response.stakingDetails) {
+      console.error('No staking details in response:', response);
+      return [];
     }
-  };
-
-  ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
-
-  ws.onclose = () => {
-    console.log('WebSocket connection closed');
-    // Attempt to reconnect after 5 seconds
-    setTimeout(() => connectWebSocket(onMessage), 5000);
-  };
-}
-
-export function disconnectWebSocket(): void {
-  if (ws) {
-    ws.close();
-    ws = null;
+    return response.stakingDetails;
+  } catch (error) {
+    console.error('Error fetching user staking:', error);
+    return []; // Return empty array instead of throwing
   }
 }
 
@@ -118,6 +134,7 @@ export function useStakingData(username: string | undefined) {
       setData({ pools, userStakes });
       setError(null);
     } catch (err) {
+      console.error('Error in useStakingData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
     } finally {
       setLoading(false);
@@ -126,20 +143,6 @@ export function useStakingData(username: string | undefined) {
 
   useEffect(() => {
     refreshData();
-
-    // Set up WebSocket connection
-    connectWebSocket((data) => {
-      if (data.type === 'pool_update') {
-        setData(prev => ({
-          ...prev,
-          pools: data.pools
-        }));
-      }
-    });
-
-    return () => {
-      disconnectWebSocket();
-    };
   }, [username, refreshData]);
 
   return {
