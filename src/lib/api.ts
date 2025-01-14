@@ -1,4 +1,5 @@
 // src/lib/api.ts
+import React, { useState, useCallback, useEffect } from 'react';
 import { PoolEntity } from './types/pool';
 import { StakedEntity } from './types/staked';
 
@@ -94,17 +95,17 @@ export function disconnectWebSocket(): void {
 
 // Custom hook for managing stake data
 export function useStakingData(username: string | undefined) {
-  const [data, setData] = React.useState<{
+  const [data, setData] = useState<{
     pools: PoolEntity[];
     userStakes: StakedEntity[];
   }>({
     pools: [],
     userStakes: []
   });
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const refreshData = React.useCallback(async () => {
+  const refreshData = useCallback(async () => {
     if (!username) return;
     
     setLoading(true);
@@ -123,7 +124,7 @@ export function useStakingData(username: string | undefined) {
     }
   }, [username]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     refreshData();
 
     // Set up WebSocket connection
@@ -139,7 +140,7 @@ export function useStakingData(username: string | undefined) {
     return () => {
       disconnectWebSocket();
     };
-  }, [username]);
+  }, [username, refreshData]);
 
   return {
     ...data,
