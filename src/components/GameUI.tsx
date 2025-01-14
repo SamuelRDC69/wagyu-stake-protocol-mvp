@@ -1,4 +1,3 @@
-// src/components/GameUI.tsx
 import React, { useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { Crown, 
   Sword, 
