@@ -49,18 +49,20 @@ interface NavItem {
   id: string;
 }
 
+interface GameDataState {
+  pools: PoolEntity[];
+  stakes: StakedEntity[];
+  tiers: TierEntity[];
+  config: ConfigEntity | undefined;
+}
+
 const GameUI: React.FC = () => {
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>();
   const [error, setError] = useState<string | null>(null);
   const { fetchData, loading } = useContractData();
-  const [gameData, setGameData] = useState<{
-    pools: PoolEntity[];
-    stakes: StakedEntity[];
-    tiers: TierEntity[];
-    config: ConfigEntity | undefined;
-  }>({
+  const [gameData, setGameData] = useState<GameDataState>({
     pools: [],
     stakes: [],
     tiers: [],
@@ -126,7 +128,6 @@ const GameUI: React.FC = () => {
     };
   }, [session, loadData]);
 
-  // Chain interaction handlers
   const handleClaim = async () => {
     if (!session || !selectedPool) return;
     
@@ -151,7 +152,7 @@ const GameUI: React.FC = () => {
         
         setGameData(prev => ({
           ...prev,
-          stakes: prev.stakes.map(stake => 
+          stakes: prev.stakes.map((stake: StakedEntity) =>
             stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
               ? {
                   ...stake,
@@ -163,12 +164,11 @@ const GameUI: React.FC = () => {
         }));
       }
       
-      // Refresh data after a short delay
-      setTimeout(loadData, 2000);
+      await loadData();
     } catch (error) {
       console.error('Claim error:', error);
       setError('Failed to claim rewards');
-      loadData();
+      await loadData();
     }
   };
 
@@ -205,7 +205,7 @@ const GameUI: React.FC = () => {
         setGameData(prev => ({
           ...prev,
           stakes: playerStake
-            ? prev.stakes.map(stake =>
+            ? prev.stakes.map((stake: StakedEntity) =>
                 stake.pool_id === selectedPool.pool_id && stake.owner === session?.actor.toString()
                   ? {
                       ...stake,
@@ -226,11 +226,11 @@ const GameUI: React.FC = () => {
         }));
       }
 
-      setTimeout(loadData, 2000);
+      await loadData();
     } catch (error) {
       console.error('Stake error:', error);
       setError('Failed to stake tokens');
-      loadData();
+      await loadData();
     }
   };
 
@@ -256,37 +256,41 @@ const GameUI: React.FC = () => {
       // Optimistic update
       const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
       
-      setGameData(prev => ({
-        ...prev,
-        stakes: newStakedAmount <= 0
-          ? prev.stakes.filter(stake => 
-              stake.pool_id !== playerStake.pool_id || 
-              stake.owner !== session?.actor.toString()
-            )
-          : prev.stakes.map(stake =>
-              stake.pool_id === playerStake.pool_id && 
-              stake.owner === session?.actor.toString()
-                ? {
-                    ...stake,
-                    staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
-                    cooldown_end_at: new Date(
-                      Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
-                    ).toISOString(),
-                    last_claimed_at: new Date().toISOString()
-                  }
-                : stake
-            )
-      }));
+      if (newStakedAmount <= 0) {
+        setGameData(prev => ({
+          ...prev,
+          stakes: prev.stakes.filter((stake: StakedEntity) => 
+            stake.pool_id !== playerStake.pool_id || 
+            stake.owner !== session?.actor.toString()
+          )
+        }));
+      } else {
+        setGameData(prev => ({
+          ...prev,
+          stakes: prev.stakes.map((stake: StakedEntity) =>
+            stake.pool_id === playerStake.pool_id && 
+            stake.owner === session?.actor.toString()
+              ? {
+                  ...stake,
+                  staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
+                  cooldown_end_at: new Date(
+                    Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
+                  ).toISOString(),
+                  last_claimed_at: new Date().toISOString()
+                }
+              : stake
+          )
+        }));
+      }
 
-      setTimeout(loadData, 2000);
+      await loadData();
     } catch (error) {
       console.error('Unstake error:', error);
       setError('Failed to unstake tokens');
-      loadData();
+      await loadData();
     }
   };
 
-  // Authentication handlers
   const handleLogin = async () => {
     try {
       const response = await sessionKit.login();
@@ -304,7 +308,6 @@ const GameUI: React.FC = () => {
     }
   };
 
-  // Navigation
   const navItems: NavItem[] = [
     { icon: Crown, label: 'Kingdom', id: 'kingdom' },
     { icon: Users, label: 'Guild', id: 'guild' },
@@ -343,8 +346,7 @@ const GameUI: React.FC = () => {
     }
   }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
 
-
-  // Render appropriate content based on active tab
+  // Render content based on active tab
   const renderContent = () => {
     if (!session && activeTab !== 'leaderboard') {
       return (
@@ -366,7 +368,7 @@ const GameUI: React.FC = () => {
               <Select 
                 onValueChange={(value) => {
                   try {
-                    const pool = pools.find(p => p.pool_id === parseInt(value));
+                    const pool = gameData.pools.find(p => p.pool_id === parseInt(value));
                     setSelectedPool(pool);
                     setError(null);
                   } catch (error) {
@@ -381,7 +383,7 @@ const GameUI: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-white/5 backdrop-blur-xl border-purple-500/20">
                   <div className="py-2">
-                    {pools.map((pool) => {
+                    {gameData.pools.map((pool: PoolEntity) => {
                       try {
                         const { symbol } = parseTokenString(pool.total_staked_quantity);
                         return (
@@ -417,20 +419,22 @@ const GameUI: React.FC = () => {
                       tierProgress={tierProgress}
                       isUpgradeAvailable={canUpgradeTier}
                       stakedData={playerStake}
+                      totalStaked={selectedPool.total_staked_quantity}
+                      allTiers={gameData.tiers}
                     />
                   )}
                   
-                  {config && (
-  <UserStatus 
-    stakedData={playerStake}
-    config={config}
-    onCooldownComplete={refreshData}  // Add this prop
-    onClaim={handleClaim}
-    onUnstake={handleUnstake}
-    onStake={handleStake}
+                  {gameData.config && (
+                    <UserStatus 
+                      stakedData={playerStake}
+                      config={gameData.config}
+                      onCooldownComplete={loadData}
+                      onClaim={handleClaim}
+                      onUnstake={handleUnstake}
+                      onStake={handleStake}
     poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-  />
-)}
+                    />
+                  )}
 
                   <RewardsChart poolData={selectedPool} />
                 </div>
@@ -472,93 +476,91 @@ const GameUI: React.FC = () => {
     }
   };
 
-  // In GameUI.tsx, update the return statement:
-
-return (
-  <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
-    {/* Header */}
-    <div className="relative crystal-bg py-4 border-b border-purple-500/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
-            Stakeland
-          </h1>
-          
-          {session ? (
-            <div className="flex items-center gap-4">
-              <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
-                <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
-                <span className="text-purple-200 font-medium">
-                  {session.actor.toString()}
-                </span>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
+      {/* Header */}
+      <div className="relative crystal-bg py-4 border-b border-purple-500/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
+              Stakeland
+            </h1>
+            
+            {session ? (
+              <div className="flex items-center gap-4">
+                <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
+                  <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
+                  <span className="text-purple-200 font-medium">
+                    {session.actor.toString()}
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
               </div>
+            ) : (
               <Button 
                 variant="outline" 
                 className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
-                onClick={handleLogout}
+                onClick={handleLogin}
               >
-                Logout
+                Connect Wallet
               </Button>
-            </div>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
-              onClick={handleLogin}
-            >
-              Connect Wallet
-            </Button>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Main Content */}
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
-      <div className="space-y-6">
-        {renderContent()}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
+        <div className="space-y-6">
+          {renderContent()}
+        </div>
       </div>
-    </div>
 
-    {/* Bottom Navigation */}
-    <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
-      <div className="max-w-lg mx-auto">
-        <nav className="flex justify-around p-4">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={cn(
-                "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all",
-                activeTab === item.id 
-                  ? "bg-slate-800/50 border border-purple-500/20" 
-                  : "hover:bg-slate-800/30",
-                activeTab === item.id 
-                  ? "text-purple-200" 
-                  : "text-slate-400 hover:text-purple-200"
-              )}
-            >
-              <item.icon className={cn(
-                "w-5 h-5",
-                activeTab === item.id 
-                  ? "text-purple-400" 
-                  : "text-slate-500"
-              )} />
-              <span className="text-xs font-medium">{item.label}</span>
-            </button>
-          ))}
-        </nav>
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 crystal-bg border-t border-purple-500/20">
+        <div className="max-w-lg mx-auto">
+          <nav className="flex justify-around p-4">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all",
+                  activeTab === item.id 
+                    ? "bg-slate-800/50 border border-purple-500/20" 
+                    : "hover:bg-slate-800/30",
+                  activeTab === item.id 
+                    ? "text-purple-200" 
+                    : "text-slate-400 hover:text-purple-200"
+                )}
+              >
+                <item.icon className={cn(
+                  "w-5 h-5",
+                  activeTab === item.id 
+                    ? "text-purple-400" 
+                    : "text-slate-500"
+                )} />
+                <span className="text-xs font-medium">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
-    </div>
 
-    {/* Error Toast */}
-    {error && (
-      <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg border border-red-400/50">
-        {error}
-      </div>
-    )}
-  </div>
-);
+      {/* Error Toast */}
+      {error && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg border border-red-400/50">
+          {error}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default GameUI;
