@@ -33,7 +33,7 @@ import { cn } from '../../lib/utils';
 import { TierVariant } from '../../lib/types/tier';
 
 interface UserStatusProps {
-  stakedData?: StakedEntity;
+  stakedData?: StakedEntity; // From API
   config?: ConfigEntity;
   onCooldownComplete?: () => void;
   onClaim: () => Promise<void>;
@@ -41,6 +41,8 @@ interface UserStatusProps {
   onStake: (amount: string) => Promise<void>;
   poolSymbol: string;
   isLoading?: boolean;
+  // Add tier info
+  tierProgress?: TierProgress; // Pass tier calculations from parent
 }
 
 export const UserStatus: React.FC<UserStatusProps> = ({
