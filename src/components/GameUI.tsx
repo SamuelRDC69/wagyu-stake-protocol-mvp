@@ -317,9 +317,18 @@ const GameUI: React.FC = () => {
   ];
 
   // Tier calculations
+  // Calculate tier progress and upgrade availability
   const tierProgress = useMemo(() => {
     if (!playerStake || !selectedPool || !gameData.tiers.length) return null;
     try {
+      // Use determineTier from tierUtils to get current tier first
+      const currentTier = determineTier(
+        playerStake.staked_quantity,
+        selectedPool.total_staked_quantity,
+        gameData.tiers
+      );
+
+      // Then calculate full progress
       return calculateTierProgress(
         playerStake.staked_quantity,
         selectedPool.total_staked_quantity,
@@ -333,19 +342,13 @@ const GameUI: React.FC = () => {
 
   const canUpgradeTier = useMemo(() => {
     if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
-    try {
-      return isTierUpgradeAvailable(
-        playerStake.staked_quantity,
-        selectedPool.total_staked_quantity,
-        tierProgress.currentTier,
-        gameData.tiers
-      );
-    } catch (error) {
-      console.error('Error calculating upgrade availability:', error);
-      return false;
-    }
+    return isTierUpgradeAvailable(
+      playerStake.staked_quantity,
+      selectedPool.total_staked_quantity,
+      tierProgress.currentTier,
+      gameData.tiers
+    );
   }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
-
   // Render content based on active tab
   const renderContent = () => {
     if (!session && activeTab !== 'leaderboard') {
