@@ -45,8 +45,7 @@ interface UserStatusProps {
   onStake: (amount: string) => Promise<void>;
   poolSymbol: string;
   isLoading?: boolean;
-  // Add tier info
-  tierProgress?: TierProgress; // Pass tier calculations from parent
+  tierProgress?: TierProgress | null; // Allow null
 }
 
 export const UserStatus: React.FC<UserStatusProps> = ({
