@@ -9,7 +9,7 @@ import { ConfigEntity } from '../types/config';
 // API endpoints
 const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
 
-// Default tiers (will be replaced with API data when available)
+// Default tiers
 const DEFAULT_TIERS: TierEntity[] = [
   {
     tier: "supplier",
@@ -43,7 +43,6 @@ const DEFAULT_TIERS: TierEntity[] = [
   }
 ];
 
-// Default config (will be replaced with API data when available)
 const DEFAULT_CONFIG: ConfigEntity = {
   maintenance: 0,
   cooldown_seconds_per_claim: 60,
@@ -58,49 +57,42 @@ interface StakingData {
 }
 
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  console.log('Fetching from:', fullUrl);
+  
   try {
-    console.log(`Fetching from: ${API_BASE_URL}${endpoint}`);
-    
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(fullUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      mode: 'cors',
-      credentials: 'omit',
-      cache: 'no-cache',
+      mode: 'cors'
     });
 
     if (!response.ok) {
-      console.error('API Error Response:', {
+      console.error('API Response not ok:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url
       });
-      throw new Error(`API Error: ${response.statusText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const text = await response.text();
-    console.log('API Response text:', text);
+    console.log('Raw response:', text);
 
-    try {
-      const data = JSON.parse(text);
-      console.log('Parsed API Response:', data);
-      return data as T;
-    } catch (err) {
-      const parseError = err as Error;
-      console.error('JSON Parse Error:', parseError.message);
-      throw new Error(`Failed to parse API response: ${parseError.message}`);
-    }
+    const data = JSON.parse(text);
+    console.log('Parsed data:', data);
+    return data;
   } catch (err) {
-    const error = err as Error;
-    console.error(`API fetch error for ${endpoint}:`, {
-      message: error.message,
-      name: error.name,
-      stack: error.stack
+    console.error('Detailed fetch error:', {
+      error: err,
+      url: fullUrl,
+      message: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined
     });
-    throw error;
+    throw err;
   }
 }
 
@@ -109,12 +101,11 @@ export function useContractData() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastFetch, setLastFetch] = useState(0);
-  const FETCH_COOLDOWN = 5000; // 5 seconds minimum between fetches
+  const FETCH_COOLDOWN = 5000;
 
   const fetchData = useCallback(async () => {
     if (!session) return null;
-    
-    // Rate limiting
+
     const now = Date.now();
     if (now - lastFetch < FETCH_COOLDOWN) {
       return null;
@@ -125,33 +116,44 @@ export function useContractData() {
     try {
       console.log('Fetching data for user:', session.actor.toString());
       
-      // Fetch pools data
-      const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
-      console.log('Pools response:', poolsResponse);
+      // Fetch pools data with better error handling
+      let poolsResponse;
+      try {
+        poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
+        console.log('Pools response:', poolsResponse);
+      } catch (err) {
+        console.error('Failed to fetch pools:', err);
+        poolsResponse = { pools: [] };
+      }
       
-      // Fetch user staking data
-      const stakingResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
-        `/user/${session.actor.toString()}`
-      );
-      console.log('Staking response:', stakingResponse);
+      // Fetch user staking data with better error handling
+      let stakingResponse;
+      try {
+        stakingResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
+          `/user/${session.actor.toString()}`
+        );
+        console.log('Staking response:', stakingResponse);
+      } catch (err) {
+        console.error('Failed to fetch staking details:', err);
+        stakingResponse = { stakingDetails: [] };
+      }
 
       setLastFetch(now);
 
       // Return combined data
       const stakingData: StakingData = {
-        pools: poolsResponse.pools,
-        stakes: stakingResponse.stakingDetails,
+        pools: poolsResponse.pools || [],
+        stakes: stakingResponse.stakingDetails || [],
         tiers: DEFAULT_TIERS,
         config: DEFAULT_CONFIG
       };
 
       return stakingData;
-
     } catch (err) {
-      const error = err as Error;
-      console.error('Error fetching data:', error.message);
-      setError(error);
-      // Return default data instead of null
+      console.error('Error in fetchData:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      
+      // Return default data even on error
       return {
         pools: [],
         stakes: [],
@@ -167,11 +169,8 @@ export function useContractData() {
   useEffect(() => {
     if (!session) return;
 
-    // Initial fetch
     fetchData();
-
-    // Set up periodic refresh
-    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
 
     return () => clearInterval(interval);
   }, [session, fetchData]);
