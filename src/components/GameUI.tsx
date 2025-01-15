@@ -429,14 +429,15 @@ const GameUI: React.FC = () => {
                   
                   {gameData.config && (
                     <UserStatus 
-                      stakedData={playerStake}
-                      config={gameData.config}
-                      onCooldownComplete={loadData}
-                      onClaim={handleClaim}
-                      onUnstake={handleUnstake}
-                      onStake={handleStake}
-    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                    />
+  stakedData={playerStake}
+  config={gameData.config}
+  onCooldownComplete={loadData}
+  onClaim={handleClaim}
+  onUnstake={handleUnstake}
+  onStake={handleStake}
+  poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+  tierProgress={tierProgress} // Add this
+/>
                   )}
 
                   <RewardsChart poolData={selectedPool} />
