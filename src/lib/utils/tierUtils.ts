@@ -7,6 +7,19 @@ import { cn } from '@/lib/utils';
 const FEE_RATE = 0.003; // 0.3% fee as per contract
 const PRECISION = 100000000; // 8 decimal places for WAX
 
+// Tier progression order matching contract
+const TIER_PROGRESSION = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'] as const;
+
+// Sort tiers to match progression
+const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
+  return [...tiers].sort((a, b) => 
+    TIER_PROGRESSION.indexOf(a.tier.toLowerCase()) - 
+    TIER_PROGRESSION.indexOf(b.tier.toLowerCase())
+  );
+};
+
+// Add this to the top of your existing tierUtils.ts, keeping all other functions the same
+
 // Tier configuration with styling and icons
 export const TIER_CONFIG = {
   supplier: {
