@@ -73,7 +73,7 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
     });
 
     if (!response.ok) {
-      console.error(`API Error Response:`, {
+      console.error('API Error Response:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url
@@ -88,12 +88,18 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
       const data = JSON.parse(text);
       console.log('Parsed API Response:', data);
       return data as T;
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
+    } catch (err) {
+      const parseError = err as Error;
+      console.error('JSON Parse Error:', parseError.message);
       throw new Error(`Failed to parse API response: ${parseError.message}`);
     }
-  } catch (error) {
-    console.error(`API fetch error for ${endpoint}:`, error);
+  } catch (err) {
+    const error = err as Error;
+    console.error(`API fetch error for ${endpoint}:`, {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     throw error;
   }
 }
@@ -141,9 +147,10 @@ export function useContractData() {
 
       return stakingData;
 
-    } catch (error: unknown) {
-      console.error('Error fetching data:', error);
-      setError(error instanceof Error ? error : new Error('Unknown error occurred'));
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error fetching data:', error.message);
+      setError(error);
       // Return default data instead of null
       return {
         pools: [],
