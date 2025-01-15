@@ -41,7 +41,11 @@ import { ConfigEntity } from '../lib/types/config';
 
 // Utils
 import { parseTokenString } from '../lib/utils/tokenUtils';
-import { calculateTierProgress, isTierUpgradeAvailable } from '../lib/utils/tierUtils';
+import { 
+  calculateTierProgress, 
+  isTierUpgradeAvailable, 
+  determineTier 
+} from '../lib/utils/tierUtils';
 
 interface NavItem {
   icon: React.ComponentType<any>;
