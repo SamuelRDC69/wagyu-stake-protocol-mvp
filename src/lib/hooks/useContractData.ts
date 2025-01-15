@@ -59,80 +59,25 @@ interface StakingData {
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log(`[API] Starting fetch from: ${fullUrl}`);
-  console.log(`[API] Current timestamp: ${new Date().toISOString()}`);
   
   try {
-    console.log('[API] Setting up fetch request...');
-    const requestInit: RequestInit = {
-      method: 'GET',
-      headers: {
-        'Accept': '*/*',
-        'Access-Control-Allow-Origin': '*'
-      },
-      mode: 'no-cors', // Changed to no-cors
-      cache: 'no-cache',
-      credentials: 'omit'
-    };
-    console.log('[API] Request configuration:', requestInit);
-
-    console.log('[API] Initiating fetch...');
-    const response = await fetch(fullUrl, requestInit);
-    console.log('[API] Response received:', response);
-
-    if (response.type === 'opaque') {
-      // no-cors mode returns opaque response, try to fetch again with CORS
-      console.log('[API] Opaque response received, trying CORS...');
-      const corsResponse = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        mode: 'cors',
-        cache: 'no-cache'
-      });
-
-      if (!corsResponse.ok) {
-        throw new Error(`HTTP error! status: ${corsResponse.status}`);
-      }
-
-      const text = await corsResponse.text();
-      console.log('[API] Response text:', text);
-      
-      try {
-        const data = JSON.parse(text);
-        console.log('[API] Parsed data:', data);
-        return data;
-      } catch (parseError) {
-        console.error('[API] Parse error:', parseError);
-        throw new Error('Failed to parse response');
-      }
-    }
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    // Just do a simple fetch with minimal headers
+    const response = await fetch(fullUrl);
+    console.log('[API] Response status:', response.status);
+    
     const text = await response.text();
-    console.log('[API] Response text:', text);
+    console.log('[API] Raw response:', text);
+    
+    const data = JSON.parse(text);
+    console.log('[API] Parsed data:', data);
+    return data;
 
-    try {
-      const data = JSON.parse(text);
-      console.log('[API] Parsed data:', data);
-      return data;
-    } catch (parseError) {
-      console.error('[API] Parse error:', parseError);
-      throw new Error('Failed to parse response');
-    }
   } catch (error) {
-    const errorDetails = {
-      type: error instanceof Error ? error.constructor.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+    console.error('[API] Error details:', {
       url: fullUrl,
-      timestamp: new Date().toISOString()
-    };
-    console.error('[API] Detailed error information:', errorDetails);
+      error: error instanceof Error ? error.message : 'Unknown error',
+      type: error instanceof Error ? error.constructor.name : typeof error
+    });
     throw error;
   }
 }
