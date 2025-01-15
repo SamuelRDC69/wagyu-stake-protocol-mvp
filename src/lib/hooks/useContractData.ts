@@ -66,58 +66,63 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
     const requestInit: RequestInit = {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
+        'Accept': '*/*',
+        'Access-Control-Allow-Origin': '*'
       },
-      mode: 'cors',
-      cache: 'no-cache'
+      mode: 'no-cors', // Changed to no-cors
+      cache: 'no-cache',
+      credentials: 'omit'
     };
     console.log('[API] Request configuration:', requestInit);
 
     console.log('[API] Initiating fetch...');
-    const response = await Promise.race([
-      fetch(fullUrl, requestInit),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Fetch timeout after 10s')), 10000)
-      )
-    ]) as Response;
+    const response = await fetch(fullUrl, requestInit);
+    console.log('[API] Response received:', response);
 
-    console.log('[API] Fetch complete. Status:', response.status);
-    console.log('[API] Response headers:', Object.fromEntries(response.headers.entries()));
-    
-    if (!response.ok) {
-      console.error('[API] Response not ok:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url,
-        headers: Object.fromEntries(response.headers.entries())
+    if (response.type === 'opaque') {
+      // no-cors mode returns opaque response, try to fetch again with CORS
+      console.log('[API] Opaque response received, trying CORS...');
+      const corsResponse = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        mode: 'cors',
+        cache: 'no-cache'
       });
+
+      if (!corsResponse.ok) {
+        throw new Error(`HTTP error! status: ${corsResponse.status}`);
+      }
+
+      const text = await corsResponse.text();
+      console.log('[API] Response text:', text);
+      
+      try {
+        const data = JSON.parse(text);
+        console.log('[API] Parsed data:', data);
+        return data;
+      } catch (parseError) {
+        console.error('[API] Parse error:', parseError);
+        throw new Error('Failed to parse response');
+      }
+    }
+
+    if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    console.log('[API] Reading response text...');
     const text = await response.text();
-    console.log('[API] Raw response text length:', text.length);
-    console.log('[API] Raw response text:', text.substring(0, 500), '...');
-
-    if (!text) {
-      console.error('[API] Empty response received');
-      throw new Error('Empty response from API');
-    }
+    console.log('[API] Response text:', text);
 
     try {
-      console.log('[API] Attempting to parse JSON...');
       const data = JSON.parse(text);
-      console.log('[API] Successfully parsed JSON data:', data);
+      console.log('[API] Parsed data:', data);
       return data;
     } catch (parseError) {
-      console.error('[API] JSON Parse error:', {
-        error: parseError,
-        text: text.substring(0, 500),
-        length: text.length
-      });
-      throw new Error('Failed to parse API response');
+      console.error('[API] Parse error:', parseError);
+      throw new Error('Failed to parse response');
     }
   } catch (error) {
     const errorDetails = {
@@ -125,9 +130,7 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       url: fullUrl,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      endpoint
+      timestamp: new Date().toISOString()
     };
     console.error('[API] Detailed error information:', errorDetails);
     throw error;
