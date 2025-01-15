@@ -1,5 +1,5 @@
 // src/lib/utils/tierUtils.ts
-import { TierEntity, TierProgress } from '../types/tier';
+import { TierEntity, TierProgress, TierVariant } from '../types/tier';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
 import { cn } from '@/lib/utils';
@@ -7,18 +7,20 @@ import { cn } from '@/lib/utils';
 const FEE_RATE = 0.003; // 0.3% fee as per contract
 const PRECISION = 100000000; // 8 decimal places for WAX
 
+// Define the progression type
+type TierProgressionType = typeof TIER_PROGRESSION[number];
+
 // Tier progression order matching contract
 const TIER_PROGRESSION = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'] as const;
 
 // Sort tiers to match progression
 const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
-  return [...tiers].sort((a, b) => 
-    TIER_PROGRESSION.indexOf(a.tier.toLowerCase()) - 
-    TIER_PROGRESSION.indexOf(b.tier.toLowerCase())
-  );
+  return [...tiers].sort((a, b) => {
+    const aIndex = TIER_PROGRESSION.indexOf(a.tier.toLowerCase() as TierProgressionType);
+    const bIndex = TIER_PROGRESSION.indexOf(b.tier.toLowerCase() as TierProgressionType);
+    return aIndex - bIndex;
+  });
 };
-
-// Add this to the top of your existing tierUtils.ts, keeping all other functions the same
 
 // Tier configuration with styling and icons
 export const TIER_CONFIG = {
@@ -64,7 +66,7 @@ const applyWaxPrecision = (value: number): number => {
   return Math.round(value * PRECISION) / PRECISION;
 };
 
-// Determine tier based on contract logic
+// Export tier determination logic
 export const determineTier = (
   stakedAmount: string,
   totalStaked: string,
@@ -76,9 +78,7 @@ export const determineTier = (
 
     // If pool is empty, return lowest tier
     if (totalValue === 0) {
-      const lowestTier = [...tiers].sort((a, b) => 
-        parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-      )[0];
+      const lowestTier = sortTiersByProgression(tiers)[0];
       return lowestTier;
     }
 
@@ -90,20 +90,19 @@ export const determineTier = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find first tier where threshold exceeds staked percentage (like contract's lower_bound)
+    // Find first tier where threshold exceeds staked percentage
     for (const tier of sortedTiers) {
       if (parseFloat(tier.staked_up_to_percent) > stakedPercent) {
-        // Return previous tier if exists, otherwise first tier
         const currentIndex = sortedTiers.indexOf(tier);
         return currentIndex > 0 ? sortedTiers[currentIndex - 1] : sortedTiers[0];
       }
     }
 
-    // If no tier found, use highest tier (like contract)
+    // If no tier found, use highest tier
     return sortedTiers[sortedTiers.length - 1];
   } catch (error) {
     console.error('Error determining tier:', error);
-    return tiers[0]; // Return lowest tier as fallback
+    return tiers[0];
   }
 };
 
