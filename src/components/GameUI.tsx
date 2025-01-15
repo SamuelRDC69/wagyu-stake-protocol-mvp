@@ -432,7 +432,8 @@ const GameUI: React.FC = () => {
                   )}
                   
                   {gameData.config && (
-                    <UserStatus 
+                    // Inside render where we pass tierProgress
+<UserStatus 
   stakedData={playerStake}
   config={gameData.config}
   onCooldownComplete={loadData}
@@ -440,7 +441,7 @@ const GameUI: React.FC = () => {
   onUnstake={handleUnstake}
   onStake={handleStake}
   poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-  tierProgress={tierProgress} // Add this
+  tierProgress={tierProgress || undefined} // Convert null to undefined
 />
                   )}
 
