@@ -9,7 +9,7 @@ import { ConfigEntity } from '../types/config';
 // API endpoints
 const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
 
-// Mock pool data for testing
+// Mock pool data for testing - matches API response exactly
 const MOCK_POOL: PoolEntity = {
   pool_id: 2,
   staked_token_contract: "eosio.token",
