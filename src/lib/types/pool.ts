@@ -1,3 +1,4 @@
+// src/lib/types/pool.ts
 export interface PoolEntity {
   pool_id: number;
   staked_token_contract: string;
@@ -10,6 +11,8 @@ export interface PoolEntity {
   emission_unit: number;          // seconds
   emission_rate: number;          // tokens per emission_unit
   last_emission_updated_at: string;
+  emission_start_at: string;      // Added: When emissions begin
+  emission_end_at: string;        // Added: When emissions end
   is_active: number;              // 0 or 1
 }
 
