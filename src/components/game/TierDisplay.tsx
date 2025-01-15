@@ -13,10 +13,13 @@ interface TierDisplayProps {
   tierProgress?: TierProgress;
   isUpgradeAvailable: boolean;
   isLoading?: boolean;
-  stakedData?: StakedEntity;
-  totalStaked?: string; // Add this prop for tier calculations
-  allTiers?: TierEntity[]; // Add this prop for tier calculations
+  stakedData?: StakedEntity; // API response data
+  totalStaked?: string; // From pool data
+  allTiers?: TierEntity[]; // Default tiers from contract
 }
+
+// Add this comment to explain the tier data source
+// Tier data comes from the API via stakedData, calculations via tierProgress
 
 export const TierDisplay: React.FC<TierDisplayProps> = ({
   tierProgress,
