@@ -58,50 +58,78 @@ interface StakingData {
 
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
-  console.log('Fetching from:', fullUrl);
+  console.log(`[API] Starting fetch from: ${fullUrl}`);
+  console.log(`[API] Current timestamp: ${new Date().toISOString()}`);
   
   try {
-    const response = await fetch(fullUrl, {
+    console.log('[API] Setting up fetch request...');
+    const requestInit: RequestInit = {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
       mode: 'cors',
       cache: 'no-cache'
-    });
+    };
+    console.log('[API] Request configuration:', requestInit);
 
+    console.log('[API] Initiating fetch...');
+    const response = await Promise.race([
+      fetch(fullUrl, requestInit),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Fetch timeout after 10s')), 10000)
+      )
+    ]) as Response;
+
+    console.log('[API] Fetch complete. Status:', response.status);
+    console.log('[API] Response headers:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
-      console.error('API Response not ok:', {
+      console.error('[API] Response not ok:', {
         status: response.status,
         statusText: response.statusText,
-        url: response.url
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
       });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    console.log('[API] Reading response text...');
     const text = await response.text();
-    console.log('Raw API response:', text);
+    console.log('[API] Raw response text length:', text.length);
+    console.log('[API] Raw response text:', text.substring(0, 500), '...');
 
     if (!text) {
-      console.error('Empty response from API');
+      console.error('[API] Empty response received');
       throw new Error('Empty response from API');
     }
 
     try {
+      console.log('[API] Attempting to parse JSON...');
       const data = JSON.parse(text);
-      console.log('Parsed API data:', data);
+      console.log('[API] Successfully parsed JSON data:', data);
       return data;
     } catch (parseError) {
-      console.error('JSON Parse error:', parseError);
+      console.error('[API] JSON Parse error:', {
+        error: parseError,
+        text: text.substring(0, 500),
+        length: text.length
+      });
       throw new Error('Failed to parse API response');
     }
   } catch (error) {
-    console.error('API fetch error:', {
-      error,
+    const errorDetails = {
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       url: fullUrl,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      endpoint
+    };
+    console.error('[API] Detailed error information:', errorDetails);
     throw error;
   }
 }
