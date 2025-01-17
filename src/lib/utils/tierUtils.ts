@@ -262,15 +262,12 @@ export const isTierUpgradeAvailable = (
 };
 
 export function getTierDisplayName(tierKey: string): string {
-  const tier = DEFAULT_TIERS.find((t: TierEntity) => 
-    t.tier.toLowerCase() === tierKey.toLowerCase()
-  );
-  return tier?.tier_name || tierKey;
+  const matchingTier = findMatchingTier(tierKey);
+  return matchingTier?.tier_name || tierKey;
 }
 
 export function getTierWeight(tierKey: string): string {
-  const tier = DEFAULT_TIERS.find((t: TierEntity) => 
-    t.tier.toLowerCase() === tierKey.toLowerCase()
-  );
-  return tier?.weight || "1.0";
+  const matchingTier = findMatchingTier(tierKey);
+  const weight = matchingTier ? parseFloat(matchingTier.weight) : 1.0;
+  return weight.toFixed(2);
 }
