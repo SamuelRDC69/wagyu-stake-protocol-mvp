@@ -13,6 +13,7 @@ import { Name } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
+import { useTierCalculation } from '../lib/hooks/useTierCalculation';
 import { cn } from '@/lib/utils';
 
 // UI Components
@@ -320,39 +321,43 @@ const GameUI: React.FC = () => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
-  // Tier calculations
-  // Calculate tier progress and upgrade availability
-  const tierProgress = useMemo(() => {
-    if (!playerStake || !selectedPool || !gameData.tiers.length) return null;
-    try {
-      // Use determineTier from tierUtils to get current tier first
-      const currentTier = determineTier(
-        playerStake.staked_quantity,
-        selectedPool.total_staked_quantity,
-        gameData.tiers
-      );
+  // Updated tier calculations section
+const tierProgress = useTierCalculation(playerStake, selectedPool, gameData.tiers);
 
-      // Then calculate full progress
-      return calculateTierProgress(
-        playerStake.staked_quantity,
-        selectedPool.total_staked_quantity,
-        gameData.tiers
-      );
-    } catch (error) {
-      console.error('Error calculating tier progress:', error);
-      return null;
-    }
-  }, [playerStake, selectedPool, gameData.tiers]);
-
-  const canUpgradeTier = useMemo(() => {
-    if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
-    return isTierUpgradeAvailable(
-      playerStake.staked_quantity,
-      selectedPool.total_staked_quantity,
-      tierProgress.currentTier,
-      gameData.tiers
+// Calculate upgrade availability
+const canUpgradeTier = useMemo(() => {
+  if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
+  
+  try {
+    const { amount: stakedValue } = parseTokenString(playerStake.staked_quantity);
+    const { amount: totalValue } = parseTokenString(selectedPool.total_staked_quantity);
+    
+    if (totalValue === 0) return false;
+    
+    const stakedPercent = (stakedValue / totalValue) * 100;
+    
+    // Sort tiers by percentage threshold
+    const sortedTiers = [...gameData.tiers].sort((a, b) => 
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
-  }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
+    
+    // Find next tier threshold
+    const currentTierIndex = sortedTiers.findIndex(t => 
+      t.tier === tierProgress.currentTier.tier
+    );
+    
+    if (currentTierIndex >= sortedTiers.length - 1) return false;
+    
+    const nextTier = sortedTiers[currentTierIndex + 1];
+    
+    // Check if we exceed next tier's threshold
+    return stakedPercent > parseFloat(nextTier.staked_up_to_percent);
+  } catch (error) {
+    console.error('Error checking tier upgrade availability:', error);
+    return false;
+  }
+}, [tierProgress, selectedPool, playerStake, gameData.tiers]);
+
   // Render content based on active tab
   const renderContent = () => {
     if (!session && activeTab !== 'leaderboard') {
