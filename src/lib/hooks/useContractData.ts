@@ -64,9 +64,7 @@ function enrichStakeData(stake: StakedEntity): StakedEntity {
   if (matchingTier) {
     return {
       ...stake,
-      tier: matchingTier.tier,
-      tier_name: matchingTier.tier_name,
-      weight: matchingTier.weight
+      tier: matchingTier.tier // Only update the tier to match the case
     };
   }
 
