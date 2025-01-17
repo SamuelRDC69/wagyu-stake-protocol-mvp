@@ -437,18 +437,25 @@ const canUpgradeTier = useMemo(() => {
                   )}
                   
                   {gameData.config && (
-                    // Inside render where we pass tierProgress
-<UserStatus 
-  stakedData={playerStake}
-  config={gameData.config}
-  onCooldownComplete={loadData}
-  onClaim={handleClaim}
-  onUnstake={handleUnstake}
-  onStake={handleStake}
-  poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-  tierProgress={tierProgress || undefined} // Convert null to undefined
-/>
-                  )}
+  <UserStatus 
+    stakedData={playerStake}
+    config={gameData.config}
+    onCooldownComplete={loadData}
+    onClaim={handleClaim}
+    onUnstake={handleUnstake}
+    onStake={handleStake}
+    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+    tierProgress={tierProgress || undefined}
+    isLoading={loading} // Add loading state
+  />
+)}
+
+{loading && (
+  <div className="space-y-4 animate-pulse">
+    <div className="h-32 bg-slate-800/30 rounded-lg"></div>
+    <div className="h-32 bg-slate-800/30 rounded-lg"></div>
+  </div>
+)}
 
                   <RewardsChart poolData={selectedPool} />
                 </div>
