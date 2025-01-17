@@ -105,12 +105,13 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               </Badge>
             )}
           </CardTitle>
-          <Badge 
-            variant={variant}
-            className="ml-2 transition-all shine-effect"
-          >
-            {`${parseFloat(tierProgress.currentTier.weight)}x Power`}
-          </Badge>
+{/* In TierDisplay.tsx, update the weight display */}
+<Badge 
+  variant={variant}
+  className="ml-2 transition-all shine-effect"
+>
+  {`${parseFloat(tierProgress.currentTier.weight).toFixed(2)}x Power`}
+</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
