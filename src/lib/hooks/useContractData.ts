@@ -6,10 +6,9 @@ import { StakedEntity } from '../types/staked';
 import { TierEntity } from '../types/tier';
 import { ConfigEntity } from '../types/config';
 
-// API endpoints
 const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
 
-// Default tiers
+// Default tiers matching the contract logic
 const DEFAULT_TIERS: TierEntity[] = [
   {
     tier: "supplier",
@@ -61,23 +60,16 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   console.log(`[API] Starting fetch from: ${fullUrl}`);
   
   try {
-    // Just do a simple fetch with minimal headers
     const response = await fetch(fullUrl);
-    console.log('[API] Response status:', response.status);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
     const text = await response.text();
-    console.log('[API] Raw response:', text);
-    
     const data = JSON.parse(text);
-    console.log('[API] Parsed data:', data);
     return data;
-
   } catch (error) {
-    console.error('[API] Error details:', {
-      url: fullUrl,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      type: error instanceof Error ? error.constructor.name : typeof error
-    });
+    console.error('[API] Error:', error);
     throw error;
   }
 }
@@ -100,24 +92,29 @@ export function useContractData() {
     setLoading(true);
     
     try {
-      console.log('Fetching data for user:', session.actor.toString());
+      // Fetch all users' staking data for leaderboard
+      const allUsersResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>('/users');
       
       // Fetch pools data
       const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
-      console.log('Pools response:', poolsResponse);
       
-      // Fetch user staking data
-      const stakingResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
+      // Fetch current user's staking data
+      const userResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
         `/user/${session.actor.toString()}`
       );
-      console.log('Staking response:', stakingResponse);
 
       setLastFetch(now);
 
-      // Return combined data
+      // Combine user stakes with all users for leaderboard
+      const allStakes = allUsersResponse?.stakingDetails || [];
+      const userStakes = userResponse?.stakingDetails || [];
+
+      // Return combined data with default tiers and config
       const stakingData: StakingData = {
         pools: poolsResponse.pools || [],
-        stakes: stakingResponse.stakingDetails || [],
+        stakes: [...allStakes, ...userStakes.filter(stake => 
+          !allStakes.some(s => s.pool_id === stake.pool_id && s.owner === stake.owner)
+        )],
         tiers: DEFAULT_TIERS,
         config: DEFAULT_CONFIG
       };
@@ -128,7 +125,6 @@ export function useContractData() {
       console.error('Error in fetchData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
       
-      // Return empty data on error
       return {
         pools: [],
         stakes: [],
