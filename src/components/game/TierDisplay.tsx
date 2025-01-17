@@ -91,11 +91,11 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+<CardTitle className="flex items-center gap-2">
             <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
               <TierIcon className={cn("w-6 h-6", tierConfig.color)} />
             </div>
-            <span className="text-white">{stakedData.tier}</span>
+            <span className="text-white">{getTierDisplayName(stakedData.tier)}</span>
             {isUpgradeAvailable && (
               <Badge 
                 variant={variant}
@@ -105,13 +105,12 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               </Badge>
             )}
           </CardTitle>
-{/* In TierDisplay.tsx, update the weight display */}
-<Badge 
-  variant={variant}
-  className="ml-2 transition-all shine-effect"
->
-  {`${parseFloat(getTierWeight(tierProgress.currentTier.tier)).toFixed(2)}x Power`}
-</Badge>
+          <Badge 
+            variant={variant}
+            className="ml-2 transition-all shine-effect"
+          >
+            {`${getTierWeight(stakedData.tier)}x Power`}
+          </Badge>
 
 <span className="text-white">{getTierDisplayName(stakedData.tier)}</span>
         </div>
