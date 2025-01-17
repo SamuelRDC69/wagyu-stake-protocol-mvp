@@ -15,6 +15,7 @@ import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
 import { useTierCalculation } from '../lib/hooks/useTierCalculation';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/lib/contexts/ToastContext';
 
 // UI Components
 import {
@@ -67,6 +68,7 @@ const GameUI: React.FC = () => {
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>();
   const [error, setError] = useState<string | null>(null);
   const { fetchData, loading } = useContractData();
+  const { addToast } = useToast();
   const [gameData, setGameData] = useState<GameDataState>({
     pools: [],
     stakes: [],
@@ -147,8 +149,24 @@ const GameUI: React.FC = () => {
         }
       };
 
-      await session.transact({ actions: [action] });
+      const result = await session.transact({ actions: [action] });
       
+      // Find the transfer action from vault to user (claim reward)
+      const claimTransfer = result.traces?.find(trace => 
+        trace.act.name === 'transfer' && 
+        trace.act.account === selectedPool.reward_pool.contract &&
+        trace.act.data.from === gameData.config?.vault_account &&
+        trace.act.data.to === session.actor.toString()
+      );
+
+      if (claimTransfer) {
+        addToast({
+          type: 'success',
+          title: 'Rewards Claimed',
+          message: claimTransfer.act.data.quantity
+        });
+      }
+
       // Update UI immediately for better UX
       if (playerStake && gameData.config) {
         const newCooldownEnd = new Date(
@@ -173,6 +191,11 @@ const GameUI: React.FC = () => {
     } catch (error) {
       console.error('Claim error:', error);
       setError('Failed to claim rewards');
+      addToast({
+        type: 'error',
+        title: 'Claim Failed',
+        message: 'Failed to claim rewards. Please try again.'
+      });
       await loadData();
     }
   };
@@ -195,7 +218,23 @@ const GameUI: React.FC = () => {
         }
       };
 
-      await session.transact({ actions: [action] });
+      const result = await session.transact({ actions: [action] });
+
+      // Find any claim transfer that happened during stake
+      const claimTransfer = result.traces?.find(trace => 
+        trace.act.name === 'transfer' && 
+        trace.act.account === selectedPool.reward_pool.contract &&
+        trace.act.data.from === gameData.config?.vault_account &&
+        trace.act.data.to === session.actor.toString()
+      );
+
+      addToast({
+        type: 'success',
+        title: 'Stake Successful!',
+        message: claimTransfer 
+          ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.act.data.quantity}`
+          : `Staked ${formattedAmount} ${symbol}`
+      });
 
       // Optimistic update
       if (gameData.config) {
@@ -235,6 +274,11 @@ const GameUI: React.FC = () => {
     } catch (error) {
       console.error('Stake error:', error);
       setError('Failed to stake tokens');
+      addToast({
+        type: 'error',
+        title: 'Stake Failed',
+        message: 'Failed to stake tokens. Please try again.'
+      });
       await loadData();
     }
   };
@@ -256,7 +300,30 @@ const GameUI: React.FC = () => {
         }
       };
 
-      await session.transact({ actions: [action] });
+      const result = await session.transact({ actions: [action] });
+
+      // Find the unstake transfer action
+      const unstakeTransfer = result.traces?.find(trace => 
+        trace.act.name === 'transfer' && 
+        trace.act.data.from === CONTRACTS.STAKING.NAME &&
+        trace.act.data.to === session.actor.toString()
+      );
+
+      // Find any claim that happened during unstake
+      const claimTransfer = result.traces?.find(trace => 
+        trace.act.name === 'transfer' && 
+        trace.act.account === selectedPool.reward_pool.contract &&
+        trace.act.data.from === gameData.config?.vault_account &&
+        trace.act.data.to === session.actor.toString()
+      );
+
+      addToast({
+        type: 'success',
+        title: 'Unstake Successful!',
+        message: claimTransfer 
+          ? `Unstaked ${formattedAmount} ${symbol} and claimed ${claimTransfer.act.data.quantity}`
+          : `Unstaked ${formattedAmount} ${symbol}`
+      });
 
       // Optimistic update
       const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
@@ -292,9 +359,15 @@ const GameUI: React.FC = () => {
     } catch (error) {
       console.error('Unstake error:', error);
       setError('Failed to unstake tokens');
+      addToast({
+        type: 'error',
+        title: 'Unstake Failed',
+        message: 'Failed to unstake tokens. Please try again.'
+      });
       await loadData();
     }
   };
+
 
   const handleLogin = async () => {
     try {
