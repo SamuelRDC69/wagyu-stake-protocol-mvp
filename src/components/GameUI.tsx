@@ -62,31 +62,21 @@ interface GameDataState {
   config: ConfigEntity | undefined;
 }
 
-// Add these interfaces at the top of your GameUI.tsx file, after the imports
-interface TransactionTrace {
+// Then add just this interface after all imports
+interface ActionTrace {
   act: {
-    name: string;
     account: string;
+    name: string;
     data: {
       from?: string;
       to?: string;
       quantity?: string;
+      [key: string]: any;
     };
   };
-}
-
-interface TransactResult {
-  transaction_id: string;
-  processed: {
-    id: string;
-    block_num: number;
-    block_time: string;
-    receipt: any;
-    elapsed: number;
-    net_usage: number;
-    scheduled: boolean;
-    action_traces: TransactionTrace[];
-  };
+  console?: string;
+  return_value?: string;
+  [key: string]: any;
 }
 
 const GameUI: React.FC = () => {
@@ -162,7 +152,7 @@ const GameUI: React.FC = () => {
     };
   }, [session, loadData]);
 
-  const handleClaim = async () => {
+const handleClaim = async () => {
     if (!session || !selectedPool) return;
     
     try {
@@ -176,17 +166,17 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] }) as TransactResult;
+      const result = await session.transact({ actions: [action] });
       
       // Find the transfer action from vault to user (claim reward)
-      const claimTransfer = result.processed.action_traces.find((trace: TransactionTrace) => 
+      const claimTransfer = result.traces?.find((trace: ActionTrace) => 
         trace.act.name === 'transfer' && 
         trace.act.account === selectedPool.reward_pool.contract &&
         trace.act.data.from === gameData.config?.vault_account &&
         trace.act.data.to === session.actor.toString()
       );
 
-      if (claimTransfer && claimTransfer.act.data.quantity) {
+      if (claimTransfer?.act.data.quantity) {
         addToast({
           type: 'success',
           title: 'Rewards Claimed',
@@ -245,10 +235,10 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] }) as TransactResult;
+      const result = await session.transact({ actions: [action] });
 
       // Find any claim transfer that happened during stake
-      const claimTransfer = result.processed.action_traces.find((trace: TransactionTrace) => 
+      const claimTransfer = result.traces?.find((trace: ActionTrace) => 
         trace.act.name === 'transfer' && 
         trace.act.account === selectedPool.reward_pool.contract &&
         trace.act.data.from === gameData.config?.vault_account &&
@@ -327,17 +317,10 @@ const GameUI: React.FC = () => {
         }
       };
 
-      const result = await session.transact({ actions: [action] }) as TransactResult;
-
-      // Find the unstake transfer action
-      const unstakeTransfer = result.processed.action_traces.find((trace: TransactionTrace) => 
-        trace.act.name === 'transfer' && 
-        trace.act.data.from === CONTRACTS.STAKING.NAME &&
-        trace.act.data.to === session.actor.toString()
-      );
+      const result = await session.transact({ actions: [action] });
 
       // Find any claim that happened during unstake
-      const claimTransfer = result.processed.action_traces.find((trace: TransactionTrace) => 
+      const claimTransfer = result.traces?.find((trace: ActionTrace) => 
         trace.act.name === 'transfer' && 
         trace.act.account === selectedPool.reward_pool.contract &&
         trace.act.data.from === gameData.config?.vault_account &&
