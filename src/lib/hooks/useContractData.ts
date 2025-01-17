@@ -95,33 +95,65 @@ export function useContractData() {
     setLoading(true);
     
     try {
-      // Fetch pools data
+      // Fetch pools data first
       const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
-      console.log('Pools response:', poolsResponse);
       
-      // Fetch user's staking data
+      // Fetch all users' staking data
+      const allUsersResponse = await fetch(`${API_BASE_URL}/allUsers`);
+      let allStakes: StakedEntity[] = [];
+      
+      if (allUsersResponse.ok) {
+        const allUsersData = await allUsersResponse.json();
+        allStakes = allUsersData.stakingDetails || [];
+      }
+      
+      // Fetch current user's staking data
       const userResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
         `/user/${session.actor.toString()}`
       );
-      console.log('User staking response:', userResponse);
 
       setLastFetch(now);
+
+      // Combine and deduplicate stakes
+      const combinedStakes = [...allStakes];
+      
+      // Add or update current user's stakes
+      if (userResponse.stakingDetails) {
+        userResponse.stakingDetails.forEach(userStake => {
+          const existingIndex = combinedStakes.findIndex(
+            stake => stake.pool_id === userStake.pool_id && 
+                     stake.owner === session.actor.toString()
+          );
+          
+          if (existingIndex >= 0) {
+            combinedStakes[existingIndex] = {
+              ...userStake,
+              owner: session.actor.toString()
+            };
+          } else {
+            combinedStakes.push({
+              ...userStake,
+              owner: session.actor.toString()
+            });
+          }
+        });
+      }
 
       // Return combined data
       const stakingData: StakingData = {
         pools: poolsResponse.pools || [],
-        stakes: userResponse.stakingDetails || [],
+        stakes: combinedStakes,
         tiers: DEFAULT_TIERS,
         config: DEFAULT_CONFIG
       };
 
+      console.log('Final staking data:', stakingData);
       return stakingData;
 
     } catch (err) {
       console.error('Error in fetchData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
       
-      // Return empty data with defaults on error
       return {
         pools: [],
         stakes: [],
