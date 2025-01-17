@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TierProgress, TierEntity } from '@/lib/types/tier';
 import { StakedEntity } from '@/lib/types/staked';
-import { getTierConfig, calculateSafeUnstakeAmount } from '@/lib/utils/tierUtils';
+import { getTierConfig, calculateSafeUnstakeAmount, getTierDisplayName, getTierWeight } from '@/lib/utils/tierUtils';
 import { formatNumber } from '@/lib/utils/formatUtils';
 import { parseTokenString } from '@/lib/utils/tokenUtils';
 import { cn } from '@/lib/utils';
@@ -110,8 +110,10 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   variant={variant}
   className="ml-2 transition-all shine-effect"
 >
-  {`${parseFloat(tierProgress.currentTier.weight).toFixed(2)}x Power`}
+  {`${parseFloat(getTierWeight(tierProgress.currentTier.tier)).toFixed(2)}x Power`}
 </Badge>
+
+<span className="text-white">{getTierDisplayName(stakedData.tier)}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
