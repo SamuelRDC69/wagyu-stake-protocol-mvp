@@ -29,7 +29,8 @@ export function useTierCalculation(
           totalStaked: poolData.total_staked_quantity,
           currentStakedAmount: stakedAmount,
           requiredForCurrent: 0,
-          symbol: 'WAX'
+          symbol: 'WAX',
+          weight: parseFloat(tiers[0].weight)  // Added weight
         };
       }
 
@@ -90,7 +91,8 @@ export function useTierCalculation(
         requiredForCurrent,
         symbol: 'WAX',
         totalAmountForNext,
-        additionalAmountNeeded
+        additionalAmountNeeded,
+        weight: parseFloat(currentTier.weight)  // Added correct weight
       };
     } catch (error) {
       console.error('Error calculating tier:', error);
