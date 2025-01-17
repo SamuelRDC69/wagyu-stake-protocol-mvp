@@ -3,6 +3,7 @@ import { TierEntity, TierProgress, TierVariant } from '../types/tier';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
 import { cn } from '@/lib/utils';
+import { DEFAULT_TIERS } from '../config/tiers';
 
 const FEE_RATE = 0.003; // 0.3% fee as per contract
 const PRECISION = 100000000; // 8 decimal places for WAX
@@ -253,18 +254,15 @@ export const isTierUpgradeAvailable = (
   }
 };
 
-// src/lib/utils/tierUtils.ts
-
-// Add these to your existing tierUtils
 export function getTierDisplayName(tierKey: string): string {
-  const tier = DEFAULT_TIERS.find(t => 
+  const tier = DEFAULT_TIERS.find((t: TierEntity) => 
     t.tier.toLowerCase() === tierKey.toLowerCase()
   );
   return tier?.tier_name || tierKey;
 }
 
 export function getTierWeight(tierKey: string): string {
-  const tier = DEFAULT_TIERS.find(t => 
+  const tier = DEFAULT_TIERS.find((t: TierEntity) => 
     t.tier.toLowerCase() === tierKey.toLowerCase()
   );
   return tier?.weight || "1.0";
