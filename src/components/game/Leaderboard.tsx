@@ -54,26 +54,35 @@ export const Leaderboard: React.FC = () => {
   const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadLeaderboardData = async () => {
-    if (isLoading) return;
-    
-    try {
-      setIsLoading(true);
-      const data = await fetchData();
-      if (data?.stakes) {
-        const sortedStakes = [...data.stakes].sort((a, b) => {
-          const amountA = parseTokenString(a.staked_quantity).amount;
-          const amountB = parseTokenString(b.staked_quantity).amount;
-          return amountB - amountA;
-        });
-        setLeaderboardData(sortedStakes);
-      }
-    } catch (err) {
-      console.error('Failed to load leaderboard data:', err);
-    } finally {
-      setIsLoading(false);
+  // Update the loadLeaderboardData function in Leaderboard.tsx
+const loadLeaderboardData = async () => {
+  if (isLoading) return;
+  
+  try {
+    setIsLoading(true);
+    const data = await fetchData();
+    if (data?.stakes) {
+      // Sort stakes by staked amount
+      const sortedStakes = [...data.stakes].sort((a, b) => {
+        const amountA = parseTokenString(a.staked_quantity).amount;
+        const amountB = parseTokenString(b.staked_quantity).amount;
+        return amountB - amountA;
+      });
+
+      // Ensure each stake has an owner property
+      const stakesWithOwner = sortedStakes.map(stake => ({
+        ...stake,
+        owner: stake.owner || 'Unknown'
+      }));
+
+      setLeaderboardData(stakesWithOwner);
     }
-  };
+  } catch (err) {
+    console.error('Failed to load leaderboard data:', err);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Initial load
   useEffect(() => {
