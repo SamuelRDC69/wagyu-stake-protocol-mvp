@@ -55,6 +55,24 @@ interface StakingData {
   config: ConfigEntity;
 }
 
+// Helper function to enrich stake data with proper tier information
+function enrichStakeData(stake: StakedEntity): StakedEntity {
+  const matchingTier = DEFAULT_TIERS.find(t => 
+    t.tier.toLowerCase() === stake.tier.toLowerCase()
+  );
+
+  if (matchingTier) {
+    return {
+      ...stake,
+      tier: matchingTier.tier,
+      tier_name: matchingTier.tier_name,
+      weight: matchingTier.weight
+    };
+  }
+
+  return stake;
+}
+
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log(`[API] Starting fetch from: ${fullUrl}`);
@@ -104,7 +122,8 @@ export function useContractData() {
       
       if (allUsersResponse.ok) {
         const allUsersData = await allUsersResponse.json();
-        allStakes = allUsersData.stakingDetails || [];
+        // Enrich each stake with proper tier information
+        allStakes = (allUsersData.stakingDetails || []).map(enrichStakeData);
       }
       
       // Fetch current user's staking data
@@ -120,21 +139,20 @@ export function useContractData() {
       // Add or update current user's stakes
       if (userResponse.stakingDetails) {
         userResponse.stakingDetails.forEach(userStake => {
+          const enrichedStake = enrichStakeData({
+            ...userStake,
+            owner: session.actor.toString()
+          });
+          
           const existingIndex = combinedStakes.findIndex(
-            stake => stake.pool_id === userStake.pool_id && 
+            stake => stake.pool_id === enrichedStake.pool_id && 
                      stake.owner === session.actor.toString()
           );
           
           if (existingIndex >= 0) {
-            combinedStakes[existingIndex] = {
-              ...userStake,
-              owner: session.actor.toString()
-            };
+            combinedStakes[existingIndex] = enrichedStake;
           } else {
-            combinedStakes.push({
-              ...userStake,
-              owner: session.actor.toString()
-            });
+            combinedStakes.push(enrichedStake);
           }
         });
       }
