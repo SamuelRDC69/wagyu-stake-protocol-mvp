@@ -252,3 +252,20 @@ export const isTierUpgradeAvailable = (
     return false;
   }
 };
+
+// src/lib/utils/tierUtils.ts
+
+// Add these to your existing tierUtils
+export function getTierDisplayName(tierKey: string): string {
+  const tier = DEFAULT_TIERS.find(t => 
+    t.tier.toLowerCase() === tierKey.toLowerCase()
+  );
+  return tier?.tier_name || tierKey;
+}
+
+export function getTierWeight(tierKey: string): string {
+  const tier = DEFAULT_TIERS.find(t => 
+    t.tier.toLowerCase() === tierKey.toLowerCase()
+  );
+  return tier?.weight || "1.0";
+}
