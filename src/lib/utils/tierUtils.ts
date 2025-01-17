@@ -67,6 +67,13 @@ const applyWaxPrecision = (value: number): number => {
   return Math.round(value * PRECISION) / PRECISION;
 };
 
+// Helper function for tier matching
+const findMatchingTier = (tierKey: string): TierEntity | undefined => {
+  const normalizedTierKey = tierKey.toLowerCase().trim();
+  return DEFAULT_TIERS.find(t => t.tier.toLowerCase() === normalizedTierKey);
+};
+
+
 // Export tier determination logic
 export const determineTier = (
   stakedAmount: string,
