@@ -66,7 +66,10 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
     }
     
     const text = await response.text();
+    console.log('[API] Raw response:', text);
+    
     const data = JSON.parse(text);
+    console.log('[API] Parsed data:', data);
     return data;
   } catch (error) {
     console.error('[API] Error:', error);
@@ -92,29 +95,22 @@ export function useContractData() {
     setLoading(true);
     
     try {
-      // Fetch all users' staking data for leaderboard
-      const allUsersResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>('/users');
-      
       // Fetch pools data
       const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
+      console.log('Pools response:', poolsResponse);
       
-      // Fetch current user's staking data
+      // Fetch user's staking data
       const userResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
         `/user/${session.actor.toString()}`
       );
+      console.log('User staking response:', userResponse);
 
       setLastFetch(now);
 
-      // Combine user stakes with all users for leaderboard
-      const allStakes = allUsersResponse?.stakingDetails || [];
-      const userStakes = userResponse?.stakingDetails || [];
-
-      // Return combined data with default tiers and config
+      // Return combined data
       const stakingData: StakingData = {
         pools: poolsResponse.pools || [],
-        stakes: [...allStakes, ...userStakes.filter(stake => 
-          !allStakes.some(s => s.pool_id === stake.pool_id && s.owner === stake.owner)
-        )],
+        stakes: userResponse.stakingDetails || [],
         tiers: DEFAULT_TIERS,
         config: DEFAULT_CONFIG
       };
@@ -125,6 +121,7 @@ export function useContractData() {
       console.error('Error in fetchData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
       
+      // Return empty data with defaults on error
       return {
         pools: [],
         stakes: [],
