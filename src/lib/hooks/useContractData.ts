@@ -5,42 +5,14 @@ import { PoolEntity } from '../types/pool';
 import { StakedEntity } from '../types/staked';
 import { TierEntity } from '../types/tier';
 import { ConfigEntity } from '../types/config';
+import { DEFAULT_TIERS } from '../config/tiers';
 
 const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
-
-// Default tiers matching the contract logic
-const DEFAULT_TIERS: TierEntity[] = [
-  {
-    tier: "supplier",
-    tier_name: "Supplier",
-    weight: "1.0",
-    staked_up_to_percent: "0.5"
-  },
-  {
-    tier: "merchant",
-    tier_name: "Merchant",
-    weight: "1.05",
-    staked_up_to_percent: "2.5"
-  },
-  {
-    tier: "trader",
-    tier_name: "Trader",
-    weight: "1.10",
-    staked_up_to_percent: "5.0"
-  },
-  {
-    tier: "marketmkr",
-    tier_name: "Market Maker",
-    weight: "1.15",
-    staked_up_to_percent: "10.0"
-  },
-  {
-    tier: "exchange",
-    tier_name: "Exchange",
-    weight: "1.20",
-    staked_up_to_percent: "100.0"
-  }
-];
+const API_ENDPOINTS = {
+  POOLS: '/pools',
+  ALL_USERS: '/api/allStakes',  // Update this to match your actual endpoint
+  USER: (username: string) => `/user/${username}`
+} as const;
 
 const DEFAULT_CONFIG: ConfigEntity = {
   maintenance: 0,
@@ -55,6 +27,12 @@ interface StakingData {
   config: ConfigEntity;
 }
 
+interface APIResponse<T> {
+  stakingDetails?: T[];
+  pools?: PoolEntity[];
+  error?: string;
+}
+
 // Helper function to enrich stake data with proper tier information
 function enrichStakeData(stake: StakedEntity): StakedEntity {
   const matchingTier = DEFAULT_TIERS.find(t => 
@@ -64,14 +42,14 @@ function enrichStakeData(stake: StakedEntity): StakedEntity {
   if (matchingTier) {
     return {
       ...stake,
-      tier: matchingTier.tier // Only update the tier to match the case
+      tier: matchingTier.tier
     };
   }
 
   return stake;
 }
 
-async function fetchFromAPI<T>(endpoint: string): Promise<T> {
+async function fetchFromAPI<T>(endpoint: string): Promise<APIResponse<T>> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log(`[API] Starting fetch from: ${fullUrl}`);
   
@@ -112,52 +90,58 @@ export function useContractData() {
     
     try {
       // Fetch pools data first
-      const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>('/pools');
-      
-      // Fetch all users' staking data
-      const allUsersResponse = await fetch(`${API_BASE_URL}/allUsers`);
+      const poolsResponse = await fetchFromAPI<PoolEntity>(API_ENDPOINTS.POOLS);
+      const pools = poolsResponse.pools || [];
+
+      // Try to fetch all users' staking data
       let allStakes: StakedEntity[] = [];
-      
-      if (allUsersResponse.ok) {
-        const allUsersData = await allUsersResponse.json();
-        // Enrich each stake with proper tier information
-        allStakes = (allUsersData.stakingDetails || []).map(enrichStakeData);
+      try {
+        const allUsersResponse = await fetchFromAPI<StakedEntity>(API_ENDPOINTS.ALL_USERS);
+        if (allUsersResponse.stakingDetails) {
+          allStakes = allUsersResponse.stakingDetails.map(stake => 
+            enrichStakeData({ ...stake })
+          );
+        }
+      } catch (error) {
+        console.warn('[API] Could not fetch all users data:', error);
+        // Continue with empty allStakes array
       }
       
       // Fetch current user's staking data
-      const userResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
-        `/user/${session.actor.toString()}`
+      const userResponse = await fetchFromAPI<StakedEntity>(
+        API_ENDPOINTS.USER(session.actor.toString())
       );
 
       setLastFetch(now);
 
-      // Combine and deduplicate stakes
+      // Process user stakes
+      const userStakes = userResponse.stakingDetails || [];
+      const processedUserStakes = userStakes.map(stake => 
+        enrichStakeData({
+          ...stake,
+          owner: session.actor.toString()
+        })
+      );
+
+      // Combine all stakes, preferring user's own stake data
       const combinedStakes = [...allStakes];
       
-      // Add or update current user's stakes
-      if (userResponse.stakingDetails) {
-        userResponse.stakingDetails.forEach(userStake => {
-          const enrichedStake = enrichStakeData({
-            ...userStake,
-            owner: session.actor.toString()
-          });
-          
-          const existingIndex = combinedStakes.findIndex(
-            stake => stake.pool_id === enrichedStake.pool_id && 
-                     stake.owner === session.actor.toString()
-          );
-          
-          if (existingIndex >= 0) {
-            combinedStakes[existingIndex] = enrichedStake;
-          } else {
-            combinedStakes.push(enrichedStake);
-          }
-        });
-      }
+      processedUserStakes.forEach(userStake => {
+        const existingIndex = combinedStakes.findIndex(
+          stake => stake.pool_id === userStake.pool_id && 
+                   stake.owner === session.actor.toString()
+        );
+        
+        if (existingIndex >= 0) {
+          combinedStakes[existingIndex] = userStake;
+        } else {
+          combinedStakes.push(userStake);
+        }
+      });
 
       // Return combined data
       const stakingData: StakingData = {
-        pools: poolsResponse.pools || [],
+        pools,
         stakes: combinedStakes,
         tiers: DEFAULT_TIERS,
         config: DEFAULT_CONFIG
@@ -170,6 +154,7 @@ export function useContractData() {
       console.error('Error in fetchData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
       
+      // Return default data on error
       return {
         pools: [],
         stakes: [],
