@@ -13,13 +13,10 @@ interface TierDisplayProps {
   tierProgress?: TierProgress;
   isUpgradeAvailable: boolean;
   isLoading?: boolean;
-  stakedData?: StakedEntity; // API response data
-  totalStaked?: string; // From pool data
-  allTiers?: TierEntity[]; // Default tiers from contract
+  stakedData?: StakedEntity;
+  totalStaked?: string;
+  allTiers?: TierEntity[];
 }
-
-// Add this comment to explain the tier data source
-// Tier data comes from the API via stakedData, calculations via tierProgress
 
 export const TierDisplay: React.FC<TierDisplayProps> = ({
   tierProgress,
@@ -29,7 +26,6 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   totalStaked,
   allTiers
 }) => {
-  // Calculate safe unstake amount
   const safeUnstakeAmount = useMemo(() => {
     if (!stakedData?.staked_quantity || !totalStaked || !allTiers || !tierProgress?.currentTier) {
       return 0;
@@ -60,28 +56,22 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  // Use the contract's tier progression
   const tierProgression = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'];
-  
-  // Get tier config using the actual tier from staked data
   const tierConfig = getTierConfig(stakedData.tier);
   const TierIcon = tierConfig.icon;
 
-  // Find current position in progression
   const currentTierIndex = tierProgression.indexOf(stakedData.tier.toLowerCase());
   const nextTierName = currentTierIndex < tierProgression.length - 1 
     ? tierProgression[currentTierIndex + 1] 
     : null;
   const nextTierConfig = nextTierName ? getTierConfig(nextTierName) : null;
 
-  // Extract values from tier progress
   const { 
     currentStakedAmount, 
     totalAmountForNext,
     additionalAmountNeeded,
     symbol,
     progress,
-    requiredForCurrent,
   } = tierProgress;
 
   const variant = stakedData.tier.toLowerCase().replace(/\s+/g, '') as
@@ -91,7 +81,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
-<CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2">
             <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
               <TierIcon className={cn("w-6 h-6", tierConfig.color)} />
             </div>
@@ -111,8 +101,6 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           >
             {`${getTierWeight(stakedData.tier)}x Power`}
           </Badge>
-
-<span className="text-white">{getTierDisplayName(stakedData.tier)}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -141,7 +129,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
         {nextTierName && typeof additionalAmountNeeded === 'number' && (
           <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-slate-400">Progress to {nextTierName}</p>
+              <p className="text-slate-400">Progress to {getTierDisplayName(nextTierName)}</p>
               {nextTierConfig && (
                 <div className={cn("p-2 rounded-lg", nextTierConfig.bgColor)}>
                   <TierIcon className={cn("w-4 h-4", nextTierConfig.color)} />
