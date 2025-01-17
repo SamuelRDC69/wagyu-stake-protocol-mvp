@@ -4,6 +4,7 @@ import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor'
 import WebRenderer from '@wharfkit/web-renderer'
 import GameUI from './components/GameUI'
 import { WharfkitContext } from './lib/wharfkit/context'
+import { ToastProvider } from './lib/contexts/ToastContext'
 import './index.css'  // For Tailwind and shadcn/ui styles
 import './App.css'    // For your custom styles
 
@@ -15,7 +16,6 @@ const sessionKit = new SessionKit({
     new WalletPluginAnchor(),
   ],
 })
-
 
 function App() {
   const [session, setSession] = useState<Session | undefined>()
@@ -55,11 +55,15 @@ function App() {
   }
 
   return (
-    <WharfkitContext.Provider value={{ session, setSession: handleSetSession, sessionKit }}>
-      <div className="App">
-        <GameUI />
-      </div>
-    </WharfkitContext.Provider>
+    <ToastProvider>
+      <WharfkitContext.Provider value={{ session, setSession: handleSetSession, sessionKit }}>
+        <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
+          <div className="App">
+            <GameUI />
+          </div>
+        </div>
+      </WharfkitContext.Provider>
+    </ToastProvider>
   )
 }
 
