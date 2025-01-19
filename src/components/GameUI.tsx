@@ -152,7 +152,6 @@ const GameUI: React.FC = () => {
     };
   }, [session, loadData]);
 
-// Interface for action data
 interface ResolvedAction {
   account: string;
   name: string;
@@ -164,18 +163,26 @@ interface ResolvedAction {
   };
 }
 
-// Helper function with proper typing
+// Helper function with debug logging
 const findClaimTransfer = (transaction: any): ResolvedAction | undefined => {
+  console.log('Full transaction result:', JSON.stringify(transaction, null, 2));
+  
   if (!transaction?.resolved || !Array.isArray(transaction.resolved)) {
+    console.log('No resolved actions found in transaction');
     return undefined;
   }
 
-  return transaction.resolved.find((action: ResolvedAction) => 
+  console.log('Resolved actions:', JSON.stringify(transaction.resolved, null, 2));
+  
+  const claimAction = transaction.resolved.find((action: ResolvedAction) => 
     action.account === 'eosio.token' &&
     action.name === 'transfer' && 
     action.data.from === 'test1ngstake' &&
     action.data.memo === 'Token staking reward.'
   );
+
+  console.log('Found claim action:', claimAction);
+  return claimAction;
 };
 
 const handleClaim = async () => {
@@ -192,8 +199,12 @@ const handleClaim = async () => {
       }
     };
 
+    console.log('Sending claim action:', action);
     const result = await session.transact({ actions: [action] });
+    console.log('Claim transaction result:', result);
+    
     const claimTransfer = findClaimTransfer(result);
+    console.log('Found claim transfer:', claimTransfer);
 
     if (claimTransfer?.data?.quantity) {
       addToast({
@@ -202,6 +213,8 @@ const handleClaim = async () => {
         message: `${claimTransfer.data.quantity}`
       });
     }
+
+    // Rest of the handler remains the same...
 
     // Update UI immediately for better UX
     if (playerStake && gameData.config) {
