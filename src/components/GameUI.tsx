@@ -170,17 +170,17 @@ const handleClaim = async () => {
       
       // Find the transfer action from vault to user (claim reward)
       const claimTransfer = result.transaction?.actions?.find((action: ResolvedAction) => 
-        action.name === 'transfer' && 
-        action.account === selectedPool.reward_pool.contract &&
-        action.data.from === gameData.config?.vault_account &&
+        action.name.toString() === 'transfer' && 
+        action.account.toString() === selectedPool.reward_pool.contract &&
+        action.data.from === gameData.config?.vault_account.toString() &&
         action.data.to === session.actor.toString()
       );
 
-      if (claimTransfer?.data.quantity) {
+      if (claimTransfer?.data?.quantity) {
         addToast({
           type: 'success',
           title: 'Rewards Claimed',
-          message: claimTransfer.data.quantity
+          message: claimTransfer.data.quantity.toString()
         });
       }
 
@@ -239,17 +239,17 @@ const handleClaim = async () => {
 
       // Find any claim transfer that happened during stake
       const claimTransfer = result.transaction?.actions?.find((action: ResolvedAction) => 
-        action.name === 'transfer' && 
-        action.account === selectedPool.reward_pool.contract &&
-        action.data.from === gameData.config?.vault_account &&
+        action.name.toString() === 'transfer' && 
+        action.account.toString() === selectedPool.reward_pool.contract &&
+        action.data.from === gameData.config?.vault_account.toString() &&
         action.data.to === session.actor.toString()
       );
 
       addToast({
         type: 'success',
         title: 'Stake Successful!',
-        message: claimTransfer?.data.quantity
-          ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.data.quantity}`
+        message: claimTransfer?.data?.quantity
+          ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.data.quantity.toString()}`
           : `Staked ${formattedAmount} ${symbol}`
       });
 
@@ -321,17 +321,17 @@ const handleClaim = async () => {
 
       // Find any claim that happened during unstake
       const claimTransfer = result.transaction?.actions?.find((action: ResolvedAction) => 
-        action.name === 'transfer' && 
-        action.account === selectedPool.reward_pool.contract &&
-        action.data.from === gameData.config?.vault_account &&
+        action.name.toString() === 'transfer' && 
+        action.account.toString() === selectedPool.reward_pool.contract &&
+        action.data.from === gameData.config?.vault_account.toString() &&
         action.data.to === session.actor.toString()
       );
 
       addToast({
         type: 'success',
         title: 'Unstake Successful!',
-        message: claimTransfer?.data.quantity
-          ? `Unstaked ${formattedAmount} ${symbol} and claimed ${claimTransfer.data.quantity}`
+        message: claimTransfer?.data?.quantity
+          ? `Unstaked ${formattedAmount} ${symbol} and claimed ${claimTransfer.data.quantity.toString()}`
           : `Unstaked ${formattedAmount} ${symbol}`
       });
 
