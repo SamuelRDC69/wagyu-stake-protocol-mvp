@@ -9,7 +9,7 @@ import { Crown,
   Gauge, 
   Users, 
   BarChart3 } from 'lucide-react';
-import { Name } from '@wharfkit/session';
+import { Session, SessionKit, Chains, Name, ResolvedAction } from '@wharfkit/session';
 import { WharfkitContext } from '../lib/wharfkit/context';
 import { CONTRACTS } from '../lib/wharfkit/contracts';
 import { useContractData } from '../lib/hooks/useContractData';
