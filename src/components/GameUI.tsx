@@ -152,9 +152,25 @@ const GameUI: React.FC = () => {
     };
   }, [session, loadData]);
 
-// Helper function to find claim transfer in actions
-const findClaimTransfer = (actions: any[]) => {
-  return actions?.find(action => 
+// Interface for action data
+interface ResolvedAction {
+  account: string;
+  name: string;
+  data: {
+    from: string;
+    to: string;
+    quantity: string;
+    memo: string;
+  };
+}
+
+// Helper function with proper typing
+const findClaimTransfer = (transaction: any): ResolvedAction | undefined => {
+  if (!transaction?.resolved || !Array.isArray(transaction.resolved)) {
+    return undefined;
+  }
+
+  return transaction.resolved.find((action: ResolvedAction) => 
     action.account === 'eosio.token' &&
     action.name === 'transfer' && 
     action.data.from === 'test1ngstake' &&
@@ -177,14 +193,7 @@ const handleClaim = async () => {
     };
 
     const result = await session.transact({ actions: [action] });
-    
-    // Find the reward transfer action
-    const claimTransfer = result.resolved?.find(action => 
-      action.account === 'eosio.token' &&
-      action.name === 'transfer' && 
-      action.data.from === 'test1ngstake' &&
-      action.data.memo === 'Token staking reward.'
-    );
+    const claimTransfer = findClaimTransfer(result);
 
     if (claimTransfer?.data?.quantity) {
       addToast({
@@ -246,14 +255,7 @@ const handleStake = async (amount: string) => {
     };
 
     const result = await session.transact({ actions: [action] });
-
-    // Find the reward transfer action
-    const claimTransfer = result.resolved?.find(action => 
-      action.account === 'eosio.token' &&
-      action.name === 'transfer' && 
-      action.data.from === 'test1ngstake' &&
-      action.data.memo === 'Token staking reward.'
-    );
+    const claimTransfer = findClaimTransfer(result);
 
     addToast({
       type: 'success',
