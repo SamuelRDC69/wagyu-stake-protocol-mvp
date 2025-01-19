@@ -62,7 +62,7 @@ interface GameDataState {
   config: ConfigEntity | undefined;
 }
 
-// Then add just this interface after all imports
+// Add this interface after your imports
 interface ActionTrace {
   act: {
     account: string;
@@ -169,7 +169,7 @@ const handleClaim = async () => {
       const result = await session.transact({ actions: [action] });
       
       // Find the transfer action from vault to user (claim reward)
-      const claimTransfer = result.processed.action_traces?.find((trace: ActionTrace) => 
+      const claimTransfer = result.transaction.actions.find((trace: ActionTrace) => 
         trace.act.name === 'transfer' && 
         trace.act.account === selectedPool.reward_pool.contract &&
         trace.act.data.from === gameData.config?.vault_account &&
@@ -238,7 +238,7 @@ const handleClaim = async () => {
       const result = await session.transact({ actions: [action] });
 
       // Find any claim transfer that happened during stake
-      const claimTransfer = result.processed.action_traces?.find((trace: ActionTrace) => 
+      const claimTransfer = result.transaction.actions.find((trace: ActionTrace) => 
         trace.act.name === 'transfer' && 
         trace.act.account === selectedPool.reward_pool.contract &&
         trace.act.data.from === gameData.config?.vault_account &&
@@ -320,7 +320,7 @@ const handleClaim = async () => {
       const result = await session.transact({ actions: [action] });
 
       // Find any claim that happened during unstake
-      const claimTransfer = result.processed.action_traces?.find((trace: ActionTrace) => 
+      const claimTransfer = result.transaction.actions.find((trace: ActionTrace) => 
         trace.act.name === 'transfer' && 
         trace.act.account === selectedPool.reward_pool.contract &&
         trace.act.data.from === gameData.config?.vault_account &&
