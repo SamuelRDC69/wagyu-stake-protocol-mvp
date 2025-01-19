@@ -163,26 +163,34 @@ interface ResolvedAction {
   };
 }
 
-// Helper function with debug logging
 const findClaimTransfer = (transaction: any): ResolvedAction | undefined => {
   console.log('Full transaction result:', JSON.stringify(transaction, null, 2));
   
-  if (!transaction?.resolved || !Array.isArray(transaction.resolved)) {
-    console.log('No resolved actions found in transaction');
+  const actionTraces = transaction?.response?.processed?.action_traces;
+  if (!actionTraces || !Array.isArray(actionTraces)) {
+    console.log('No action traces found in transaction');
     return undefined;
   }
 
-  console.log('Resolved actions:', JSON.stringify(transaction.resolved, null, 2));
+  console.log('Action traces:', JSON.stringify(actionTraces, null, 2));
   
-  const claimAction = transaction.resolved.find((action: ResolvedAction) => 
-    action.account === 'eosio.token' &&
-    action.name === 'transfer' && 
-    action.data.from === 'test1ngstake' &&
-    action.data.memo === 'Token staking reward.'
+  const claimAction = actionTraces.find((trace: any) => 
+    trace.act.account === 'eosio.token' &&
+    trace.act.name === 'transfer' && 
+    trace.act.data.from === 'test1ngstake' &&
+    trace.act.data.memo === 'Token staking reward.'
   );
 
+  if (claimAction) {
+    return {
+      account: claimAction.act.account,
+      name: claimAction.act.name,
+      data: claimAction.act.data
+    };
+  }
+
   console.log('Found claim action:', claimAction);
-  return claimAction;
+  return undefined;
 };
 
 const handleClaim = async () => {
