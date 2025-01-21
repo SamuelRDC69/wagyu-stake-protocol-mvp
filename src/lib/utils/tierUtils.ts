@@ -184,10 +184,12 @@ export const calculateTierProgress = (
       totalAmountForNext = applyWaxPrecision((nextTierThreshold * totalValue) / 100);
       
       if (stakedValue < totalAmountForNext) {
-        // Calculate base amount needed
-        const rawAmountNeeded = totalAmountForNext - stakedValue;
-        // Add fee adjustment - if you need 100 WAX, with 0.3% fee you need 100.3003 WAX
-        additionalAmountNeeded = applyWaxPrecision(rawAmountNeeded / (1 - FEE_RATE));
+        // If we need 100 WAX total staked:
+        // 1. First calculate total amount needed with fee: 100 / (1 - 0.003) ≈ 100.3003
+        // 2. Then subtract what user already has staked
+        // This ensures we account for the fee on the total required amount
+        const totalWithFee = applyWaxPrecision(totalAmountForNext / (1 - FEE_RATE));
+        additionalAmountNeeded = applyWaxPrecision(totalWithFee - stakedValue);
       } else {
         additionalAmountNeeded = 0;
       }
