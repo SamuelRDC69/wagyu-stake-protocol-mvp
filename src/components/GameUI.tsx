@@ -62,7 +62,7 @@ interface GameDataState {
   config: ConfigEntity | undefined;
 }
 
-// Add this interface after your imports
+// Action trace interface
 interface ActionTrace {
   act: {
     account: string;
@@ -83,7 +83,6 @@ const GameUI: React.FC = () => {
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>();
-  const [error, setError] = useState<string | null>(null);
   const { fetchData, loading } = useContractData();
   const { addToast } = useToast();
   const [gameData, setGameData] = useState<GameDataState>({
@@ -112,18 +111,20 @@ const GameUI: React.FC = () => {
           config: data.config
         });
 
-        // Set first pool as default if none selected
         if (data.pools.length > 0 && !selectedPool) {
           setSelectedPool(data.pools[0]);
         }
       }
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError('Failed to load data');
+      addToast({
+        type: 'error',
+        title: 'Data Load Failed',
+        message: 'Failed to load game data. Please try again.'
+      });
     }
-  }, [fetchData, selectedPool]);
+  }, [fetchData, selectedPool, addToast]);
 
-  // Initial data load
   useEffect(() => {
     if (session) {
       loadData();
@@ -138,7 +139,6 @@ const GameUI: React.FC = () => {
     }
   }, [session, loadData]);
 
-  // Visibility change handler
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && session) {
@@ -152,254 +152,226 @@ const GameUI: React.FC = () => {
     };
   }, [session, loadData]);
 
-interface ResolvedAction {
-  account: string;
-  name: string;
-  data: {
-    from: string;
-    to: string;
-    quantity: string;
-    memo: string;
-  };
-}
-
-const findClaimTransfer = (transaction: any): ResolvedAction | undefined => {
-  console.log('Full transaction result:', JSON.stringify(transaction, null, 2));
-  
-  const actionTraces = transaction?.response?.processed?.action_traces;
-  if (!actionTraces || !Array.isArray(actionTraces)) {
-    console.log('No action traces found in transaction');
-    return undefined;
-  }
-
-  console.log('Action traces:', JSON.stringify(actionTraces, null, 2));
-  
-  const claimAction = actionTraces.find((trace: any) => 
-    trace.act.account === 'eosio.token' &&
-    trace.act.name === 'transfer' && 
-    trace.act.data.from === 'test1ngstake' &&
-    trace.act.data.memo === 'Token staking reward.'
-  );
-
-  if (claimAction) {
-    return {
-      account: claimAction.act.account,
-      name: claimAction.act.name,
-      data: claimAction.act.data
-    };
-  }
-
-  console.log('Found claim action:', claimAction);
-  return undefined;
-};
-
-const handleClaim = async () => {
-  if (!session || !selectedPool) return;
-  
-  try {
-    const action = {
-      account: Name.from(CONTRACTS.STAKING.NAME),
-      name: Name.from('claim'),
-      authorization: [session.permissionLevel],
-      data: {
-        claimer: session.actor,
-        pool_id: selectedPool.pool_id
-      }
-    };
-
-    console.log('Sending claim action:', action);
-    const result = await session.transact({ actions: [action] });
-    console.log('Claim transaction result:', result);
+  // Helper function for finding claim transfers
+  const findClaimTransfer = (transaction: any): ResolvedAction | undefined => {
+    const actionTraces = transaction?.response?.processed?.action_traces;
+    if (!actionTraces || !Array.isArray(actionTraces)) {
+      return undefined;
+    }
     
-    const claimTransfer = findClaimTransfer(result);
-    console.log('Found claim transfer:', claimTransfer);
+    const claimAction = actionTraces.find((trace: any) => 
+      trace.act.account === 'eosio.token' &&
+      trace.act.name === 'transfer' && 
+      trace.act.data.from === 'test1ngstake' &&
+      trace.act.data.memo === 'Token staking reward.'
+    );
 
-    if (claimTransfer?.data?.quantity) {
+    if (claimAction) {
+      return {
+        account: claimAction.act.account,
+        name: claimAction.act.name,
+        data: claimAction.act.data
+      };
+    }
+
+    return undefined;
+  };
+
+  const handleClaim = async () => {
+    if (!session || !selectedPool) return;
+    
+    try {
+      const action = {
+        account: Name.from(CONTRACTS.STAKING.NAME),
+        name: Name.from('claim'),
+        authorization: [session.permissionLevel],
+        data: {
+          claimer: session.actor,
+          pool_id: selectedPool.pool_id
+        }
+      };
+
+      const result = await session.transact({ actions: [action] });
+      const claimTransfer = findClaimTransfer(result);
+
+      if (claimTransfer?.data?.quantity) {
+        addToast({
+          type: 'success',
+          title: 'Rewards Claimed',
+          message: `${claimTransfer.data.quantity}`
+        });
+      }
+
+      if (playerStake && gameData.config) {
+        const newCooldownEnd = new Date(
+          Date.now() + gameData.config.cooldown_seconds_per_claim * 1000
+        ).toISOString();
+        
+        setGameData(prev => ({
+          ...prev,
+          stakes: prev.stakes.map((stake: StakedEntity) =>
+            stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
+              ? {
+                  ...stake,
+                  cooldown_end_at: newCooldownEnd,
+                  last_claimed_at: new Date().toISOString()
+                }
+              : stake
+          )
+        }));
+      }
+      
+      await loadData();
+    } catch (error) {
+      console.error('Claim error:', error);
+      addToast({
+        type: 'error',
+        title: 'Claim Failed',
+        message: 'Failed to claim rewards. Please try again.'
+      });
+      await loadData();
+    }
+  };
+
+  const handleStake = async (amount: string) => {
+    if (!session || !selectedPool) return;
+    
+    try {
+      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+      const formattedAmount = parseFloat(amount).toFixed(8);
+      const action = {
+        account: Name.from(selectedPool.staked_token_contract),
+        name: Name.from('transfer'),
+        authorization: [session.permissionLevel],
+        data: {
+          from: session.actor,
+          to: CONTRACTS.STAKING.NAME,
+          quantity: `${formattedAmount} ${symbol}`,
+          memo: 'stake'
+        }
+      };
+
+      const result = await session.transact({ actions: [action] });
+      const claimTransfer = findClaimTransfer(result);
+
       addToast({
         type: 'success',
-        title: 'Rewards Claimed',
-        message: `${claimTransfer.data.quantity}`
+        title: 'Stake Successful!',
+        message: claimTransfer?.data?.quantity
+          ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.data.quantity}`
+          : `Staked ${formattedAmount} ${symbol}`
       });
-    }
 
-    // Rest of the handler remains the same...
-
-    // Update UI immediately for better UX
-    if (playerStake && gameData.config) {
-      const newCooldownEnd = new Date(
-        Date.now() + gameData.config.cooldown_seconds_per_claim * 1000
-      ).toISOString();
-      
-      setGameData(prev => ({
-        ...prev,
-        stakes: prev.stakes.map((stake: StakedEntity) =>
-          stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
-            ? {
-                ...stake,
-                cooldown_end_at: newCooldownEnd,
-                last_claimed_at: new Date().toISOString()
-              }
-            : stake
-        )
-      }));
-    }
-    
-    await loadData();
-  } catch (error) {
-    console.error('Claim error:', error);
-    setError('Failed to claim rewards');
-    addToast({
-      type: 'error',
-      title: 'Claim Failed',
-      message: 'Failed to claim rewards. Please try again.'
-    });
-    await loadData();
-  }
-};
-
-const handleStake = async (amount: string) => {
-  if (!session || !selectedPool) return;
-  
-  try {
-    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-    const formattedAmount = parseFloat(amount).toFixed(8);
-    const action = {
-      account: Name.from(selectedPool.staked_token_contract),
-      name: Name.from('transfer'),
-      authorization: [session.permissionLevel],
-      data: {
-        from: session.actor,
-        to: CONTRACTS.STAKING.NAME,
-        quantity: `${formattedAmount} ${symbol}`,
-        memo: 'stake'
-      }
-    };
-
-    const result = await session.transact({ actions: [action] });
-    const claimTransfer = findClaimTransfer(result);
-
-    addToast({
-      type: 'success',
-      title: 'Stake Successful!',
-      message: claimTransfer?.data?.quantity
-        ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.data.quantity}`
-        : `Staked ${formattedAmount} ${symbol}`
-    });
-
-    // Optimistic update
-    if (gameData.config) {
-      const newStakedQuantity = playerStake 
-        ? (parseFloat(playerStake.staked_quantity) + parseFloat(formattedAmount)).toFixed(8) + ` ${symbol}`
-        : `${formattedAmount} ${symbol}`;
+      if (gameData.config) {
+        const newStakedQuantity = playerStake 
+          ? (parseFloat(playerStake.staked_quantity) + parseFloat(formattedAmount)).toFixed(8) + ` ${symbol}`
+          : `${formattedAmount} ${symbol}`;
+          
+        const newCooldownEnd = new Date(
+          Date.now() + gameData.config.cooldown_seconds_per_claim * 1000
+        ).toISOString();
         
-      const newCooldownEnd = new Date(
-        Date.now() + gameData.config.cooldown_seconds_per_claim * 1000
-      ).toISOString();
-      
-      setGameData(prev => ({
-        ...prev,
-        stakes: playerStake
-          ? prev.stakes.map((stake: StakedEntity) =>
-              stake.pool_id === selectedPool.pool_id && stake.owner === session?.actor.toString()
-                ? {
-                    ...stake,
-                    staked_quantity: newStakedQuantity,
-                    cooldown_end_at: newCooldownEnd,
-                    last_claimed_at: new Date().toISOString()
-                  }
-                : stake
-            )
-          : [...prev.stakes, {
-              pool_id: selectedPool.pool_id,
-              staked_quantity: newStakedQuantity,
-              tier: 'supplier',
-              last_claimed_at: new Date().toISOString(),
-              cooldown_end_at: newCooldownEnd,
-              owner: session.actor.toString()
-            }]
-      }));
-    }
-
-    await loadData();
-  } catch (error) {
-    console.error('Stake error:', error);
-    setError('Failed to stake tokens');
-    addToast({
-      type: 'error',
-      title: 'Stake Failed',
-      message: 'Failed to stake tokens. Please try again.'
-    });
-    await loadData();
-  }
-};
-
-const handleUnstake = async (amount: string) => {
-  if (!session || !selectedPool || !playerStake) return;
-  
-  try {
-    const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-    const formattedAmount = parseFloat(amount).toFixed(8);
-    const action = {
-      account: Name.from(CONTRACTS.STAKING.NAME),
-      name: Name.from('unstake'),
-      authorization: [session.permissionLevel],
-      data: {
-        claimer: session.actor,
-        pool_id: selectedPool.pool_id,
-        quantity: `${formattedAmount} ${symbol}`,
+        setGameData(prev => ({
+          ...prev,
+          stakes: playerStake
+            ? prev.stakes.map((stake: StakedEntity) =>
+                stake.pool_id === selectedPool.pool_id && stake.owner === session?.actor.toString()
+                  ? {
+                      ...stake,
+                      staked_quantity: newStakedQuantity,
+                      cooldown_end_at: newCooldownEnd,
+                      last_claimed_at: new Date().toISOString()
+                    }
+                  : stake
+              )
+            : [...prev.stakes, {
+                pool_id: selectedPool.pool_id,
+                staked_quantity: newStakedQuantity,
+                tier: 'supplier',
+                last_claimed_at: new Date().toISOString(),
+                cooldown_end_at: newCooldownEnd,
+                owner: session.actor.toString()
+              }]
+        }));
       }
-    };
 
-    await session.transact({ actions: [action] });
-
-    addToast({
-      type: 'success',
-      title: 'Unstake Successful!',
-      message: `Unstaked ${formattedAmount} ${symbol}`
-    });
-
-    // Optimistic update
-    const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
-    
-    if (newStakedAmount <= 0) {
-      setGameData(prev => ({
-        ...prev,
-        stakes: prev.stakes.filter((stake: StakedEntity) => 
-          stake.pool_id !== playerStake.pool_id || 
-          stake.owner !== session?.actor.toString()
-        )
-      }));
-    } else {
-      setGameData(prev => ({
-        ...prev,
-        stakes: prev.stakes.map((stake: StakedEntity) =>
-          stake.pool_id === playerStake.pool_id && 
-          stake.owner === session?.actor.toString()
-            ? {
-                ...stake,
-                staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
-                cooldown_end_at: new Date(
-                  Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
-                ).toISOString(),
-                last_claimed_at: new Date().toISOString()
-              }
-            : stake
-        )
-      }));
+      await loadData();
+    } catch (error) {
+      console.error('Stake error:', error);
+      addToast({
+        type: 'error',
+        title: 'Stake Failed',
+        message: 'Failed to stake tokens. Please try again.'
+      });
+      await loadData();
     }
+  };
 
-    await loadData();
-  } catch (error) {
-    console.error('Unstake error:', error);
-    setError('Failed to unstake tokens');
-    addToast({
-      type: 'error',
-      title: 'Unstake Failed',
-      message: 'Failed to unstake tokens. Please try again.'
-    });
-    await loadData();
-  }
-};
+  const handleUnstake = async (amount: string) => {
+    if (!session || !selectedPool || !playerStake) return;
+    
+    try {
+      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
+      const formattedAmount = parseFloat(amount).toFixed(8);
+      const action = {
+        account: Name.from(CONTRACTS.STAKING.NAME),
+        name: Name.from('unstake'),
+        authorization: [session.permissionLevel],
+        data: {
+          claimer: session.actor,
+          pool_id: selectedPool.pool_id,
+          quantity: `${formattedAmount} ${symbol}`,
+        }
+      };
+
+      await session.transact({ actions: [action] });
+
+      addToast({
+        type: 'success',
+        title: 'Unstake Successful!',
+        message: `Unstaked ${formattedAmount} ${symbol}`
+      });
+
+      const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
+      
+      if (newStakedAmount <= 0) {
+        setGameData(prev => ({
+          ...prev,
+          stakes: prev.stakes.filter((stake: StakedEntity) => 
+            stake.pool_id !== playerStake.pool_id || 
+            stake.owner !== session?.actor.toString()
+          )
+        }));
+      } else {
+        setGameData(prev => ({
+          ...prev,
+          stakes: prev.stakes.map((stake: StakedEntity) =>
+            stake.pool_id === playerStake.pool_id && 
+            stake.owner === session?.actor.toString()
+              ? {
+                  ...stake,
+                  staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
+                  cooldown_end_at: new Date(
+                    Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
+                  ).toISOString(),
+                  last_claimed_at: new Date().toISOString()
+                }
+              : stake
+          )
+        }));
+      }
+
+      await loadData();
+    } catch (error) {
+      console.error('Unstake error:', error);
+      addToast({
+        type: 'error',
+        title: 'Unstake Failed',
+        message: 'Failed to unstake tokens. Please try again.'
+      });
+      await loadData();
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -407,7 +379,11 @@ const handleUnstake = async (amount: string) => {
       setSession(response.session);
     } catch (error) {
       console.error('Login error:', error);
-      setError('Failed to connect wallet');
+      addToast({
+        type: 'error',
+        title: 'Login Failed',
+        message: 'Failed to connect wallet. Please try again.'
+      });
     }
   };
 
@@ -426,42 +402,37 @@ const handleUnstake = async (amount: string) => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
-  // Updated tier calculations section
-const tierProgress = useTierCalculation(playerStake, selectedPool, gameData.tiers);
+  const tierProgress = useTierCalculation(playerStake, selectedPool, gameData.tiers);
 
-// Calculate upgrade availability
-const canUpgradeTier = useMemo(() => {
-  if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
-  
-  try {
-    const { amount: stakedValue } = parseTokenString(playerStake.staked_quantity);
-    const { amount: totalValue } = parseTokenString(selectedPool.total_staked_quantity);
+  const canUpgradeTier = useMemo(() => {
+    if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
     
-    if (totalValue === 0) return false;
-    
-    const stakedPercent = (stakedValue / totalValue) * 100;
-    
-    // Sort tiers by percentage threshold
-    const sortedTiers = [...gameData.tiers].sort((a, b) => 
-      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-    );
-    
-    // Find next tier threshold
-    const currentTierIndex = sortedTiers.findIndex(t => 
-      t.tier === tierProgress.currentTier.tier
-    );
-    
-    if (currentTierIndex >= sortedTiers.length - 1) return false;
-    
-    const nextTier = sortedTiers[currentTierIndex + 1];
-    
-    // Check if we exceed next tier's threshold
-    return stakedPercent > parseFloat(nextTier.staked_up_to_percent);
-  } catch (error) {
-    console.error('Error checking tier upgrade availability:', error);
-    return false;
-  }
-}, [tierProgress, selectedPool, playerStake, gameData.tiers]);
+    try {
+      const { amount: stakedValue } = parseTokenString(playerStake.staked_quantity);
+      const { amount: totalValue } = parseTokenString(selectedPool.total_staked_quantity);
+      
+      if (totalValue === 0) return false;
+      
+      const stakedPercent = (stakedValue / totalValue) * 100;
+      
+      const sortedTiers = [...gameData.tiers].sort((a, b) => 
+        parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+      );
+      
+      const currentTierIndex = sortedTiers.findIndex(t => 
+        t.tier === tierProgress.currentTier.tier
+      );
+      
+      if (currentTierIndex >= sortedTiers.length - 1) return false;
+      
+      const nextTier = sortedTiers[currentTierIndex + 1];
+      
+      return stakedPercent > parseFloat(nextTier.staked_up_to_percent);
+    } catch (error) {
+      console.error('Error checking tier upgrade availability:', error);
+      return false;
+    }
+  }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
 
   // Render content based on active tab
   const renderContent = () => {
@@ -487,10 +458,13 @@ const canUpgradeTier = useMemo(() => {
                   try {
                     const pool = gameData.pools.find(p => p.pool_id === parseInt(value));
                     setSelectedPool(pool);
-                    setError(null);
                   } catch (error) {
                     console.error('Error selecting pool:', error);
-                    setError('Error selecting pool');
+                    addToast({
+                      type: 'error',
+                      title: 'Pool Selection Failed',
+                      message: 'Failed to select pool. Please try again.'
+                    });
                   }
                 }}
                 value={selectedPool?.pool_id?.toString()}
@@ -542,25 +516,18 @@ const canUpgradeTier = useMemo(() => {
                   )}
                   
                   {gameData.config && (
-  <UserStatus 
-    stakedData={playerStake}
-    config={gameData.config}
-    onCooldownComplete={loadData}
-    onClaim={handleClaim}
-    onUnstake={handleUnstake}
-    onStake={handleStake}
-    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-    tierProgress={tierProgress || undefined}
-    isLoading={loading} // Add loading state
-  />
-)}
-
-{loading && (
-  <div className="space-y-4 animate-pulse">
-    <div className="h-32 bg-slate-800/30 rounded-lg"></div>
-    <div className="h-32 bg-slate-800/30 rounded-lg"></div>
-  </div>
-)}
+                    <UserStatus 
+                      stakedData={playerStake}
+                      config={gameData.config}
+                      onCooldownComplete={loadData}
+                      onClaim={handleClaim}
+                      onUnstake={handleUnstake}
+                      onStake={handleStake}
+                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+                      tierProgress={tierProgress || undefined}
+                      isLoading={loading}
+                    />
+                  )}
 
                   <RewardsChart poolData={selectedPool} />
                 </div>
@@ -678,13 +645,6 @@ const canUpgradeTier = useMemo(() => {
           </nav>
         </div>
       </div>
-
-      {/* Error Toast */}
-      {error && (
-        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg border border-red-400/50">
-          {error}
-        </div>
-      )}
     </div>
   );
 };
