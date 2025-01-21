@@ -1,9 +1,7 @@
-// src/lib/utils/tierUtils.ts
 import { TierEntity, TierProgress, TierVariant } from '../types/tier';
 import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { parseTokenString } from './tokenUtils';
 import { cn } from '@/lib/utils';
-import { DEFAULT_TIERS } from '../config/tiers';
 
 const FEE_RATE = 0.003; // 0.3% fee as per contract
 const PRECISION = 100000000; // 8 decimal places for WAX
@@ -67,13 +65,6 @@ const applyWaxPrecision = (value: number): number => {
   return Math.round(value * PRECISION) / PRECISION;
 };
 
-// Helper function for tier matching
-const findMatchingTier = (tierKey: string): TierEntity | undefined => {
-  const normalizedTierKey = tierKey.toLowerCase().trim();
-  return DEFAULT_TIERS.find(t => t.tier.toLowerCase() === normalizedTierKey);
-};
-
-
 // Export tier determination logic
 export const determineTier = (
   stakedAmount: string,
@@ -114,7 +105,7 @@ export const determineTier = (
   }
 };
 
-// Calculate safe unstake amount that won't drop tier
+// Calculate safe unstake amount that won't drop tier (WITHOUT fee calculation)
 export const calculateSafeUnstakeAmount = (
   stakedAmount: string,
   totalStaked: string,
@@ -132,9 +123,8 @@ export const calculateSafeUnstakeAmount = (
     const minRequiredRaw = (currentTierThreshold * totalValue) / 100;
     const minRequired = applyWaxPrecision(minRequiredRaw);
 
-    // Calculate maximum safe unstake amount accounting for fee
-    const rawSafeAmount = stakedValue - minRequired;
-    const safeAmount = Math.max(0, rawSafeAmount * (1 - FEE_RATE));
+    // Calculate maximum safe unstake amount WITHOUT fee consideration
+    const safeAmount = Math.max(0, stakedValue - minRequired);
 
     return applyWaxPrecision(safeAmount);
   } catch (error) {
@@ -182,10 +172,14 @@ export const calculateTierProgress = (
 
     if (nextTier) {
       const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
+      // Calculate base amount needed for next tier
       totalAmountForNext = applyWaxPrecision((nextTierThreshold * totalValue) / 100);
       
       if (stakedValue < totalAmountForNext) {
+        // Calculate base amount needed first
         const rawAmountNeeded = totalAmountForNext - stakedValue;
+        // Adjust for fee: amount needed = raw_amount / (1 - fee_rate)
+        // This accounts for the fee taken when staking
         additionalAmountNeeded = applyWaxPrecision(rawAmountNeeded / (1 - FEE_RATE));
       } else {
         additionalAmountNeeded = 0;
@@ -260,14 +254,3 @@ export const isTierUpgradeAvailable = (
     return false;
   }
 };
-
-export function getTierDisplayName(tierKey: string): string {
-  const matchingTier = findMatchingTier(tierKey);
-  return matchingTier?.tier_name || tierKey;
-}
-
-export function getTierWeight(tierKey: string): string {
-  const matchingTier = findMatchingTier(tierKey);
-  const weight = matchingTier ? parseFloat(matchingTier.weight) : 1.0;
-  return weight.toFixed(2);
-}
