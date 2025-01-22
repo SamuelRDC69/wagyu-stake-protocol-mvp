@@ -26,43 +26,42 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
 
   // Calculate current rewards based on smart contract logic
   useEffect(() => {
-    if (!poolData || !isValidPoolData(poolData)) return;
+  if (!poolData || !isValidPoolData(poolData)) return;
+  
+  const calculateCurrentRewards = () => {
+    try {
+      // Parse initial rewards from the pool maintaining precision
+      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+      const initialAmount = parseFloat(initialAmountStr);
+      
+      // Calculate time elapsed since last emission update
+      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+      const currentTime = new Date().getTime();
+      const elapsedMilliseconds = currentTime - lastUpdate;
+      const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
+      
+      // Calculate emissions using contract precision
+      const emissionRate = poolData.emission_rate / 100000000; // Convert to 0.00000500 per second
+      const newEmissions = (elapsedSeconds / poolData.emission_unit) * emissionRate;
+      
+      // Return total rewards with proper precision
+      return Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
+    } catch (error) {
+      console.error('Error calculating rewards:', error);
+      return 0;
+    }
+  };
 
-    const calculateCurrentRewards = () => {
-      try {
-        // Parse initial rewards from the pool maintaining precision
-        const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-        const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
-        
-        // Calculate time elapsed since last emission update
-        const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-        const currentTime = new Date().getTime();
-        const elapsedMilliseconds = currentTime - lastUpdate;
-        const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
-        
-        // Calculate emissions using integer arithmetic like the contract
-        const emissionPeriods = Math.floor(elapsedSeconds / poolData.emission_unit);
-        const emissionAmount = BigInt(emissionPeriods) * BigInt(poolData.emission_rate);
-        
-        // Convert back to floating point with proper precision
-        const totalAmount = Number(initialAmount + Number(emissionAmount));
-        return totalAmount / 100000000; // Convert back to 8 decimal places
-      } catch (error) {
-        console.error('Error calculating rewards:', error);
-        return 0;
-      }
-    };
+  // Set initial value
+  setCurrentRewards(calculateCurrentRewards());
 
-    // Set initial value
+  // Update every second
+  const interval = setInterval(() => {
     setCurrentRewards(calculateCurrentRewards());
+  }, 1000);
 
-    // Update every second
-    const interval = setInterval(() => {
-      setCurrentRewards(calculateCurrentRewards());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [poolData]);
+  return () => clearInterval(interval);
+}, [poolData]);
 
   if (isLoading) {
     return (
