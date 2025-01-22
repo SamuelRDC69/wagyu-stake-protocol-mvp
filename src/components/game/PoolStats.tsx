@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
+import { calculateRewards, parseRewardPool } from '../../lib/utils/rewardUtils';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
@@ -24,46 +25,36 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   };
 
- 
-useEffect(() => {
-  if (!poolData || !isValidPoolData(poolData)) return;
-  
-  const calculateCurrentRewards = () => {
-    try {
-      // Parse initial rewards from the pool
-      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-      const initialAmount = parseFloat(initialAmountStr);
-      
-      // Calculate elapsed time
-      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = new Date().getTime();
-      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-      
-      // Calculate emissions - divide by 100000000 to get 0.00000500 per second
-      const emissionRate = poolData.emission_rate / 100000000;  // 50000/100000000 = 0.00000500
-      const newEmissions = (elapsedSeconds * emissionRate) / poolData.emission_unit;
-      
-      // Calculate total with precision
-      const totalRewards = Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
-      
-      return totalRewards;
-    } catch (error) {
-      console.error('Error calculating rewards:', error);
-      return 0;
-    }
-  };
+  useEffect(() => {
+    if (!poolData || !isValidPoolData(poolData)) return;
+    
+    const updateRewards = () => {
+      try {
+        const initialAmount = parseRewardPool(poolData.reward_pool.quantity);
+        const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+        const currentTime = new Date().getTime();
+        const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+        
+        const currentAmount = calculateRewards(
+          initialAmount,
+          poolData.emission_rate,
+          poolData.emission_unit,
+          elapsedSeconds
+        );
+        
+        setCurrentRewards(currentAmount);
+      } catch (error) {
+        console.error('Error calculating rewards:', error);
+      }
+    };
 
-  // Set initial value
-  setCurrentRewards(calculateCurrentRewards());
+    // Set initial value
+    updateRewards();
 
-  // Update every second
-  const interval = setInterval(() => {
-    setCurrentRewards(calculateCurrentRewards());
-  }, 1000);
-
-  return () => clearInterval(interval);
-}, [poolData]);
-
+    // Update every second
+    const interval = setInterval(updateRewards, 1000);
+    return () => clearInterval(interval);
+  }, [poolData]);
 
   if (isLoading) {
     return (
@@ -106,7 +97,7 @@ useEffect(() => {
     try {
       const [amount, symbol = 'WAX'] = value.split(' ');
       return {
-        amount: parseFloat(amount).toFixed(8), // Maintain 8 decimal places
+        amount: parseFloat(amount).toFixed(8),
         symbol
       };
     } catch (e) {
