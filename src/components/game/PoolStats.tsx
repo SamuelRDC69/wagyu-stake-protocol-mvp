@@ -24,7 +24,10 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   };
 
- useEffect(() => {
+ Ah! Now I see the problem clearly - the emission rate is being calculated wrong. Let me fix this:
+
+```javascript
+useEffect(() => {
   if (!poolData || !isValidPoolData(poolData)) return;
   
   const calculateCurrentRewards = () => {
@@ -32,24 +35,18 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
       // Parse initial rewards from the pool
       const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
       const initialAmount = parseFloat(initialAmountStr);
-      console.log('Initial amount:', initialAmount);
       
       // Calculate elapsed time
       const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
       const currentTime = new Date().getTime();
       const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-      console.log('Elapsed seconds:', elapsedSeconds);
       
-      // Calculate emissions
-      const emissionRate = poolData.emission_rate / 100000000;
-      console.log('Emission rate per second:', emissionRate);
-      
+      // Calculate emissions - divide by 100000000 to get 0.00000500 per second
+      const emissionRate = poolData.emission_rate / 100000000;  // 50000/100000000 = 0.00000500
       const newEmissions = (elapsedSeconds * emissionRate) / poolData.emission_unit;
-      console.log('New emissions:', newEmissions);
       
       // Calculate total with precision
-      const totalRewards = initialAmount + newEmissions;
-      console.log('Total rewards:', totalRewards);
+      const totalRewards = Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
       
       return totalRewards;
     } catch (error) {
@@ -68,6 +65,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
 
   return () => clearInterval(interval);
 }, [poolData]);
+
 
   if (isLoading) {
     return (
