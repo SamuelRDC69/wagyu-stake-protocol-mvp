@@ -24,9 +24,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   };
 
- Ah! Now I see the problem clearly - the emission rate is being calculated wrong. Let me fix this:
-
-```javascript
+ 
 useEffect(() => {
   if (!poolData || !isValidPoolData(poolData)) return;
   
