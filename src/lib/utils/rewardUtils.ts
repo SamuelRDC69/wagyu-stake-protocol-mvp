@@ -7,7 +7,7 @@ export const calculateRewards = (
   elapsedSeconds: number
 ): number => {
   // Calculate emission per second (50000/100000000 = 0.00000500)
-  const emissionPerSecond = emissionRate / WAX_PRECISION;
+  const emissionPerSecond = (emissionRate / WAX_PRECISION) / emissionUnit;
   
   // Calculate total new emissions
   const newEmissions = elapsedSeconds * emissionPerSecond;
