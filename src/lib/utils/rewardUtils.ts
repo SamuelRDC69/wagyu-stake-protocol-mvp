@@ -1,5 +1,3 @@
-// src/lib/utils/rewardUtils.ts
-
 const WAX_PRECISION = 100000000; // 8 decimal places
 
 export const calculateRewards = (
@@ -8,13 +6,13 @@ export const calculateRewards = (
   emissionUnit: number,
   elapsedSeconds: number
 ): number => {
-  // Convert rate to proper decimal (50000 -> 0.00000500)
-  const ratePerSecond = emissionRate / WAX_PRECISION;
+  // Calculate emission per second (50000/100000000 = 0.00000500)
+  const emissionPerSecond = emissionRate / WAX_PRECISION;
   
-  // Calculate new emissions maintaining precision
-  const newEmissions = (elapsedSeconds * ratePerSecond) / emissionUnit;
+  // Calculate total new emissions
+  const newEmissions = elapsedSeconds * emissionPerSecond;
   
-  // Round to 8 decimal places
+  // Return with 8 decimal precision
   return Math.round((initialAmount + newEmissions) * WAX_PRECISION) / WAX_PRECISION;
 };
 
