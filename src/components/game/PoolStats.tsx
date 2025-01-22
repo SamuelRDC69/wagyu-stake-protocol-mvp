@@ -24,28 +24,34 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   };
 
-  // Calculate current rewards based on smart contract logic
-  useEffect(() => {
+ useEffect(() => {
   if (!poolData || !isValidPoolData(poolData)) return;
   
   const calculateCurrentRewards = () => {
     try {
-      // Parse initial rewards from the pool maintaining precision
+      // Parse initial rewards from the pool
       const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
       const initialAmount = parseFloat(initialAmountStr);
+      console.log('Initial amount:', initialAmount);
       
-      // Calculate time elapsed since last emission update
+      // Calculate elapsed time
       const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
       const currentTime = new Date().getTime();
-      const elapsedMilliseconds = currentTime - lastUpdate;
-      const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
+      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+      console.log('Elapsed seconds:', elapsedSeconds);
       
-      // Calculate emissions using contract precision
-      const emissionRate = poolData.emission_rate / 100000000; // Convert to 0.00000500 per second
-      const newEmissions = (elapsedSeconds / poolData.emission_unit) * emissionRate;
+      // Calculate emissions
+      const emissionRate = poolData.emission_rate / 100000000;
+      console.log('Emission rate per second:', emissionRate);
       
-      // Return total rewards with proper precision
-      return Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
+      const newEmissions = (elapsedSeconds * emissionRate) / poolData.emission_unit;
+      console.log('New emissions:', newEmissions);
+      
+      // Calculate total with precision
+      const totalRewards = initialAmount + newEmissions;
+      console.log('Total rewards:', totalRewards);
+      
+      return totalRewards;
     } catch (error) {
       console.error('Error calculating rewards:', error);
       return 0;
