@@ -29,23 +29,23 @@ useEffect(() => {
   if (!poolData || !isValidPoolData(poolData)) return;
   
   const calculateCurrentRewards = () => {
-  try {
-    const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
-    
-    const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-    const currentTime = new Date().getTime();
-    const timeDiff = Math.floor((currentTime - lastUpdate) / 1000);
-    
-    // Match contract's integer emission calculation
-    const emissionAmount = Math.floor((timeDiff * poolData.emission_rate) / poolData.emission_unit);
-    const totalAmount = initialAmount + emissionAmount;
-    
-    return totalAmount / 100000000;
-  } catch (error) {
-    console.error('Error calculating rewards:', error);
-    return 0;
-  }
+ try {
+   const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+   const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer
+
+   const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+   const currentTime = new Date().getTime(); 
+   const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+   
+   // Calculate total emissions to pool for elapsed time
+   const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
+   const totalAmount = initialAmount + additionalAmount;
+   
+   return totalAmount / 100000000; // Convert back to decimal
+ } catch (error) {
+   console.error('Error calculating rewards:', error);
+   return 0;
+ }
 };
 
 
