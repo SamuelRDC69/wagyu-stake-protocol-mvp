@@ -30,37 +30,28 @@ useEffect(() => {
   
   const calculateCurrentRewards = () => {
     try {
-      // Parse initial rewards from the pool
       const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
       const initialAmount = parseFloat(initialAmountStr);
       
-      // Calculate elapsed time
       const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
       const currentTime = new Date().getTime();
       const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
       
-      // Calculate emissions - divide by 100000000 to get 0.00000500 per second
-      const emissionRate = poolData.emission_rate / 100000000;  // 50000/100000000 = 0.00000500
-      const newEmissions = (elapsedSeconds * emissionRate) / poolData.emission_unit;
+      // Calculate whole emission periods
+      const emissionPeriods = Math.floor(elapsedSeconds / poolData.emission_unit);
       
-      // Calculate total with precision
-      const totalRewards = Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
+      // Use integer math then divide by precision
+      const newEmissions = (emissionPeriods * poolData.emission_rate) / 100000000;
       
-      return totalRewards;
+      return Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
     } catch (error) {
       console.error('Error calculating rewards:', error);
       return 0;
     }
   };
 
-  // Set initial value
   setCurrentRewards(calculateCurrentRewards());
-
-  // Update every second
-  const interval = setInterval(() => {
-    setCurrentRewards(calculateCurrentRewards());
-  }, 1000);
-
+  const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
   return () => clearInterval(interval);
 }, [poolData]);
 
