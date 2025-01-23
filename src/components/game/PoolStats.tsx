@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
-import { calculateRewards, parseRewardPool } from '../../lib/utils/rewardUtils';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
@@ -28,31 +27,37 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
   useEffect(() => {
     if (!poolData || !isValidPoolData(poolData)) return;
     
-    const updateRewards = () => {
+    const calculateCurrentRewards = () => {
       try {
-        const initialAmount = parseRewardPool(poolData.reward_pool.quantity);
+        // Parse initial rewards from the pool
+        const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+        const initialAmount = parseFloat(initialAmountStr);
+        
+        // Calculate elapsed time
         const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
         const currentTime = new Date().getTime();
         const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
         
-        const currentAmount = calculateRewards(
-          initialAmount,
-          poolData.emission_rate,
-          poolData.emission_unit,
-          elapsedSeconds
-        );
+        // Calculate emissions matching contract precision
+        const emissionPerSecond = (poolData.emission_rate / 100000000) / poolData.emission_unit;
+        const newEmissions = elapsedSeconds * emissionPerSecond;
         
-        setCurrentRewards(currentAmount);
+        // Return total with proper precision
+        return Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
       } catch (error) {
         console.error('Error calculating rewards:', error);
+        return 0;
       }
     };
 
     // Set initial value
-    updateRewards();
+    setCurrentRewards(calculateCurrentRewards());
 
     // Update every second
-    const interval = setInterval(updateRewards, 1000);
+    const interval = setInterval(() => {
+      setCurrentRewards(calculateCurrentRewards());
+    }, 1000);
+
     return () => clearInterval(interval);
   }, [poolData]);
 
