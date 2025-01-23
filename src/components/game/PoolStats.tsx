@@ -29,26 +29,26 @@ useEffect(() => {
   if (!poolData || !isValidPoolData(poolData)) return;
   
   const calculateCurrentRewards = () => {
-    try {
-      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-      const initialAmount = parseFloat(initialAmountStr);
-      
-      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = new Date().getTime();
-      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-      
-      // Calculate whole emission periods
-      const emissionPeriods = Math.floor(elapsedSeconds / poolData.emission_unit);
-      
-      // Use integer math then divide by precision
-      const newEmissions = (emissionPeriods * poolData.emission_rate) / 100000000;
-      
-      return Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
-    } catch (error) {
-      console.error('Error calculating rewards:', error);
-      return 0;
-    }
-  };
+  try {
+    const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+    // Convert to integer representation to avoid float precision issues
+    const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
+    
+    const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+    const currentTime = new Date().getTime();
+    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+    const emissionPeriods = Math.floor(elapsedSeconds / poolData.emission_unit);
+    
+    // Do all math in integer space first
+    const totalAmount = initialAmount + (emissionPeriods * poolData.emission_rate);
+    // Convert back to decimal at the end
+    return totalAmount / 100000000;
+  } catch (error) {
+    console.error('Error calculating rewards:', error);
+    return 0;
+  }
+};
+
 
   setCurrentRewards(calculateCurrentRewards());
   const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
