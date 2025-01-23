@@ -31,16 +31,17 @@ useEffect(() => {
   const calculateCurrentRewards = () => {
   try {
     const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    const initialAmountInt = BigInt(Math.round(parseFloat(initialAmountStr) * 100000000));
+    const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
     
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
-    const elapsedSeconds = BigInt(Math.floor((currentTime - lastUpdate) / 1000));
+    const timeDiff = Math.floor((currentTime - lastUpdate) / 1000);
     
-    const emissionAmount = (elapsedSeconds * BigInt(poolData.emission_rate)) / BigInt(poolData.emission_unit);
-    const totalAmount = initialAmountInt + emissionAmount;
+    // Match contract's integer emission calculation
+    const emissionAmount = Math.floor((timeDiff * poolData.emission_rate) / poolData.emission_unit);
+    const totalAmount = initialAmount + emissionAmount;
     
-    return Number(totalAmount) / 100000000;
+    return totalAmount / 100000000;
   } catch (error) {
     console.error('Error calculating rewards:', error);
     return 0;
