@@ -33,17 +33,19 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
         const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
         const initialAmount = parseFloat(initialAmountStr);
         
-        // Calculate elapsed time
+        // Calculate time elapsed since last emission update
         const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
         const currentTime = new Date().getTime();
-        const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+        const elapsedNanoseconds = (currentTime - lastUpdate) * 1000000; // Convert ms to ns
         
-        // Calculate emissions matching contract precision
-        const emissionPerSecond = (poolData.emission_rate / 100000000) / poolData.emission_unit;
-        const newEmissions = elapsedSeconds * emissionPerSecond;
+        // Calculate emissions exactly like the contract:
+        // emission_amount = time_diff * emission_rate / (emission_unit * precision_divisor)
+        const precisionDivisor = 100000000;
+        const newEmissions = (elapsedNanoseconds * poolData.emission_rate) / 
+                           (poolData.emission_unit * precisionDivisor * 1000000000); // 1e9 for ns->s
         
-        // Return total with proper precision
-        return Math.round((initialAmount + newEmissions) * 100000000) / 100000000;
+        // Return with 8 decimal precision
+        return Math.round((initialAmount + newEmissions) * precisionDivisor) / precisionDivisor;
       } catch (error) {
         console.error('Error calculating rewards:', error);
         return 0;
