@@ -31,18 +31,18 @@ useEffect(() => {
   const calculateCurrentRewards = () => {
   try {
     const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    // Convert to integer representation to avoid float precision issues
-    const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
+    const initialAmount = BigInt(Math.round(parseFloat(initialAmountStr) * 100000000));
     
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
-    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-    const emissionPeriods = Math.floor(elapsedSeconds / poolData.emission_unit);
+    const elapsedSeconds = BigInt(Math.floor((currentTime - lastUpdate) / 1000));
     
-    // Do all math in integer space first
-    const totalAmount = initialAmount + (emissionPeriods * poolData.emission_rate);
-    // Convert back to decimal at the end
-    return totalAmount / 100000000;
+    // This is what we need to fix - need another factor of 100 for precision
+    const emissionAmount = (elapsedSeconds * BigInt(poolData.emission_rate)) / 
+                         (BigInt(poolData.emission_unit) * BigInt(100));
+    
+    const totalAmount = initialAmount + emissionAmount;
+    return Number(totalAmount) / 100000000;
   } catch (error) {
     console.error('Error calculating rewards:', error);
     return 0;
