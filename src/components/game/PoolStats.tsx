@@ -35,11 +35,9 @@ useEffect(() => {
     
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
-    const timeDiffNanos = BigInt(currentTime - lastUpdate) * BigInt(1000000);
-    const emissionUnitNanos = BigInt(poolData.emission_unit) * BigInt(1000000000);
+    const elapsedSeconds = BigInt(Math.floor((currentTime - lastUpdate) / 1000));
     
-    // Match contract's emission calculation precisely
-    const emissionAmount = (timeDiffNanos * BigInt(poolData.emission_rate)) / emissionUnitNanos;
+    const emissionAmount = (elapsedSeconds * BigInt(poolData.emission_rate)) / BigInt(poolData.emission_unit);
     const totalAmount = initialAmountInt + emissionAmount;
     
     return Number(totalAmount) / 100000000;
