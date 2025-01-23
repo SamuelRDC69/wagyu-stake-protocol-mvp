@@ -31,17 +31,17 @@ useEffect(() => {
   const calculateCurrentRewards = () => {
   try {
     const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    const initialAmount = BigInt(Math.round(parseFloat(initialAmountStr) * 100000000));
+    const initialAmountInt = BigInt(Math.round(parseFloat(initialAmountStr) * 100000000));
     
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
-    const elapsedSeconds = BigInt(Math.floor((currentTime - lastUpdate) / 1000));
+    const timeDiffNanos = BigInt(currentTime - lastUpdate) * BigInt(1000000);
+    const emissionUnitNanos = BigInt(poolData.emission_unit) * BigInt(1000000000);
     
-    // This is what we need to fix - need another factor of 100 for precision
-    const emissionAmount = (elapsedSeconds * BigInt(poolData.emission_rate)) / 
-                         (BigInt(poolData.emission_unit) * BigInt(100));
+    // Match contract's emission calculation precisely
+    const emissionAmount = (timeDiffNanos * BigInt(poolData.emission_rate)) / emissionUnitNanos;
+    const totalAmount = initialAmountInt + emissionAmount;
     
-    const totalAmount = initialAmount + emissionAmount;
     return Number(totalAmount) / 100000000;
   } catch (error) {
     console.error('Error calculating rewards:', error);
