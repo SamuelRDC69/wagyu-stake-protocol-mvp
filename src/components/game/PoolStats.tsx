@@ -26,43 +26,44 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
   };
 
   useEffect(() => {
-    if (!poolData || !isValidPoolData(poolData)) return;
+  if (!poolData || !isValidPoolData(poolData)) return;
 
-    // Reset on pool data change
-    const now = Date.now();
-    setLastUpdateTime(now);
+  // Reset state when pool data changes
+  const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+  const baseAmount = parseFloat(initialAmountStr);
+  setCurrentRewards(baseAmount);
 
-    const calculateCurrentRewards = () => {
-      try {
-        const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-        const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
+  const calculateCurrentRewards = () => {
+    try {
+      // Start from current pool state
+      const currentBase = parseFloat(poolData.reward_pool.quantity);
+      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+      const currentTime = Date.now();
+      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+      
+      const emission_rate = poolData.emission_rate || 500;
+      const additionalAmount = (elapsedSeconds * emission_rate) / 100000000;
+      
+      return currentBase + additionalAmount;
+    } catch (error) {
+      console.error('Error calculating rewards:', error);
+      return baseAmount;
+    }
+  };
 
-        const lastStateUpdate = new Date(poolData.last_emission_updated_at).getTime();
-        const currentTime = Date.now();
-        const elapsedSeconds = Math.floor((currentTime - lastStateUpdate) / 1000);
-        
-        // Apply emission rate
-        const emission_rate = poolData.emission_rate || 500; // Default to 500 if not set
-        const additionalAmount = Math.floor(elapsedSeconds * emission_rate);
-        const totalAmount = initialAmount + additionalAmount;
-        
-        return totalAmount / 100000000;
-      } catch (error) {
-        console.error('Error calculating rewards:', error);
-        return parseFloat(poolData.reward_pool.quantity) || 0;
-      }
-    };
-
-    // Initial calculation
+  setCurrentRewards(calculateCurrentRewards());
+  
+  const interval = setInterval(() => {
     setCurrentRewards(calculateCurrentRewards());
+  }, 1000);
 
-    // Update every second
-    const interval = setInterval(() => {
-      setCurrentRewards(calculateCurrentRewards());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [poolData, poolData?.reward_pool.quantity]); // Depend on both poolData and reward quantity
+  return () => clearInterval(interval);
+}, [
+  poolData?.pool_id,
+  poolData?.total_staked_quantity,
+  poolData?.reward_pool.quantity,
+  poolData?.last_emission_updated_at
+]);
 
   if (isLoading) {
     return (
