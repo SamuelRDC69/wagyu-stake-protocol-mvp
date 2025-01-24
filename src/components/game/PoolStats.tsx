@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
@@ -9,49 +9,77 @@ interface PoolStatsProps {
   isLoading?: boolean;
 }
 
-export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => {
+const isValidPoolData = (data: any): data is PoolEntity => {
+  return (
+    data &&
+    typeof data === 'object' &&
+    'total_staked_quantity' in data &&
+    'total_staked_weight' in data &&
+    'reward_pool' in data &&
+    typeof data.reward_pool === 'object' &&
+    'quantity' in data.reward_pool
+  );
+};
+
+const formatTokenString = (value: string): { amount: string; symbol: string } => {
+  try {
+    const [amount, symbol = 'WAX'] = value.split(' ');
+    return {
+      amount: parseFloat(amount).toFixed(8),
+      symbol
+    };
+  } catch (e) {
+    console.error('Error formatting token string:', e);
+    return {
+      amount: '0.00000000',
+      symbol: 'WAX'
+    };
+  }
+};
+
+export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
-  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+  const [updateKey, setUpdateKey] = useState<number>(0);
 
-  const isValidPoolData = (data: any): data is PoolEntity => {
-    return (
-      data &&
-      typeof data === 'object' &&
-      'total_staked_quantity' in data &&
-      'total_staked_weight' in data &&
-      'reward_pool' in data &&
-      typeof data.reward_pool === 'object' &&
-      'quantity' in data.reward_pool
-    );
-  };
+  const calculateCurrentRewards = useCallback(() => {
+    if (!poolData || !isValidPoolData(poolData)) return 0;
 
-  useEffect(() => {
-  if (!poolData || !isValidPoolData(poolData)) return;
-  
-  const calculateCurrentRewards = () => {
     try {
       const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-      const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
+      const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
 
       const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = new Date().getTime(); 
+      const currentTime = new Date().getTime();
       const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
       
-      // Calculate emissions using same math as before
-      const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
+      const additionalAmount = Math.floor(elapsedSeconds * poolData.emission_rate);
       const totalAmount = initialAmount + additionalAmount;
       
-      return totalAmount / 100000000; // Convert back to decimal
+      return totalAmount / 100000000;
     } catch (error) {
       console.error('Error calculating rewards:', error);
       return 0;
     }
-  };
+  }, [poolData]);
 
-  setCurrentRewards(calculateCurrentRewards());
-  const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
-  return () => clearInterval(interval);
-}, [poolData, poolData?.reward_pool.quantity, poolData?.last_emission_updated_at]); // Added emission dependencies
+  // Reset calculation when pool data changes
+  useEffect(() => {
+    setUpdateKey(prev => prev + 1);
+  }, [poolData?.reward_pool.quantity, poolData?.last_emission_updated_at]);
+
+  // Handle reward calculations
+  useEffect(() => {
+    if (!poolData || !isValidPoolData(poolData)) return;
+
+    const updateRewards = () => {
+      setCurrentRewards(calculateCurrentRewards());
+    };
+
+    updateRewards();
+    const interval = setInterval(updateRewards, 1000);
+    
+    return () => clearInterval(interval);
+  }, [updateKey, calculateCurrentRewards, poolData]);
 
   if (isLoading) {
     return (
@@ -90,22 +118,6 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   }
 
-  const formatTokenString = (value: string): { amount: string; symbol: string } => {
-    try {
-      const [amount, symbol = 'WAX'] = value.split(' ');
-      return {
-        amount: parseFloat(amount).toFixed(8),
-        symbol
-      };
-    } catch (e) {
-      console.error('Error formatting token string:', e);
-      return {
-        amount: '0.00000000',
-        symbol: 'WAX'
-      };
-    }
-  };
-
   const totalStaked = formatTokenString(poolData.total_staked_quantity);
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
@@ -139,6 +151,8 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
       </CardContent>
     </Card>
   );
-};
+});
+
+PoolStats.displayName = 'PoolStats';
 
 export default PoolStats;
