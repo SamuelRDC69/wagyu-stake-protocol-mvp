@@ -167,62 +167,6 @@ const findClaimTransfer = (transaction: any) => {
   return claimAction?.act.data;
 };
 
-const handleClaim = async () => {
-  if (!session || !selectedPool) return;
-  
-  try {
-    const action = {
-      account: Name.from(CONTRACTS.STAKING.NAME),
-      name: Name.from('claim'),
-      authorization: [session.permissionLevel],
-      data: {
-        claimer: session.actor,
-        pool_id: selectedPool.pool_id
-      }
-    };
-
-    const result = await session.transact({ actions: [action] });
-    const claimTransfer = findClaimTransfer(result);
-
-    if (claimTransfer?.quantity) {
-      addToast({
-        type: 'success',
-        title: 'Rewards Claimed',
-        message: `${claimTransfer.quantity}`
-      });
-    }
-
-    if (playerStake && gameData.config) {
-      const newCooldownEnd = new Date(
-        Date.now() + gameData.config.cooldown_seconds_per_claim * 1000
-      ).toISOString();
-      
-      setGameData(prev => ({
-        ...prev,
-        stakes: prev.stakes.map((stake: StakedEntity) =>
-          stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
-            ? {
-                ...stake,
-                cooldown_end_at: newCooldownEnd,
-                last_claimed_at: new Date().toISOString()
-              }
-            : stake
-        )
-      }));
-    }
-    
-    await loadData();
-  } catch (error) {
-    console.error('Claim error:', error);
-    addToast({
-      type: 'error',
-      title: 'Claim Failed',
-      message: 'Failed to claim rewards. Please try again.'
-    });
-    await loadData();
-  }
-};
-
 const handleStake = async (amount: string) => {
   if (!session || !selectedPool) return;
   
@@ -263,6 +207,21 @@ const handleStake = async (amount: string) => {
       
       setGameData(prev => ({
         ...prev,
+        pools: prev.pools.map(pool => 
+          pool.pool_id === selectedPool.pool_id
+            ? {
+                ...pool,
+                total_staked_quantity: `${(parseFloat(pool.total_staked_quantity) + parseFloat(formattedAmount)).toFixed(8)} ${symbol}`,
+                // Update reward pool if claim happened
+                ...(claimTransfer?.quantity ? {
+                  reward_pool: {
+                    ...pool.reward_pool,
+                    quantity: `${(parseFloat(pool.reward_pool.quantity) - parseFloat(claimTransfer.quantity)).toFixed(8)} ${claimTransfer.quantity.split(' ')[1]}`
+                  }
+                } : {})
+              }
+            : pool
+        ),
         stakes: playerStake
           ? prev.stakes.map((stake: StakedEntity) =>
               stake.pool_id === selectedPool.pool_id && stake.owner === session?.actor.toString()
@@ -324,32 +283,35 @@ const handleUnstake = async (amount: string) => {
 
     const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
     
-    if (newStakedAmount <= 0) {
-      setGameData(prev => ({
-        ...prev,
-        stakes: prev.stakes.filter((stake: StakedEntity) => 
-          stake.pool_id !== playerStake.pool_id || 
-          stake.owner !== session?.actor.toString()
-        )
-      }));
-    } else {
-      setGameData(prev => ({
-        ...prev,
-        stakes: prev.stakes.map((stake: StakedEntity) =>
-          stake.pool_id === playerStake.pool_id && 
-          stake.owner === session?.actor.toString()
-            ? {
-                ...stake,
-                staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
-                cooldown_end_at: new Date(
-                  Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
-                ).toISOString(),
-                last_claimed_at: new Date().toISOString()
-              }
-            : stake
-        )
-      }));
-    }
+    setGameData(prev => ({
+      ...prev,
+      pools: prev.pools.map(pool => 
+        pool.pool_id === selectedPool.pool_id
+          ? {
+              ...pool,
+              total_staked_quantity: `${(parseFloat(pool.total_staked_quantity) - parseFloat(formattedAmount)).toFixed(8)} ${symbol}`
+            }
+          : pool
+      ),
+      stakes: newStakedAmount <= 0 
+        ? prev.stakes.filter((stake: StakedEntity) => 
+            stake.pool_id !== playerStake.pool_id || 
+            stake.owner !== session?.actor.toString()
+          )
+        : prev.stakes.map((stake: StakedEntity) =>
+            stake.pool_id === playerStake.pool_id && 
+            stake.owner === session?.actor.toString()
+              ? {
+                  ...stake,
+                  staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
+                  cooldown_end_at: new Date(
+                    Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
+                  ).toISOString(),
+                  last_claimed_at: new Date().toISOString()
+                }
+              : stake
+          )
+    }));
 
     await loadData();
   } catch (error) {
@@ -363,6 +325,74 @@ const handleUnstake = async (amount: string) => {
   }
 };
 
+const handleClaim = async () => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('claim'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id
+      }
+    };
+
+    const result = await session.transact({ actions: [action] });
+    const claimTransfer = findClaimTransfer(result);
+
+    if (claimTransfer?.quantity) {
+      addToast({
+        type: 'success',
+        title: 'Rewards Claimed',
+        message: `${claimTransfer.quantity}`
+      });
+
+      // Update pool rewards after successful claim
+      const { amount: claimAmount } = parseTokenString(claimTransfer.quantity);
+      const rewardSymbol = claimTransfer.quantity.split(' ')[1];
+
+      setGameData(prev => ({
+        ...prev,
+        pools: prev.pools.map(pool =>
+          pool.pool_id === selectedPool.pool_id
+            ? {
+                ...pool,
+                reward_pool: {
+                  ...pool.reward_pool,
+                  quantity: `${(parseFloat(pool.reward_pool.quantity) - claimAmount).toFixed(8)} ${rewardSymbol}`
+                }
+              }
+            : pool
+        ),
+        stakes: playerStake 
+          ? prev.stakes.map((stake: StakedEntity) =>
+              stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
+                ? {
+                    ...stake,
+                    cooldown_end_at: new Date(
+                      Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
+                    ).toISOString(),
+                    last_claimed_at: new Date().toISOString()
+                  }
+                : stake
+            )
+          : prev.stakes
+      }));
+    }
+    
+    await loadData();
+  } catch (error) {
+    console.error('Claim error:', error);
+    addToast({
+      type: 'error',
+      title: 'Claim Failed',
+      message: 'Failed to claim rewards. Please try again.'
+    });
+    await loadData();
+  }
+};
 const handleLogin = async () => {
   try {
     const response = await sessionKit.login();
