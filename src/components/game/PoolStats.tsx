@@ -3,18 +3,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Shield, TrendingUp } from 'lucide-react';
 import { PoolEntity } from '../../lib/types/pool';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
-import { useGameData } from '../../lib/contexts/GameDataContext';
 
 interface PoolStatsProps {
-  poolId: number;  
+  poolData?: PoolEntity;
   isLoading?: boolean;
 }
 
-export const PoolStats: React.FC<PoolStatsProps> = ({ poolId, isLoading }) => {
-  const { gameData } = useGameData();
+export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
-
-  const poolData = gameData.pools.find(p => p.pool_id === poolId);
 
   const isValidPoolData = (data: any): data is PoolEntity => {
     return (
@@ -28,32 +24,36 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolId, isLoading }) => {
     );
   };
 
-  useEffect(() => {
-    if (!poolData || !isValidPoolData(poolData)) return;
-    
-    const calculateCurrentRewards = () => {
-      try {
-        const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-        const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); 
+ 
+useEffect(() => {
+  if (!poolData || !isValidPoolData(poolData)) return;
+  
+  const calculateCurrentRewards = () => {
+ try {
+   const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+   const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer
 
-        const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-        const currentTime = new Date().getTime(); 
-        const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-        
-        const additionalAmount = Math.floor(elapsedSeconds * 500);
-        const totalAmount = initialAmount + additionalAmount;
-        
-        return totalAmount / 100000000;
-      } catch (error) {
-        console.error('Error calculating rewards:', error);
-        return 0;
-      }
-    };
+   const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+   const currentTime = new Date().getTime(); 
+   const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+   
+   // Calculate total emissions to pool for elapsed time
+   const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
+   const totalAmount = initialAmount + additionalAmount;
+   
+   return totalAmount / 100000000; // Convert back to decimal
+ } catch (error) {
+   console.error('Error calculating rewards:', error);
+   return 0;
+ }
+};
 
-    setCurrentRewards(calculateCurrentRewards());
-    const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
-    return () => clearInterval(interval);
-  }, [poolData]);
+
+  setCurrentRewards(calculateCurrentRewards());
+  const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
+  return () => clearInterval(interval);
+}, [poolData]);
+
 
   if (isLoading) {
     return (
@@ -78,7 +78,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolId, isLoading }) => {
     );
   }
 
-  if (!poolData || !isValidPoolData(poolData)) {
+  if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
       <Card className="w-full">
@@ -96,7 +96,7 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolId, isLoading }) => {
     try {
       const [amount, symbol = 'WAX'] = value.split(' ');
       return {
-        amount: parseFloat(amount).toFixed(8),
+        amount: parseFloat(amount).toFixed(8), // Maintain 8 decimal places
         symbol
       };
     } catch (e) {
