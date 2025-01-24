@@ -124,32 +124,34 @@ const GameUI: React.FC = () => {
     }
   }, [fetchData, selectedPool, addToast]);
 
-  useEffect(() => {
-    if (session) {
+  // Replace this effect in GameUI.tsx
+useEffect(() => {
+  if (session) {
+    loadData();  // Initial load only
+  } else {
+    setGameData({
+      pools: [],
+      stakes: [],
+      tiers: [],
+      config: undefined
+    });
+    setSelectedPool(undefined);
+  }
+}, [session, loadData]);
+
+// Keep this effect for visibility changes
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (!document.hidden && session) {
       loadData();
-    } else {
-      setGameData({
-        pools: [],
-        stakes: [],
-        tiers: [],
-        config: undefined
-      });
-      setSelectedPool(undefined);
     }
-  }, [session, loadData]);
+  };
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && session) {
-        loadData();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [session, loadData]);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, [session, loadData]);
 
 const findClaimTransfer = (transaction: any) => {
   const actionTraces = transaction?.response?.processed?.action_traces;
