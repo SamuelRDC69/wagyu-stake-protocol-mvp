@@ -11,6 +11,7 @@ interface PoolStatsProps {
 
 export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
 
   const isValidPoolData = (data: any): data is PoolEntity => {
     return (
@@ -24,36 +25,44 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
     );
   };
 
- 
-useEffect(() => {
-  if (!poolData || !isValidPoolData(poolData)) return;
-  
-  const calculateCurrentRewards = () => {
- try {
-   const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-   const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer
+  useEffect(() => {
+    if (!poolData || !isValidPoolData(poolData)) return;
 
-   const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-   const currentTime = new Date().getTime(); 
-   const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-   
-   // Calculate total emissions to pool for elapsed time
-   const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
-   const totalAmount = initialAmount + additionalAmount;
-   
-   return totalAmount / 100000000; // Convert back to decimal
- } catch (error) {
-   console.error('Error calculating rewards:', error);
-   return 0;
- }
-};
+    // Reset on pool data change
+    const now = Date.now();
+    setLastUpdateTime(now);
 
+    const calculateCurrentRewards = () => {
+      try {
+        const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+        const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
 
-  setCurrentRewards(calculateCurrentRewards());
-  const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
-  return () => clearInterval(interval);
-}, [poolData]);
+        const lastStateUpdate = new Date(poolData.last_emission_updated_at).getTime();
+        const currentTime = Date.now();
+        const elapsedSeconds = Math.floor((currentTime - lastStateUpdate) / 1000);
+        
+        // Apply emission rate
+        const emission_rate = poolData.emission_rate || 500; // Default to 500 if not set
+        const additionalAmount = Math.floor(elapsedSeconds * emission_rate);
+        const totalAmount = initialAmount + additionalAmount;
+        
+        return totalAmount / 100000000;
+      } catch (error) {
+        console.error('Error calculating rewards:', error);
+        return parseFloat(poolData.reward_pool.quantity) || 0;
+      }
+    };
 
+    // Initial calculation
+    setCurrentRewards(calculateCurrentRewards());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setCurrentRewards(calculateCurrentRewards());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [poolData, poolData?.reward_pool.quantity]); // Depend on both poolData and reward quantity
 
   if (isLoading) {
     return (
@@ -96,7 +105,7 @@ useEffect(() => {
     try {
       const [amount, symbol = 'WAX'] = value.split(' ');
       return {
-        amount: parseFloat(amount).toFixed(8), // Maintain 8 decimal places
+        amount: parseFloat(amount).toFixed(8),
         symbol
       };
     } catch (e) {
@@ -142,3 +151,5 @@ useEffect(() => {
     </Card>
   );
 };
+
+export default PoolStats;
