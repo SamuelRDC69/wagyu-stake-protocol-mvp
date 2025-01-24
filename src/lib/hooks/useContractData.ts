@@ -10,7 +10,7 @@ import { DEFAULT_TIERS } from '../config/tiers';
 const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
 const API_ENDPOINTS = {
   POOLS: '/pools',
-  ALL_USERS: '/api/allStakes',  // Update this to match your actual endpoint
+  LEADERBOARD: '/leaderboard',
   USER: (username: string) => `/user/${username}`
 } as const;
 
@@ -49,7 +49,7 @@ function enrichStakeData(stake: StakedEntity): StakedEntity {
   return stake;
 }
 
-async function fetchFromAPI<T>(endpoint: string): Promise<APIResponse<T>> {
+async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log(`[API] Starting fetch from: ${fullUrl}`);
   
@@ -59,11 +59,7 @@ async function fetchFromAPI<T>(endpoint: string): Promise<APIResponse<T>> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const text = await response.text();
-    console.log('[API] Raw response:', text);
-    
-    const data = JSON.parse(text);
-    console.log('[API] Parsed data:', data);
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('[API] Error:', error);
@@ -76,7 +72,7 @@ export function useContractData() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastFetch, setLastFetch] = useState(0);
-  const FETCH_COOLDOWN = 5000;
+  const FETCH_COOLDOWN = 5000; // 5 second cooldown between fetches
 
   const fetchData = useCallback(async () => {
     if (!session) return null;
@@ -89,65 +85,72 @@ export function useContractData() {
     setLoading(true);
     
     try {
-      // Fetch pools data first
-      const poolsResponse = await fetchFromAPI<PoolEntity>(API_ENDPOINTS.POOLS);
+      // Fetch pools data
+      const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>(API_ENDPOINTS.POOLS);
       const pools = poolsResponse.pools || [];
 
-      // Try to fetch all users' staking data
-      let allStakes: StakedEntity[] = [];
-      try {
-        const allUsersResponse = await fetchFromAPI<StakedEntity>(API_ENDPOINTS.ALL_USERS);
-        if (allUsersResponse.stakingDetails) {
-          allStakes = allUsersResponse.stakingDetails.map(stake => 
-            enrichStakeData({ ...stake })
-          );
-        }
-      } catch (error) {
-        console.warn('[API] Could not fetch all users data:', error);
-        // Continue with empty allStakes array
-      }
+      // Fetch leaderboard data
+      const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(API_ENDPOINTS.LEADERBOARD);
       
-      // Fetch current user's staking data
-      const userResponse = await fetchFromAPI<StakedEntity>(
-        API_ENDPOINTS.USER(session.actor.toString())
+      // Process leaderboard stakes
+      const processedLeaderboardStakes = leaderboardStakes.map(stake => 
+        enrichStakeData(stake)
       );
+
+      // Check if current user's stakes are in leaderboard
+      const userStakesInLeaderboard = processedLeaderboardStakes.some(
+        stake => stake.owner === session.actor.toString()
+      );
+
+      // Only fetch user stakes if they're not in leaderboard
+      let userStakes: StakedEntity[] = [];
+      if (!userStakesInLeaderboard) {
+        try {
+          const userResponse = await fetchFromAPI<{ stakingDetails: StakedEntity[] }>(
+            API_ENDPOINTS.USER(session.actor.toString())
+          );
+          
+          if (userResponse.stakingDetails) {
+            userStakes = userResponse.stakingDetails.map(stake => 
+              enrichStakeData({
+                ...stake,
+                owner: session.actor.toString()
+              })
+            );
+          }
+        } catch (error) {
+          console.warn('[API] Could not fetch user data:', error);
+        }
+      }
 
       setLastFetch(now);
 
-      // Process user stakes
-      const userStakes = userResponse.stakingDetails || [];
-      const processedUserStakes = userStakes.map(stake => 
-        enrichStakeData({
-          ...stake,
-          owner: session.actor.toString()
-        })
-      );
+      // Combine leaderboard and user stakes
+      const combinedStakes = [
+        ...processedLeaderboardStakes,
+        ...userStakes.filter(userStake => 
+          !processedLeaderboardStakes.some(leaderStake => 
+            leaderStake.pool_id === userStake.pool_id && 
+            leaderStake.owner === userStake.owner
+          )
+        )
+      ];
 
-      // Combine all stakes, preferring user's own stake data
-      const combinedStakes = [...allStakes];
-      
-      processedUserStakes.forEach(userStake => {
-        const existingIndex = combinedStakes.findIndex(
-          stake => stake.pool_id === userStake.pool_id && 
-                   stake.owner === session.actor.toString()
-        );
-        
-        if (existingIndex >= 0) {
-          combinedStakes[existingIndex] = userStake;
-        } else {
-          combinedStakes.push(userStake);
-        }
+      // Sort stakes by staked quantity in descending order
+      const sortedStakes = combinedStakes.sort((a, b) => {
+        const amountA = parseFloat(a.staked_quantity.split(' ')[0]);
+        const amountB = parseFloat(b.staked_quantity.split(' ')[0]);
+        return amountB - amountA;
       });
 
       // Return combined data
       const stakingData: StakingData = {
         pools,
-        stakes: combinedStakes,
+        stakes: sortedStakes,
         tiers: DEFAULT_TIERS,
         config: DEFAULT_CONFIG
       };
 
-      console.log('Final staking data:', stakingData);
       return stakingData;
 
     } catch (err) {
@@ -171,7 +174,7 @@ export function useContractData() {
     if (!session) return;
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(fetchData, 30000); // 30 second refresh interval
 
     return () => clearInterval(interval);
   }, [session, fetchData]);
