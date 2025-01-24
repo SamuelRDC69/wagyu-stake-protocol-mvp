@@ -27,43 +27,31 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ poolData, isLoading }) => 
 
   useEffect(() => {
   if (!poolData || !isValidPoolData(poolData)) return;
-
-  // Reset state when pool data changes
-  const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-  const baseAmount = parseFloat(initialAmountStr);
-  setCurrentRewards(baseAmount);
-
+  
   const calculateCurrentRewards = () => {
     try {
-      // Start from current pool state
-      const currentBase = parseFloat(poolData.reward_pool.quantity);
+      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+      const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
+
       const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = Date.now();
+      const currentTime = new Date().getTime(); 
       const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
       
-      const emission_rate = poolData.emission_rate || 500;
-      const additionalAmount = (elapsedSeconds * emission_rate) / 100000000;
+      // Calculate emissions using same math as before
+      const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
+      const totalAmount = initialAmount + additionalAmount;
       
-      return currentBase + additionalAmount;
+      return totalAmount / 100000000; // Convert back to decimal
     } catch (error) {
       console.error('Error calculating rewards:', error);
-      return baseAmount;
+      return 0;
     }
   };
 
   setCurrentRewards(calculateCurrentRewards());
-  
-  const interval = setInterval(() => {
-    setCurrentRewards(calculateCurrentRewards());
-  }, 1000);
-
+  const interval = setInterval(() => setCurrentRewards(calculateCurrentRewards()), 1000);
   return () => clearInterval(interval);
-}, [
-  poolData?.pool_id,
-  poolData?.total_staked_quantity,
-  poolData?.reward_pool.quantity,
-  poolData?.last_emission_updated_at
-]);
+}, [poolData, poolData?.reward_pool.quantity, poolData?.last_emission_updated_at]); // Added emission dependencies
 
   if (isLoading) {
     return (
