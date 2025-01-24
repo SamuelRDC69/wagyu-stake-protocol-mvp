@@ -197,51 +197,60 @@ const handleStake = async (amount: string) => {
     });
 
     if (gameData.config) {
-      const newStakedQuantity = playerStake 
-        ? (parseFloat(playerStake.staked_quantity) + parseFloat(formattedAmount)).toFixed(8) + ` ${symbol}`
-        : `${formattedAmount} ${symbol}`;
-        
-      const newCooldownEnd = new Date(
-        Date.now() + gameData.config.cooldown_seconds_per_claim * 1000
-      ).toISOString();
-      
-      setGameData(prev => ({
-        ...prev,
-        pools: prev.pools.map(pool => 
-          pool.pool_id === selectedPool.pool_id
-            ? {
-                ...pool,
-                total_staked_quantity: `${(parseFloat(pool.total_staked_quantity) + parseFloat(formattedAmount)).toFixed(8)} ${symbol}`,
-                // Update reward pool if claim happened
-                ...(claimTransfer?.quantity ? {
-                  reward_pool: {
-                    ...pool.reward_pool,
-                    quantity: `${(parseFloat(pool.reward_pool.quantity) - parseFloat(claimTransfer.quantity)).toFixed(8)} ${claimTransfer.quantity.split(' ')[1]}`
-                  }
-                } : {})
-              }
-            : pool
-        ),
-        stakes: playerStake
-          ? prev.stakes.map((stake: StakedEntity) =>
-              stake.pool_id === selectedPool.pool_id && stake.owner === session?.actor.toString()
-                ? {
-                    ...stake,
-                    staked_quantity: newStakedQuantity,
-                    cooldown_end_at: newCooldownEnd,
-                    last_claimed_at: new Date().toISOString()
-                  }
-                : stake
-            )
-          : [...prev.stakes, {
-              pool_id: selectedPool.pool_id,
-              staked_quantity: newStakedQuantity,
-              tier: 'supplier',
-              last_claimed_at: new Date().toISOString(),
-              cooldown_end_at: newCooldownEnd,
-              owner: session.actor.toString()
-            }]
-      }));
+      setGameData(prev => {
+        const newStakedQuantity = playerStake 
+          ? (parseFloat(playerStake.staked_quantity) + parseFloat(formattedAmount)).toFixed(8) + ` ${symbol}`
+          : `${formattedAmount} ${symbol}`;
+          
+        const newCooldownEnd = new Date(
+          Date.now() + gameData.config!.cooldown_seconds_per_claim * 1000
+        ).toISOString();
+
+        const updatedData = {
+          ...prev,
+          pools: prev.pools.map(pool => 
+            pool.pool_id === selectedPool.pool_id
+              ? {
+                  ...pool,
+                  total_staked_quantity: `${(parseFloat(pool.total_staked_quantity) + parseFloat(formattedAmount)).toFixed(8)} ${symbol}`,
+                  ...(claimTransfer?.quantity ? {
+                    reward_pool: {
+                      ...pool.reward_pool,
+                      quantity: `${(parseFloat(pool.reward_pool.quantity) - parseFloat(claimTransfer.quantity)).toFixed(8)} ${claimTransfer.quantity.split(' ')[1]}`
+                    }
+                  } : {})
+                }
+              : pool
+          ),
+          stakes: playerStake
+            ? prev.stakes.map((stake: StakedEntity) =>
+                stake.pool_id === selectedPool.pool_id && stake.owner === session?.actor.toString()
+                  ? {
+                      ...stake,
+                      staked_quantity: newStakedQuantity,
+                      cooldown_end_at: newCooldownEnd,
+                      last_claimed_at: new Date().toISOString()
+                    }
+                  : stake
+              )
+            : [...prev.stakes, {
+                pool_id: selectedPool.pool_id,
+                staked_quantity: newStakedQuantity,
+                tier: 'supplier',
+                last_claimed_at: new Date().toISOString(),
+                cooldown_end_at: newCooldownEnd,
+                owner: session.actor.toString()
+              }]
+        };
+
+        // Update selectedPool reference
+        const updatedPool = updatedData.pools.find(p => p.pool_id === selectedPool.pool_id);
+        if (updatedPool) {
+          setSelectedPool(updatedPool);
+        }
+
+        return updatedData;
+      });
     }
 
     await loadData();
@@ -283,35 +292,45 @@ const handleUnstake = async (amount: string) => {
 
     const newStakedAmount = parseFloat(playerStake.staked_quantity) - parseFloat(formattedAmount);
     
-    setGameData(prev => ({
-      ...prev,
-      pools: prev.pools.map(pool => 
-        pool.pool_id === selectedPool.pool_id
-          ? {
-              ...pool,
-              total_staked_quantity: `${(parseFloat(pool.total_staked_quantity) - parseFloat(formattedAmount)).toFixed(8)} ${symbol}`
-            }
-          : pool
-      ),
-      stakes: newStakedAmount <= 0 
-        ? prev.stakes.filter((stake: StakedEntity) => 
-            stake.pool_id !== playerStake.pool_id || 
-            stake.owner !== session?.actor.toString()
-          )
-        : prev.stakes.map((stake: StakedEntity) =>
-            stake.pool_id === playerStake.pool_id && 
-            stake.owner === session?.actor.toString()
-              ? {
-                  ...stake,
-                  staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
-                  cooldown_end_at: new Date(
-                    Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
-                  ).toISOString(),
-                  last_claimed_at: new Date().toISOString()
-                }
-              : stake
-          )
-    }));
+    setGameData(prev => {
+      const updatedData = {
+        ...prev,
+        pools: prev.pools.map(pool => 
+          pool.pool_id === selectedPool.pool_id
+            ? {
+                ...pool,
+                total_staked_quantity: `${(parseFloat(pool.total_staked_quantity) - parseFloat(formattedAmount)).toFixed(8)} ${symbol}`
+              }
+            : pool
+        ),
+        stakes: newStakedAmount <= 0 
+          ? prev.stakes.filter((stake: StakedEntity) => 
+              stake.pool_id !== playerStake.pool_id || 
+              stake.owner !== session?.actor.toString()
+            )
+          : prev.stakes.map((stake: StakedEntity) =>
+              stake.pool_id === playerStake.pool_id && 
+              stake.owner === session?.actor.toString()
+                ? {
+                    ...stake,
+                    staked_quantity: newStakedAmount.toFixed(8) + ` ${symbol}`,
+                    cooldown_end_at: new Date(
+                      Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
+                    ).toISOString(),
+                    last_claimed_at: new Date().toISOString()
+                  }
+                : stake
+            )
+      };
+
+      // Update selectedPool reference
+      const updatedPool = updatedData.pools.find(p => p.pool_id === selectedPool.pool_id);
+      if (updatedPool) {
+        setSelectedPool(updatedPool);
+      }
+
+      return updatedData;
+    });
 
     await loadData();
   } catch (error) {
@@ -349,37 +368,43 @@ const handleClaim = async () => {
         message: `${claimTransfer.quantity}`
       });
 
-      // Update pool rewards after successful claim
-      const { amount: claimAmount } = parseTokenString(claimTransfer.quantity);
-      const rewardSymbol = claimTransfer.quantity.split(' ')[1];
-
-      setGameData(prev => ({
-        ...prev,
-        pools: prev.pools.map(pool =>
-          pool.pool_id === selectedPool.pool_id
-            ? {
-                ...pool,
-                reward_pool: {
-                  ...pool.reward_pool,
-                  quantity: `${(parseFloat(pool.reward_pool.quantity) - claimAmount).toFixed(8)} ${rewardSymbol}`
-                }
-              }
-            : pool
-        ),
-        stakes: playerStake 
-          ? prev.stakes.map((stake: StakedEntity) =>
-              stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
-                ? {
-                    ...stake,
-                    cooldown_end_at: new Date(
-                      Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
-                    ).toISOString(),
-                    last_claimed_at: new Date().toISOString()
+      setGameData(prev => {
+        const updatedData = {
+          ...prev,
+          pools: prev.pools.map(pool =>
+            pool.pool_id === selectedPool.pool_id
+              ? {
+                  ...pool,
+                  reward_pool: {
+                    ...pool.reward_pool,
+                    quantity: `${(parseFloat(pool.reward_pool.quantity) - parseFloat(claimTransfer.quantity)).toFixed(8)} ${claimTransfer.quantity.split(' ')[1]}`
                   }
-                : stake
-            )
-          : prev.stakes
-      }));
+                }
+              : pool
+          ),
+          stakes: playerStake 
+            ? prev.stakes.map((stake: StakedEntity) =>
+                stake.pool_id === playerStake.pool_id && stake.owner === playerStake.owner
+                  ? {
+                      ...stake,
+                      cooldown_end_at: new Date(
+                        Date.now() + (prev.config?.cooldown_seconds_per_claim ?? 60) * 1000
+                      ).toISOString(),
+                      last_claimed_at: new Date().toISOString()
+                    }
+                  : stake
+              )
+            : prev.stakes
+        };
+
+        // Update selectedPool reference
+        const updatedPool = updatedData.pools.find(p => p.pool_id === selectedPool.pool_id);
+        if (updatedPool) {
+          setSelectedPool(updatedPool);
+        }
+
+        return updatedData;
+      });
     }
     
     await loadData();
@@ -393,6 +418,7 @@ const handleClaim = async () => {
     await loadData();
   }
 };
+
 const handleLogin = async () => {
   try {
     const response = await sessionKit.login();
