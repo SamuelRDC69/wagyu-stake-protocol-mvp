@@ -30,14 +30,13 @@ import { formatLastAction } from '../../lib/utils/dateUtils';
 import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils';
 import { getTierConfig } from '../../lib/utils/tierUtils';
 import { cn } from '../../lib/utils';
-// At the top of UserStatus.tsx, add TierProgress import:
 import { 
   TierVariant,
   TierProgress 
 } from '../../lib/types/tier';
 
 interface UserStatusProps {
-  stakedData?: StakedEntity; // From API
+  stakedData?: StakedEntity;
   config?: ConfigEntity;
   onCooldownComplete?: () => void;
   onClaim: () => Promise<void>;
@@ -45,7 +44,7 @@ interface UserStatusProps {
   onStake: (amount: string) => Promise<void>;
   poolSymbol: string;
   isLoading?: boolean;
-  tierProgress?: TierProgress | null; // Allow null
+  tierProgress?: TierProgress | null;
 }
 
 export const UserStatus: React.FC<UserStatusProps> = ({
@@ -56,7 +55,8 @@ export const UserStatus: React.FC<UserStatusProps> = ({
   onUnstake,
   onStake,
   poolSymbol,
-  isLoading
+  isLoading,
+  tierProgress
 }) => {
   const [isUnstakeDialogOpen, setUnstakeDialogOpen] = useState(false);
   const [isStakeDialogOpen, setStakeDialogOpen] = useState(false);
@@ -148,12 +148,12 @@ export const UserStatus: React.FC<UserStatusProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
           {stakedData && tierConfig && (
-<Badge 
-  variant={stakedData.tier.toLowerCase().replace(/\s+/g, '') as TierVariant}
-  className={cn("animate-pulse", tierConfig?.color)}
->
-  {stakedData.tier}
-</Badge>
+            <Badge 
+              variant={stakedData.tier.toLowerCase().replace(/\s+/g, '') as TierVariant}
+              className={cn("animate-pulse", tierConfig?.color)}
+            >
+              {stakedData.tier}
+            </Badge>
           )}
         </div>
       </CardHeader>
@@ -300,8 +300,7 @@ export const UserStatus: React.FC<UserStatusProps> = ({
           </Dialog>
 
           <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
-
-<DialogContent className="bg-slate-900 text-white border border-slate-700/50">
+            <DialogContent className="bg-slate-900 text-white border border-slate-700/50">
               <DialogHeader>
                 <DialogTitle>Unstake Tokens</DialogTitle>
                 <DialogDescription>
