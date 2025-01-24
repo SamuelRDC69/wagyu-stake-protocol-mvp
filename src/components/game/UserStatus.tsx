@@ -345,4 +345,4 @@ export const UserStatus = React.memo<UserStatusProps>(({
       </CardContent>
     </Card>
   );
-});
+};
