@@ -522,7 +522,10 @@ const handleLogout = async () => {
                 </div>}
               >
                 <div className="space-y-6">
-                  <PoolStats poolData={selectedPool} />
+                  <PoolStats 
+  key={`pool-${selectedPool.pool_id}-${selectedPool.total_staked_quantity}-${selectedPool.reward_pool.quantity}`}
+  poolData={selectedPool} 
+/>
 
                   {tierProgress && (
                     <TierDisplay 
