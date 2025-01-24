@@ -91,6 +91,13 @@ const GameUI: React.FC = () => {
     config: undefined
   });
 
+const memoizedHandlers = useMemo(() => ({
+  onClaim: handleClaim,
+  onUnstake: handleUnstake,
+  onStake: handleStake,
+  onCooldownComplete: loadData
+}), [handleClaim, handleUnstake, handleStake, loadData]);
+
   const playerStake = useMemo(() => {
     if (!session || !selectedPool) return undefined;
     return gameData.stakes.find(
@@ -566,18 +573,15 @@ const handleLogout = async () => {
                   )}
                   
                   {gameData.config && (
-                    <UserStatus 
-                      stakedData={playerStake}
-                      config={gameData.config}
-                      onCooldownComplete={loadData}
-                      onClaim={handleClaim}
-                      onUnstake={handleUnstake}
-                      onStake={handleStake}
-                      poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-                      tierProgress={tierProgress || undefined}
-                      isLoading={loading}
-                    />
-                  )}
+  <UserStatus 
+    stakedData={playerStake}
+    config={gameData.config}
+    {...memoizedHandlers}
+    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
+    tierProgress={tierProgress || undefined}
+    isLoading={loading}
+  />
+)}
 
                   <RewardsChart poolData={selectedPool} />
                 </div>
