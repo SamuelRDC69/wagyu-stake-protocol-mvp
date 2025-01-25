@@ -1,3 +1,5 @@
+import React from 'react';
+
 export interface TokenConfig {
   symbol: string;
   contract: string;
@@ -6,7 +8,6 @@ export interface TokenConfig {
   decimals: number;
 }
 
-// Token configurations
 export const TOKENS: { [key: string]: TokenConfig } = {
   WAX: {
     symbol: 'WAX',
@@ -15,31 +16,37 @@ export const TOKENS: { [key: string]: TokenConfig } = {
     name: 'WAXP',
     decimals: 8,
   },
-  // Add more tokens here as needed
 };
 
 export const getTokenConfig = (symbol: string): TokenConfig | undefined => {
   return TOKENS[symbol.toUpperCase()];
 };
 
-export const TokenImage: React.FC<{ 
-  symbol: string; 
+interface TokenImageProps {
+  symbol: string;
   className?: string;
   size?: number;
-}> = ({ symbol, className, size = 24 }) => {
-  const config = getTokenConfig(symbol);
-  
-  if (!config) {
-    return <div className={className}>{symbol}</div>;
-  }
+}
 
-  return (
-    <img 
-      src={config.image} 
-      alt={`${config.name} token`} 
-      className={className}
-      width={size}
-      height={size}
-    />
-  );
-};
+export const TokenImage = React.forwardRef<HTMLImageElement, TokenImageProps>(
+  ({ symbol, className, size = 24 }, ref) => {
+    const config = getTokenConfig(symbol);
+    
+    if (!config) {
+      return <div className={className}>{symbol}</div>;
+    }
+
+    return (
+      <img 
+        ref={ref}
+        src={config.image} 
+        alt={`${config.name} token`} 
+        className={className}
+        width={size}
+        height={size}
+      />
+    );
+  }
+);
+
+TokenImage.displayName = 'TokenImage';
