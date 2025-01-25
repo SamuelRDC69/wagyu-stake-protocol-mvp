@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, memo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Shield, TrendingUp } from 'lucide-react';
+import { Shield, TrendingUp, Scale, Percent } from 'lucide-react';
 import { PoolEntity } from '@/lib/types/pool';
 import { cn } from '@/lib/utils';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
@@ -8,6 +8,8 @@ import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
 interface PoolStatsProps {
   poolData?: PoolEntity;
   isLoading?: boolean;
+  userStakedQuantity?: string;
+  userTierWeight?: string;
 }
 
 const isValidPoolData = (data: any): data is PoolEntity => {
@@ -38,7 +40,7 @@ const formatTokenString = (value: string): { amount: string; symbol: string } =>
   }
 };
 
-export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }) => {
+export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, userStakedQuantity, userTierWeight }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
   const [updateKey, setUpdateKey] = useState<number>(0);
 
@@ -64,12 +66,10 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
     }
   }, [poolData]);
 
-  // Reset calculation when pool data changes
   useEffect(() => {
     setUpdateKey(prev => prev + 1);
   }, [poolData?.reward_pool.quantity, poolData?.last_emission_updated_at]);
 
-  // Handle reward calculations
   useEffect(() => {
     if (!poolData || !isValidPoolData(poolData)) return;
 
@@ -91,7 +91,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            {[1, 2].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
                 <div className="w-8 h-8 bg-purple-500/20 rounded animate-pulse" />
                 <div className="space-y-2 flex-1">
@@ -121,7 +121,19 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
   }
 
   const totalStaked = formatTokenString(poolData.total_staked_quantity);
+  const totalWeight = formatTokenString(poolData.total_staked_weight);
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
+
+  // Calculate user's weight if data is available
+  let userWeight = '0.00000000';
+  let userPercent = '0.00';
+  if (userStakedQuantity && userTierWeight) {
+    const { amount: userAmount } = formatTokenString(userStakedQuantity);
+    const userWeightNum = parseFloat(userAmount) * parseFloat(userTierWeight);
+    userWeight = userWeightNum.toFixed(8);
+    const { amount: totalWeightAmount } = formatTokenString(poolData.total_staked_weight);
+    userPercent = ((userWeightNum / parseFloat(totalWeightAmount)) * 100).toFixed(2);
+  }
 
   return (
     <Card className="w-full crystal-bg group">
@@ -141,7 +153,46 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
               </p>
             </div>
           </div>
+          
           <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+            <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+              <Scale className="w-8 h-8 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-400">Total Weight</p>
+              <p className="text-lg font-medium text-purple-200">
+                {`${totalWeight.amount} ${totalWeight.symbol}`}
+              </p>
+            </div>
+          </div>
+
+          {userStakedQuantity && (
+            <>
+              <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+                <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+                  <Scale className="w-8 h-8 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Your Weight</p>
+                  <p className="text-lg font-medium text-purple-200">
+                    {`${userWeight} ${symbol}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+                <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+                  <Percent className="w-8 h-8 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Your Share</p>
+                  <p className="text-lg font-medium text-purple-200">{userPercent}%</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20 md:col-span-2">
             <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
               <TrendingUp className="w-8 h-8 text-purple-500" />
             </div>
