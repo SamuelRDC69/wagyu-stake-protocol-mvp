@@ -571,9 +571,11 @@ const userStatusProps = useMemo(() => ({
                 </div>}
               >
                 <div className="space-y-6">
-                  <PoolStats 
+<PoolStats 
   key={`pool-${selectedPool.pool_id}-${selectedPool.total_staked_quantity}-${selectedPool.reward_pool.quantity}`}
-  poolData={selectedPool} 
+  poolData={selectedPool}
+  userStakedQuantity={playerStake?.staked_quantity}
+  userTierWeight={tierProgress?.currentTier.weight}
 />
 
                   {tierProgress && (
