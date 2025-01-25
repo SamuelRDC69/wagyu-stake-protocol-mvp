@@ -42,25 +42,26 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
   const [updateKey, setUpdateKey] = useState<number>(0);
 
   const calculateCurrentRewards = useCallback(() => {
-    if (!poolData || !isValidPoolData(poolData)) return 0;
+  if (!poolData || !isValidPoolData(poolData)) return 0;
 
-    try {
-      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-      const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
+  try {
+    const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+    const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
 
-      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = new Date().getTime();
-      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-      
-      const additionalAmount = Math.floor(elapsedSeconds * poolData.emission_rate);
-      const totalAmount = initialAmount + additionalAmount;
-      
-      return totalAmount / 100000000;
-    } catch (error) {
-      console.error('Error calculating rewards:', error);
-      return 0;
-    }
-  }, [poolData]);
+    const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+    const currentTime = new Date().getTime(); 
+    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+    
+    // Calculate emissions using same math as before
+    const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
+    const totalAmount = initialAmount + additionalAmount;
+    
+    return totalAmount / 100000000; // Convert back to decimal
+  } catch (error) {
+    console.error('Error calculating rewards:', error);
+    return 0;
+  }
+}, [poolData]);
 
   // Reset calculation when pool data changes
   useEffect(() => {
