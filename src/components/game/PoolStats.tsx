@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, memo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Shield, TrendingUp } from 'lucide-react';
-import { PoolEntity } from '../../lib/types/pool';
+import { PoolEntity } from '@/lib/types/pool';
+import { cn } from '@/lib/utils';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
 
 interface PoolStatsProps {
@@ -42,26 +43,26 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
   const [updateKey, setUpdateKey] = useState<number>(0);
 
   const calculateCurrentRewards = useCallback(() => {
-  if (!poolData || !isValidPoolData(poolData)) return 0;
+    if (!poolData || !isValidPoolData(poolData)) return 0;
 
-  try {
-    const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
+    try {
+      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+      const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000); // Convert to integer (8 decimals)
 
-    const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-    const currentTime = new Date().getTime(); 
-    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-    
-    // Calculate emissions using same math as before
-    const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
-    const totalAmount = initialAmount + additionalAmount;
-    
-    return totalAmount / 100000000; // Convert back to decimal
-  } catch (error) {
-    console.error('Error calculating rewards:', error);
-    return 0;
-  }
-}, [poolData]);
+      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+      const currentTime = new Date().getTime();
+      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+      
+      // Calculate emissions using same math as before
+      const additionalAmount = Math.floor(elapsedSeconds * 500); // 0.00000500 * 100000000 = 500
+      const totalAmount = initialAmount + additionalAmount;
+      
+      return totalAmount / 100000000; // Convert back to decimal
+    } catch (error) {
+      console.error('Error calculating rewards:', error);
+      return 0;
+    }
+  }, [poolData]);
 
   // Reset calculation when pool data changes
   useEffect(() => {
@@ -84,7 +85,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
 
   if (isLoading) {
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
@@ -108,12 +109,12 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
   if (!isValidPoolData(poolData)) {
     console.error('Invalid pool data:', poolData);
     return (
-      <Card className="w-full">
+      <Card className="w-full crystal-bg group">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400">Invalid pool data</div>
+          <div className="text-red-400 text-center">Invalid pool data</div>
         </CardContent>
       </Card>
     );
@@ -123,14 +124,16 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
   return (
-    <Card className="w-full">
+    <Card className="w-full crystal-bg group">
       <CardHeader>
         <CardTitle>Pool Statistics</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
-            <Shield className="w-8 h-8 text-purple-500" />
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+            <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+              <Shield className="w-8 h-8 text-purple-500" />
+            </div>
             <div>
               <p className="text-sm text-slate-400">Total Staked</p>
               <p className="text-lg font-medium text-purple-200">
@@ -138,8 +141,10 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading }
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4">
-            <TrendingUp className="w-8 h-8 text-purple-500" />
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+            <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+              <TrendingUp className="w-8 h-8 text-purple-500" />
+            </div>
             <div>
               <p className="text-sm text-slate-400">Rewards</p>
               <div className="text-lg font-medium text-purple-200">
