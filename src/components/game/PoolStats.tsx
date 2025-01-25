@@ -168,28 +168,40 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
             </div>
           </div>
 
-          <div className="md:col-span-2 flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
-            <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-              <TrendingUp className="w-8 h-8 text-purple-500" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-slate-400">Rewards</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+          <div className="md:col-span-2 flex flex-col gap-4">
+            {/* Rewards Container */}
+            <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+              <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+                <TrendingUp className="w-8 h-8 text-purple-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-slate-400">Rewards</p>
+                <div className="flex items-center gap-2 text-lg font-medium text-purple-200">
                   <AnimatingTokenAmount value={currentRewards} />
                   <TokenImage symbol={symbol} className="w-6 h-6" />
                 </div>
-                {userWeight !== '0.00000000' && (
-                  <div className="flex items-center gap-2 bg-slate-900/50 px-3 py-1 rounded-lg">
-                    <Scale className="w-4 h-4 text-purple-400" />
-                    <span className="text-sm text-purple-200">
-                      {userWeight} ({userPercent}%)
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
+
+            {/* User Weight Container */}
+            {userWeight !== '0.00000000' && (
+              <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+                <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+                  <Scale className="w-8 h-8 text-purple-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-slate-400">Your Pool Weight</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-lg font-medium text-purple-200">
+                      {userWeight} <TokenImage symbol={symbol} className="w-6 h-6" />
+                    </div>
+                    <div className="bg-slate-900/50 px-3 py-1 rounded-lg">
+                      <span className="text-sm text-purple-200">{userPercent}% of pool</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </CardContent>
     </Card>
