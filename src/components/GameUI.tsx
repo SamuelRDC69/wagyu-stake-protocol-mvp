@@ -91,13 +91,7 @@ const GameUI: React.FC = () => {
     config: undefined
   });
 
-  const playerStake = useMemo(() => {
-    if (!session || !selectedPool) return undefined;
-    return gameData.stakes.find(
-      stake => stake.owner === session.actor.toString() &&
-               stake.pool_id === selectedPool.pool_id
-    );
-  }, [session, selectedPool, gameData.stakes]);
+
 
   const loadData = useCallback(async () => {
     try {
@@ -427,6 +421,14 @@ const memoizedHandlers = useMemo(() => ({
   onStake: handleStake,
   onCooldownComplete: loadData
 }), [handleClaim, handleUnstake, handleStake, loadData]);
+
+  const playerStake = useMemo(() => {
+    if (!session || !selectedPool) return undefined;
+    return gameData.stakes.find(
+      stake => stake.owner === session.actor.toString() &&
+               stake.pool_id === selectedPool.pool_id
+    );
+  }, [session, selectedPool, gameData.stakes]);
 
 
 const handleLogin = async () => {
