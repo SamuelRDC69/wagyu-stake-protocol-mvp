@@ -19,6 +19,7 @@ import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
 import { useContractData } from '../../lib/hooks/useContractData';
 import { StakedEntity } from '../../lib/types/staked';
+import { getTierWeight } from '../../lib/utils/tierUtils';
 import { cn } from '@/lib/utils';
 
 const TIER_CONFIG = {
@@ -49,49 +50,71 @@ const TIER_CONFIG = {
   },
 } as const;
 
+interface ExtendedStakeEntity extends StakedEntity {
+  calculatedWeight: number;
+  weightPercentage: string;
+}
+
 export const Leaderboard: React.FC = () => {
   const { fetchData, loading, error } = useContractData();
-  const [leaderboardData, setLeaderboardData] = useState<StakedEntity[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<ExtendedStakeEntity[]>([]);
+  const [totalWeight, setTotalWeight] = useState<string>('0.00000000 WAX');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Update the loadLeaderboardData function in Leaderboard.tsx
-const loadLeaderboardData = async () => {
-  if (isLoading) return;
-  
-  try {
-    setIsLoading(true);
-    const data = await fetchData();
-    if (data?.stakes) {
-      // Sort stakes by staked amount
-      const sortedStakes = [...data.stakes].sort((a, b) => {
-        const amountA = parseTokenString(a.staked_quantity).amount;
-        const amountB = parseTokenString(b.staked_quantity).amount;
-        return amountB - amountA;
-      });
+  const calculateWeight = (amount: string, tier: string): number => {
+    const { amount: stakedAmount } = parseTokenString(amount);
+    const tierWeight = parseFloat(getTierWeight(tier));
+    return parseFloat((stakedAmount * tierWeight).toFixed(8));
+  };
 
-      // Ensure each stake has an owner property
-      const stakesWithOwner = sortedStakes.map(stake => ({
-        ...stake,
-        owner: stake.owner || 'Unknown'
-      }));
+  const calculateWeightPercentage = (weight: number): string => {
+    const { amount: totalWeightAmount } = parseTokenString(totalWeight);
+    return ((weight / totalWeightAmount) * 100).toFixed(2);
+  };
 
-      setLeaderboardData(stakesWithOwner);
+  const loadLeaderboardData = async () => {
+    if (isLoading) return;
+    
+    try {
+      setIsLoading(true);
+      const data = await fetchData();
+      if (data?.stakes && data?.pools) {
+        const pool = data.pools[0]; // Assuming first pool
+        const poolTotalWeight = pool?.total_staked_weight || '0.00000000 WAX';
+        setTotalWeight(poolTotalWeight);
+
+        // Calculate weights for each stake
+        const stakesWithWeights = data.stakes.map(stake => {
+          const calculatedWeight = calculateWeight(stake.staked_quantity, stake.tier);
+          return {
+            ...stake,
+            calculatedWeight,
+            weightPercentage: calculateWeightPercentage(calculatedWeight)
+          };
+        });
+
+        // Sort by calculated weight
+        const sortedStakes = stakesWithWeights.sort((a, b) => (
+          b.calculatedWeight - a.calculatedWeight
+        ));
+
+        setLeaderboardData(sortedStakes);
+      }
+    } catch (err) {
+      console.error('Failed to load leaderboard data:', err);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error('Failed to load leaderboard data:', err);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // Initial load
   useEffect(() => {
     loadLeaderboardData();
   }, []);
 
-  // Periodic refresh - no need for constant polling when not visible
+  // Periodic refresh
   useEffect(() => {
-    const interval = setInterval(loadLeaderboardData, 120000); // 2 minutes
+    const interval = setInterval(loadLeaderboardData, 120000);
     return () => clearInterval(interval);
   }, []);
 
@@ -162,6 +185,8 @@ const loadLeaderboardData = async () => {
                 <TableHead className="text-slate-300">Account</TableHead>
                 <TableHead className="text-slate-300">Tier</TableHead>
                 <TableHead className="text-right text-slate-300">Staked Amount</TableHead>
+                <TableHead className="text-right text-slate-300">Weight</TableHead>
+                <TableHead className="text-right text-slate-300">Share</TableHead>
                 <TableHead className="text-right text-slate-300">Next Claim</TableHead>
               </TableRow>
             </TableHeader>
@@ -192,6 +217,12 @@ const loadLeaderboardData = async () => {
                     </TableCell>
                     <TableCell className="text-right font-medium text-slate-200">
                       {`${Number(amount).toFixed(8)} ${symbol}`}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-slate-200">
+                      {`${entry.calculatedWeight.toFixed(8)} ${symbol}`}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-slate-200">
+                      {`${entry.weightPercentage}%`}
                     </TableCell>
                     <TableCell className="text-right">
                       {renderClaimStatus(entry.cooldown_end_at)}
