@@ -120,7 +120,6 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
   const totalWeight = formatTokenString(poolData.total_staked_weight);
   const { symbol } = formatTokenString(poolData.reward_pool.quantity);
 
-  // Calculate user's weight and percentage
   let userWeight = '0.00000000';
   let userPercent = '0.00';
   if (userStakedQuantity && userTierWeight) {
@@ -176,8 +175,10 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
               </div>
               <div className="flex-1">
                 <p className="text-sm text-slate-400">Rewards</p>
-                <div className="flex items-center gap-2 text-lg font-medium text-purple-200">
-                  <AnimatingTokenAmount value={currentRewards} />
+                <div className="flex items-center gap-2">
+                  <div className="text-lg font-medium text-purple-200">
+                    <AnimatingTokenAmount value={currentRewards} />
+                  </div>
                   <TokenImage symbol={symbol} className="w-6 h-6" />
                 </div>
               </div>
@@ -192,8 +193,11 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
                 <div className="flex-1">
                   <p className="text-sm text-slate-400">Your Pool Weight</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-lg font-medium text-purple-200">
-                      {userWeight} <TokenImage symbol={symbol} className="w-6 h-6" />
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-medium text-purple-200">
+                        {userWeight}
+                      </p>
+                      <TokenImage symbol={symbol} className="w-6 h-6" />
                     </div>
                     <div className="bg-slate-900/50 px-3 py-1 rounded-lg">
                       <span className="text-sm text-purple-200">{userPercent}% of pool</span>
@@ -202,6 +206,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
                 </div>
               </div>
             )}
+          </div>
         </div>
       </CardContent>
     </Card>
