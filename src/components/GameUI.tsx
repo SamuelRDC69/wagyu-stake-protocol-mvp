@@ -492,6 +492,17 @@ const handleLogout = async () => {
     }
   }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
 
+// After tierProgress and canUpgradeTier but before renderContent
+const userStatusProps = useMemo(() => ({
+  stakedData: playerStake,
+  config: gameData.config,
+  poolSymbol: selectedPool ? parseTokenString(selectedPool.total_staked_quantity).symbol : '',
+  tierProgress: tierProgress || undefined,
+  isLoading: loading
+}), [playerStake, gameData.config, selectedPool, tierProgress, loading]);
+
+
+
   const renderContent = () => {
     if (!session && activeTab !== 'leaderboard') {
       return (
@@ -575,14 +586,12 @@ const handleLogout = async () => {
                     />
                   )}
                   
-                  {gameData.config && (
+
+{gameData.config && (
   <UserStatus 
-    stakedData={playerStake}
-    config={gameData.config}
+    key={`user-${playerStake?.staked_quantity}-${playerStake?.cooldown_end_at}`}
+    {...userStatusProps}
     {...memoizedHandlers}
-    poolSymbol={parseTokenString(selectedPool.total_staked_quantity).symbol}
-    tierProgress={tierProgress || undefined}
-    isLoading={loading}
   />
 )}
 
