@@ -11,7 +11,7 @@ export const TOKENS: { [key: string]: TokenConfig } = {
   WAX: {
     symbol: 'WAX',
     contract: 'eosio.token',
-    image: '/images/wax-token.svg', // We'll create this SVG next
+    image: '/wax-waxp-seeklogo.svg',
     name: 'WAXP',
     decimals: 8,
   },
