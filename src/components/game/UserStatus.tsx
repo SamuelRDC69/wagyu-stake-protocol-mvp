@@ -47,7 +47,7 @@ interface UserStatusProps {
   tierProgress?: TierProgress | null;
 }
 
-const UserStatus: React.FC<UserStatusProps> = React.memo(({
+export const UserStatus = React.memo<UserStatusProps>(({
   stakedData,
   config,
   onCooldownComplete,
@@ -345,6 +345,4 @@ const UserStatus: React.FC<UserStatusProps> = React.memo(({
       </CardContent>
     </Card>
   );
-}));
-
-export default UserStatus;
+});
