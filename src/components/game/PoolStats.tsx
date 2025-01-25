@@ -4,7 +4,7 @@ import { Shield, TrendingUp, Scale } from 'lucide-react';
 import { PoolEntity } from '@/lib/types/pool';
 import { cn } from '@/lib/utils';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
-import { TokenImage } from '@/lib/config/tokens';
+import { TokenImage } from '@/components/ui/TokenImage';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
