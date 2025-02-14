@@ -28,7 +28,7 @@ import { StakedEntity } from '../../lib/types/staked';
 import { ConfigEntity } from '../../lib/types/config';
 import { formatLastAction } from '../../lib/utils/dateUtils';
 import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils';
-import { getTierConfig, getTierDisplayName } from '../../lib/utils/tierUtils';
+import { getTierConfig } from '../../lib/utils/tierUtils';
 import { cn } from '../../lib/utils';
 import { TierProgress } from '../../lib/types/tier';
 
@@ -64,7 +64,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
 
   if (isLoading) {
     return (
-      <Card className="w-full crystal-bg group">
+      <Card className="w-full crystal-bg">
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-slate-700 rounded w-1/4" />
@@ -78,9 +78,9 @@ export const UserStatus = React.memo<UserStatusProps>(({
 
   if (!config) {
     return (
-      <Card className="w-full crystal-bg group">
+      <Card className="w-full crystal-bg">
         <CardContent className="p-6">
-          <p className="text-center text-slate-400">Loading configuration...</p>
+          <p className="text-center text-slate-300">Loading configuration...</p>
         </CardContent>
       </Card>
     );
@@ -140,17 +140,16 @@ export const UserStatus = React.memo<UserStatusProps>(({
   const tierStyle = stakedData ? getTierConfig(stakedData.tier) : undefined;
 
   return (
-    <Card className="w-full crystal-bg group">
+    <Card className="w-full crystal-bg">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
           {stakedData && tierStyle && (
             <TierBadge 
               tier={stakedData.tier}
-              className="animate-pulse"
-            >
-              {getTierDisplayName(stakedData.tier)}
-            </TierBadge>
+              showLevel
+              className="transition-all"
+            />
           )}
         </div>
       </CardHeader>
@@ -158,40 +157,41 @@ export const UserStatus = React.memo<UserStatusProps>(({
         <div className="space-y-4">
           {stakedData ? (
             <>
-              <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all space-y-4">
+              <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Staked Amount</span>
-                  <span className={cn("font-medium", tierStyle?.color || "text-purple-200")}>
+                  <span className="text-sm text-slate-300">Staked Amount</span>
+                  <span className={cn("font-medium text-sm md:text-base", tierStyle?.color || "text-slate-200")}>
                     {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Last Claim</span>
-                  <span className={cn("font-medium", tierStyle?.color || "text-purple-200")}>
+                  <span className="text-sm text-slate-300">Last Claim</span>
+                  <span className={cn("font-medium text-sm md:text-base", tierStyle?.color || "text-slate-200")}>
                     {formatLastAction(stakedData.last_claimed_at)}
                   </span>
                 </div>
               </div>
               
-              <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all">
+              <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all">
                 <CooldownTimer 
                   cooldownEndAt={stakedData.cooldown_end_at}
                   cooldownSeconds={config.cooldown_seconds_per_claim}
                   onComplete={onCooldownComplete}
+                  tierColor={tierStyle?.color}
                 />
               </div>
             </>
           ) : (
-            <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all text-center text-slate-400">
+            <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all text-center text-slate-300">
               No active stake. Start staking to earn rewards!
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4 pt-4">
+          <div className="grid grid-cols-3 gap-3 md:gap-4 pt-4">
             <Button
               className={cn(
-                "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
+                "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-sm md:text-base",
                 tierStyle?.color
               )}
               onClick={() => setStakeDialogOpen(true)}
@@ -205,7 +205,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
               <>
                 <Button
                   className={cn(
-                    "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
+                    "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-sm md:text-base",
                     tierStyle?.color
                   )}
                   onClick={handleClaim}
@@ -219,17 +219,17 @@ export const UserStatus = React.memo<UserStatusProps>(({
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="destructive"
-                      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50"
+                      className="w-full bg-slate-800/30 border border-slate-700/50 hover:bg-red-900/50 text-sm md:text-base"
                       disabled={isProcessing}
                     >
                       <TrendingDown className="w-4 h-4 mr-2" />
                       Unstake
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-slate-900 text-white border border-slate-700/50">
+                  <AlertDialogContent className="bg-slate-900 text-slate-200 border border-slate-700/50">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
+                      <AlertDialogDescription className="text-slate-400">
                         Unstaking will remove your tokens from the pool and may affect your tier status.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -256,10 +256,10 @@ export const UserStatus = React.memo<UserStatusProps>(({
           </div>
 
           <Dialog open={isStakeDialogOpen} onOpenChange={setStakeDialogOpen}>
-            <DialogContent className="bg-slate-900 text-white border border-slate-700/50">
+            <DialogContent className="bg-slate-900 text-slate-200 border border-slate-700/50">
               <DialogHeader>
                 <DialogTitle>Stake Tokens</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-slate-400">
                   Enter the amount you want to stake
                 </DialogDescription>
               </DialogHeader>
@@ -271,7 +271,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
                   placeholder={`Amount of ${poolSymbol}`}
                   value={stakeAmount}
                   onChange={(e) => setStakeAmount(e.target.value)}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-slate-800 border-slate-700 text-slate-200"
                 />
                 <DialogFooter>
                   <Button
@@ -297,10 +297,10 @@ export const UserStatus = React.memo<UserStatusProps>(({
           </Dialog>
 
           <Dialog open={isUnstakeDialogOpen} onOpenChange={setUnstakeDialogOpen}>
-            <DialogContent className="bg-slate-900 text-white border border-slate-700/50">
+            <DialogContent className="bg-slate-900 text-slate-200 border border-slate-700/50">
               <DialogHeader>
                 <DialogTitle>Unstake Tokens</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-slate-400">
                   Enter the amount you want to unstake
                   {stakedData && ` (Max: ${formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)})`}
                 </DialogDescription>
@@ -314,7 +314,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
                   placeholder={`Amount of ${poolSymbol}`}
                   value={unstakeAmount}
                   onChange={handleUnstakeAmountChange}
-                  className="bg-slate-800 border-slate-700 text-white"
+                  className="bg-slate-800 border-slate-700 text-slate-200"
                 />
                 <DialogFooter>
                   <Button
