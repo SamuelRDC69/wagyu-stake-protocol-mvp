@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { TierBadge } from '../ui/TierBadge';
 import { CooldownTimer } from './CooldownTimer';
 import {
   Dialog,
@@ -28,12 +28,9 @@ import { StakedEntity } from '../../lib/types/staked';
 import { ConfigEntity } from '../../lib/types/config';
 import { formatLastAction } from '../../lib/utils/dateUtils';
 import { formatTokenAmount, parseTokenString } from '../../lib/utils/tokenUtils';
-import { getTierConfig } from '../../lib/utils/tierUtils';
+import { getTierConfig, getTierDisplayName } from '../../lib/utils/tierUtils';
 import { cn } from '../../lib/utils';
-import { 
-  TierVariant,
-  TierProgress 
-} from '../../lib/types/tier';
+import { TierProgress } from '../../lib/types/tier';
 
 interface UserStatusProps {
   stakedData?: StakedEntity;
@@ -140,20 +137,20 @@ export const UserStatus = React.memo<UserStatusProps>(({
     }
   };
 
-  const tierConfig = stakedData ? getTierConfig(stakedData.tier) : undefined;
+  const tierStyle = stakedData ? getTierConfig(stakedData.tier) : undefined;
 
   return (
     <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Your Status</CardTitle>
-          {stakedData && tierConfig && (
-            <Badge 
-              variant={stakedData.tier.toLowerCase().replace(/\s+/g, '') as TierVariant}
-              className={cn("animate-pulse", tierConfig?.color)}
+          {stakedData && tierStyle && (
+            <TierBadge 
+              tier={stakedData.tier}
+              className="animate-pulse"
             >
-              {stakedData.tier}
-            </Badge>
+              {getTierDisplayName(stakedData.tier)}
+            </TierBadge>
           )}
         </div>
       </CardHeader>
@@ -164,14 +161,14 @@ export const UserStatus = React.memo<UserStatusProps>(({
               <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Staked Amount</span>
-                  <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
+                  <span className={cn("font-medium", tierStyle?.color || "text-purple-200")}>
                     {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Last Claim</span>
-                  <span className={cn("font-medium", tierConfig?.color || "text-purple-200")}>
+                  <span className={cn("font-medium", tierStyle?.color || "text-purple-200")}>
                     {formatLastAction(stakedData.last_claimed_at)}
                   </span>
                 </div>
@@ -195,7 +192,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
             <Button
               className={cn(
                 "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                tierConfig?.color
+                tierStyle?.color
               )}
               onClick={() => setStakeDialogOpen(true)}
               disabled={isProcessing}
@@ -209,7 +206,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
                 <Button
                   className={cn(
                     "w-full bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                    tierConfig?.color
+                    tierStyle?.color
                   )}
                   onClick={handleClaim}
                   disabled={isProcessing}
@@ -289,7 +286,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
                     disabled={isProcessing || !stakeAmount || parseFloat(stakeAmount) <= 0}
                     className={cn(
                       "ml-2 bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                      tierConfig?.color
+                      tierStyle?.color
                     )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Stake'}
@@ -332,7 +329,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
                     disabled={isProcessing || !unstakeAmount || parseFloat(unstakeAmount) <= 0}
                     className={cn(
                       "ml-2 bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50",
-                      tierConfig?.color
+                      tierStyle?.color
                     )}
                   >
                     {isProcessing ? 'Processing...' : 'Confirm Unstake'}
