@@ -1,4 +1,11 @@
 /** @type {import('tailwindcss').Config} */
+
+const goldenRatio = 1.618;
+const baseUnit = 16;
+
+// Helper function for fluid typography
+const fluidSize = (min, max) => `clamp(${min}px, ${min/16}rem + 1vw, ${max}px)`;
+
 module.exports = {
   darkMode: ["class"],
   content: [
@@ -10,12 +17,37 @@ module.exports = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: `${baseUnit * goldenRatio}px`,
       screens: {
-        "2xl": "1400px",
+        "sm": "640px",
+        "md": "768px",
+        "lg": `${1024 / goldenRatio}px`,
+        "xl": "1280px",
+        "2xl": `${1618}px`, // Based on golden ratio
       },
     },
     extend: {
+      spacing: {
+        '1': `${baseUnit / (goldenRatio * 2)}px`,
+        '2': `${baseUnit / goldenRatio}px`,
+        '3': `${baseUnit}px`,
+        '4': `${baseUnit * goldenRatio}px`,
+        '6': `${baseUnit * goldenRatio * 1.5}px`,
+      },
+      fontSize: {
+        'xs': fluidSize(12/goldenRatio, 14/goldenRatio),
+        'sm': fluidSize(14/goldenRatio, 16/goldenRatio),
+        'base': fluidSize(16, 18),
+        'lg': fluidSize(16 * goldenRatio/1.2, 18 * goldenRatio),
+        'xl': fluidSize(16 * goldenRatio, 20 * goldenRatio),
+        '2xl': fluidSize(16 * goldenRatio * 1.2, 24 * goldenRatio),
+        '3xl': fluidSize(16 * goldenRatio * 1.5, 30 * goldenRatio),
+      },
+      lineHeight: {
+        'tight': '1.2',
+        'normal': String(goldenRatio),
+        'relaxed': String(goldenRatio * 1.2),
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
