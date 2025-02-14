@@ -1,9 +1,12 @@
-// src/lib/hooks/useTierCalculation.ts
 import { useMemo } from 'react';
 import { TierEntity, TierProgress } from '../types/tier';
 import { StakedEntity } from '../types/staked';
 import { PoolEntity } from '../types/pool';
 import { parseTokenString } from '../utils/tokenUtils';
+import { TIER_CONFIG } from '../config/tierConfig';
+
+const TIER_PRECISION = 8; // For WAX decimal precision
+const TIER_KEYS = Object.keys(TIER_CONFIG);
 
 export function useTierCalculation(
   stakedData: StakedEntity | undefined,
@@ -16,12 +19,14 @@ export function useTierCalculation(
     }
 
     try {
-      const { amount: stakedAmount } = parseTokenString(stakedData.staked_quantity);
+      const { amount: stakedAmount, symbol } = parseTokenString(stakedData.staked_quantity);
       const { amount: totalStaked } = parseTokenString(poolData.total_staked_quantity);
 
+      // Handle empty pool case
       if (totalStaked === 0) {
+        const lowestTier = tiers[0];
         return {
-          currentTier: tiers[0],
+          currentTier: lowestTier,
           progress: 0,
           nextTier: tiers[1],
           prevTier: undefined,
@@ -29,36 +34,42 @@ export function useTierCalculation(
           totalStaked: poolData.total_staked_quantity,
           currentStakedAmount: stakedAmount,
           requiredForCurrent: 0,
-          symbol: 'WAX',
-          weight: parseFloat(tiers[0].weight)  // Added weight
+          symbol,
+          totalAmountForNext: undefined,
+          additionalAmountNeeded: undefined,
+          weight: parseFloat(lowestTier.weight)
         };
       }
 
-      // Calculate percentage with 8 decimal precision
-      const stakedPercent = (stakedAmount / totalStaked) * 100;
+      // Calculate staked percentage with precision
+      const stakedPercent = Number(((stakedAmount / totalStaked) * 100).toFixed(TIER_PRECISION));
 
       // Sort tiers by staked percentage requirement
       const sortedTiers = [...tiers].sort((a, b) => 
         parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
       );
 
-      // Find current tier
+      // Find current tier based on staked percentage
       let currentTier = sortedTiers[0];
       let currentTierIndex = 0;
 
       for (let i = 0; i < sortedTiers.length; i++) {
-        if (stakedPercent <= parseFloat(sortedTiers[i].staked_up_to_percent)) {
+        const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
+        
+        if (stakedPercent <= tierThreshold) {
           currentTier = i > 0 ? sortedTiers[i - 1] : sortedTiers[0];
           currentTierIndex = i > 0 ? i - 1 : 0;
           break;
         }
+
+        // If we've reached the last tier and still haven't found a match
         if (i === sortedTiers.length - 1) {
           currentTier = sortedTiers[i];
           currentTierIndex = i;
         }
       }
 
-      // Calculate progress
+      // Get adjacent tiers
       const nextTier = currentTierIndex < sortedTiers.length - 1 
         ? sortedTiers[currentTierIndex + 1] 
         : undefined;
@@ -66,20 +77,25 @@ export function useTierCalculation(
         ? sortedTiers[currentTierIndex - 1] 
         : undefined;
 
+      // Calculate progress percentage
       let progress = 100;
       if (nextTier) {
-        const range = parseFloat(nextTier.staked_up_to_percent) - parseFloat(currentTier.staked_up_to_percent);
-        progress = ((stakedPercent - parseFloat(currentTier.staked_up_to_percent)) / range) * 100;
+        const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+        const nextThreshold = parseFloat(nextTier.staked_up_to_percent);
+        const range = nextThreshold - currentThreshold;
+        progress = ((stakedPercent - currentThreshold) / range) * 100;
       }
 
+      // Calculate required amounts
       const requiredForCurrent = (parseFloat(currentTier.staked_up_to_percent) * totalStaked) / 100;
       const totalAmountForNext = nextTier 
         ? (parseFloat(nextTier.staked_up_to_percent) * totalStaked) / 100 
         : undefined;
       const additionalAmountNeeded = totalAmountForNext && totalAmountForNext > stakedAmount 
-        ? totalAmountForNext - stakedAmount 
+        ? Number((totalAmountForNext - stakedAmount).toFixed(TIER_PRECISION))
         : undefined;
 
+      // Return complete tier progress data
       return {
         currentTier,
         nextTier,
@@ -89,10 +105,10 @@ export function useTierCalculation(
         totalStaked: poolData.total_staked_quantity,
         currentStakedAmount: stakedAmount,
         requiredForCurrent,
-        symbol: 'WAX',
-        totalAmountForNext,
+        symbol,
+        totalAmountForNext: totalAmountForNext ? Number(totalAmountForNext.toFixed(TIER_PRECISION)) : undefined,
         additionalAmountNeeded,
-        weight: parseFloat(currentTier.weight)  // Added correct weight
+        weight: parseFloat(currentTier.weight)
       };
     } catch (error) {
       console.error('Error calculating tier:', error);
