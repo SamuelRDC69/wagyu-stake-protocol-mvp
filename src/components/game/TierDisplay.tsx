@@ -4,15 +4,9 @@ import { Progress } from '@/components/ui/progress';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { TierProgress, TierEntity } from '@/lib/types/tier';
 import { StakedEntity } from '@/lib/types/staked';
-import { 
-  calculateSafeUnstakeAmount, 
-  getTierConfig, 
-  getTierDisplayName, 
-  getTierWeight 
-} from '@/lib/utils/tierUtils';
+import { getTierConfig, calculateSafeUnstakeAmount, getTierDisplayName } from '@/lib/utils/tierUtils';
 import { formatNumber } from '@/lib/utils/formatUtils';
 import { cn } from '@/lib/utils';
-import { TIER_CONFIG } from '@/lib/config/tierConfig';
 
 interface TierDisplayProps {
   tierProgress?: TierProgress;
@@ -61,8 +55,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  const tierConfig = getTierConfig(stakedData.tier);
-  const TierIcon = tierConfig.icon;
+  const tierStyle = getTierConfig(stakedData.tier);
+  const TierIcon = tierStyle.icon;
 
   const { 
     currentStakedAmount, 
@@ -73,49 +67,39 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     nextTier
   } = tierProgress;
 
-  const currentStyle = getTierConfig(stakedData.tier);
   const nextTierStyle = nextTier ? getTierConfig(nextTier.tier) : null;
 
   return (
     <Card className="w-full crystal-bg group">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <div className={cn("p-2 rounded-lg transition-all", currentStyle.bgColor)}>
-              <TierIcon className={cn("w-6 h-6", currentStyle.color)} />
+          <div className="flex items-center gap-2">
+            <div className={cn("p-2 rounded-lg transition-all", tierStyle.bgColor)}>
+              <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6", tierStyle.color)} />
             </div>
-            <span className="text-white">{getTierDisplayName(stakedData.tier)}</span>
-            {isUpgradeAvailable && (
-              <TierBadge 
-                tier={stakedData.tier}
-                className="animate-pulse shine-effect"
-              >
-                Tier Up Ready!
-              </TierBadge>
-            )}
-          </CardTitle>
-          <TierBadge 
-            tier={stakedData.tier}
-            className="transition-all shine-effect"
-          >
-            {`${getTierWeight(stakedData.tier)}x Power`}
-          </TierBadge>
+            <TierBadge 
+              tier={stakedData.tier}
+              animate={isUpgradeAvailable}
+              showLevel
+              className="transition-all"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Progress 
             value={progress} 
-            className="h-2"
-            color={currentStyle.progressColor}
+            className="h-2 bg-slate-800/50"
+            color={tierStyle.color.replace('text-', 'bg-')}
           />
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-400">
+            <span className="text-slate-300">
               Safe Unstake: {formatNumber(safeUnstakeAmount)} {symbol}
             </span>
             <span className={cn(
               "font-medium",
-              isUpgradeAvailable ? "text-green-400" : "text-slate-400"
+              isUpgradeAvailable ? "text-green-400" : "text-slate-300"
             )}>
               {progress.toFixed(1)}%
             </span>
@@ -123,9 +107,11 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
         </div>
 
         {nextTier && typeof additionalAmountNeeded === 'number' && (
-          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
+          <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-slate-400">Progress to {getTierDisplayName(nextTier.tier)}</p>
+              <p className="text-slate-300 text-sm">
+                Progress to {getTierDisplayName(nextTier.tier)}
+              </p>
               {nextTierStyle && (
                 <div className={cn("p-2 rounded-lg", nextTierStyle.bgColor)}>
                   <TierIcon className={cn("w-4 h-4", nextTierStyle.color)} />
@@ -139,15 +125,15 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
                 </p>
               )}
               <p className={cn(
-                "font-medium",
-                additionalAmountNeeded <= 0 ? "text-green-400" : nextTierStyle?.color
+                "font-medium text-sm",
+                additionalAmountNeeded <= 0 ? "text-green-400" : "text-slate-300"
               )}>
                 {additionalAmountNeeded <= 0 
                   ? 'Ready to Advance!'
                   : `Need ${formatNumber(additionalAmountNeeded)} ${symbol} more`
                 }
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Currently staking {formatNumber(currentStakedAmount)} {symbol}
               </p>
             </div>
@@ -155,11 +141,11 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
         )}
 
         {stakedData.tier === 'v' && (
-          <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 text-center">
-            <p className={cn("text-lg font-medium", currentStyle.color)}>
+          <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 text-center">
+            <p className={cn("text-base md:text-lg font-medium", tierStyle.color)}>
               Maximum Tier Reached!
             </p>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-300 mt-1">
               Enjoying maximum staking rewards
             </p>
           </div>
