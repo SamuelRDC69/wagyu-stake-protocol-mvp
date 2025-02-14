@@ -2,9 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
- 
 @layer base {
   :root {
+    /* Golden Ratio Constants */
+    --golden-ratio: 1.618;
+    --golden-ratio-inverse: 0.618;
+    
+    /* Base Spacing using Golden Ratio */
+    --base-unit: 16;
+    --space-xs: calc(var(--base-unit) / var(--golden-ratio) / var(--golden-ratio));
+    --space-sm: calc(var(--base-unit) / var(--golden-ratio));
+    --space-md: var(--base-unit);
+    --space-lg: calc(var(--base-unit) * var(--golden-ratio));
+    --space-xl: calc(var(--base-unit) * var(--golden-ratio) * var(--golden-ratio));
+
+    /* Original Theme Colors */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -24,7 +36,16 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
+    
+    /* Golden Ratio based radius */
+    --radius-sm: calc(0.5rem / var(--golden-ratio));
     --radius: 0.5rem;
+    --radius-lg: calc(0.5rem * var(--golden-ratio));
+    
+    /* Golden Ratio based shadows */
+    --shadow-sm: 0 calc(1px * var(--golden-ratio-inverse)) calc(2px * var(--golden-ratio)) rgba(31, 38, 135, 0.07);
+    --shadow-md: 0 calc(4px * var(--golden-ratio-inverse)) calc(8px * var(--golden-ratio)) rgba(31, 38, 135, 0.15);
+    --shadow-lg: 0 calc(8px * var(--golden-ratio-inverse)) calc(16px * var(--golden-ratio)) rgba(31, 38, 135, 0.25);
   }
  
   .dark {
@@ -59,47 +80,66 @@
   }
 }
 
-/* Existing game animations */
+/* Golden Ratio Enhanced Animations */
 @keyframes pulse-glow {
-  0%, 100% { filter: drop-shadow(0 0 0.5rem var(--glow-color)); }
-  50% { filter: drop-shadow(0 0 2rem var(--glow-color)); }
+  0%, 100% { 
+    filter: drop-shadow(0 0 calc(0.5rem * var(--golden-ratio-inverse)) var(--glow-color)); 
+  }
+  50% { 
+    filter: drop-shadow(0 0 calc(2rem * var(--golden-ratio)) var(--glow-color)); 
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+  50% { 
+    transform: translateY(calc(-10px * var(--golden-ratio-inverse))); 
+  }
 }
 
 @keyframes rotate {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to { transform: rotate(calc(360deg * var(--golden-ratio))); }
 }
 
 @keyframes scale-in {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { 
+    transform: scale(var(--golden-ratio-inverse)); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
 }
 
 @keyframes shine {
-  from { background-position: -200% center; }
-  to { background-position: 200% center; }
+  from { background-position: calc(-200% * var(--golden-ratio)) center; }
+  to { background-position: calc(200% * var(--golden-ratio)) center; }
 }
 
+/* Enhanced Component Classes */
 .crystal-bg {
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
-  backdrop-filter: blur(10px);
+  background: linear-gradient(
+    calc(135deg * var(--golden-ratio-inverse)), 
+    rgba(255,255,255,0.1), 
+    rgba(255,255,255,0)
+  );
+  backdrop-filter: blur(calc(10px * var(--golden-ratio-inverse)));
   border: 1px solid rgba(255,255,255,0.18);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  box-shadow: var(--shadow-lg);
 }
 
 .hex-pattern {
   background-image: radial-gradient(
     circle at center,
     rgba(255,255,255,0.1) 0%,
-    rgba(255,255,255,0.05) 25%,
-    transparent 70%
+    rgba(255,255,255,0.05) calc(25% * var(--golden-ratio-inverse)),
+    transparent calc(70% * var(--golden-ratio))
   );
-  background-size: 30px 30px;
+  background-size: calc(30px * var(--golden-ratio)) calc(30px * var(--golden-ratio));
 }
 
 .shine-effect {
@@ -109,23 +149,23 @@
     rgba(255,255,255,0.2),
     transparent
   );
-  background-size: 200% auto;
-  animation: shine 3s linear infinite;
+  background-size: calc(200% * var(--golden-ratio)) auto;
+  animation: shine calc(3s * var(--golden-ratio)) linear infinite;
 }
 
 .glow {
   --glow-color: rgba(147, 51, 234, 0.5);
-  animation: pulse-glow 2s ease-in-out infinite;
+  animation: pulse-glow calc(2s * var(--golden-ratio)) ease-in-out infinite;
 }
 
 .float {
-  animation: float 3s ease-in-out infinite;
+  animation: float calc(3s * var(--golden-ratio)) ease-in-out infinite;
 }
 
 .rotate {
-  animation: rotate 20s linear infinite;
+  animation: rotate calc(20s * var(--golden-ratio)) linear infinite;
 }
 
 .scale-in {
-  animation: scale-in 0.3s ease-out forwards;
+  animation: scale-in calc(0.3s * var(--golden-ratio-inverse)) ease-out forwards;
 }
