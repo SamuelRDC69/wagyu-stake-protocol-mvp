@@ -8,47 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table';
-import { Badge } from '../ui/badge';
-import {
-  Building2,
-  Store,
-  TrendingUp,
-  BarChart3,
-} from 'lucide-react';
+import { TierBadge } from '../ui/TierBadge';
 import { calculateTimeLeft, formatTimeLeft } from '../../lib/utils/dateUtils';
 import { parseTokenString } from '../../lib/utils/tokenUtils';
 import { useContractData } from '../../lib/hooks/useContractData';
 import { StakedEntity } from '../../lib/types/staked';
-import { getTierWeight } from '../../lib/utils/tierUtils';
+import { getTierWeight, getTierConfig, getTierDisplayName } from '../../lib/utils/tierUtils';
 import { cn } from '@/lib/utils';
-
-const TIER_CONFIG = {
-  supplier: {
-    color: 'text-emerald-500',
-    bgColor: 'bg-emerald-500/10',
-    icon: Store,
-  },
-  merchant: {
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-    icon: Building2,
-  },
-  trader: {
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
-    icon: TrendingUp,
-  },
-  'marketmkr': {
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    icon: BarChart3,
-  },
-  exchange: {
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10',
-    icon: Building2,
-  },
-} as const;
 
 interface ExtendedStakeEntity extends StakedEntity {
   calculatedWeight: number;
@@ -118,18 +84,13 @@ export const Leaderboard: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const getTierConfig = (tier: string) => {
-    const tierKey = tier.toLowerCase() as keyof typeof TIER_CONFIG;
-    return TIER_CONFIG[tierKey] || TIER_CONFIG.supplier;
-  };
-
   const renderClaimStatus = (cooldownEnd: string) => {
     const timeLeft = calculateTimeLeft(cooldownEnd);
     if (timeLeft <= 0) {
       return (
-        <Badge variant="default" className="bg-green-500/20 text-green-500 animate-pulse">
+        <div className="bg-green-500/20 text-green-500 px-2 py-1 rounded-lg text-xs font-medium animate-pulse">
           Ready to Claim
-        </Badge>
+        </div>
       );
     }
     return (
@@ -195,6 +156,7 @@ export const Leaderboard: React.FC = () => {
                 const tierConfig = getTierConfig(entry.tier);
                 const TierIcon = tierConfig.icon;
                 const { amount, symbol } = parseTokenString(entry.staked_quantity);
+                const style = tierConfig;
 
                 return (
                   <TableRow 
@@ -209,10 +171,12 @@ export const Leaderboard: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className={cn("p-2 rounded-lg transition-all", tierConfig.bgColor)}>
-                          <TierIcon className={cn("w-4 h-4", tierConfig.color)} />
+                        <div className={cn("p-2 rounded-lg transition-all", style.bgColor)}>
+                          <TierIcon className={cn("w-4 h-4", style.color)} />
                         </div>
-                        <span className={tierConfig.color}>{entry.tier}</span>
+                        <span className={style.color}>
+                          {getTierDisplayName(entry.tier)}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium text-slate-200">
