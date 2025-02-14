@@ -1,3 +1,5 @@
+import { TIER_CONFIG } from '../config/tierConfig';
+
 export interface TierEntity {
   tier: string;               
   tier_name: string;          
