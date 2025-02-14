@@ -13,40 +13,17 @@ interface PoolStatsProps {
   userTierWeight?: string;
 }
 
-const isValidPoolData = (data: any): data is PoolEntity => {
-  return (
-    data &&
-    typeof data === 'object' &&
-    'total_staked_quantity' in data &&
-    'total_staked_weight' in data &&
-    'reward_pool' in data &&
-    typeof data.reward_pool === 'object' &&
-    'quantity' in data.reward_pool
-  );
-};
-
-const formatTokenString = (value: string): { amount: string; symbol: string } => {
-  try {
-    const [amount, symbol = 'WAX'] = value.split(' ');
-    return {
-      amount: parseFloat(amount).toFixed(8),
-      symbol
-    };
-  } catch (e) {
-    console.error('Error formatting token string:', e);
-    return {
-      amount: '0.00000000',
-      symbol: 'WAX'
-    };
-  }
-};
-
-export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, userStakedQuantity, userTierWeight }) => {
+export const PoolStats: React.FC<PoolStatsProps> = memo(({ 
+  poolData, 
+  isLoading, 
+  userStakedQuantity, 
+  userTierWeight 
+}) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
   const [updateKey, setUpdateKey] = useState<number>(0);
 
   const calculateCurrentRewards = useCallback(() => {
-    if (!poolData || !isValidPoolData(poolData)) return 0;
+    if (!poolData) return 0;
 
     try {
       const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
@@ -68,7 +45,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
   }, [poolData?.reward_pool.quantity, poolData?.last_emission_updated_at]);
 
   useEffect(() => {
-    if (!poolData || !isValidPoolData(poolData)) return;
+    if (!poolData) return;
 
     const updateRewards = () => {
       setCurrentRewards(calculateCurrentRewards());
@@ -81,7 +58,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
 
   if (isLoading) {
     return (
-      <Card className="w-full crystal-bg group">
+      <Card className="w-full crystal-bg">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
@@ -102,105 +79,103 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({ poolData, isLoading, 
     );
   }
 
-  if (!isValidPoolData(poolData)) {
-    console.error('Invalid pool data:', poolData);
+  if (!poolData) {
     return (
-      <Card className="w-full crystal-bg group">
+      <Card className="w-full crystal-bg">
         <CardHeader>
           <CardTitle>Pool Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400 text-center">Invalid pool data</div>
+          <div className="text-red-400 text-center">No pool data available</div>
         </CardContent>
       </Card>
     );
   }
 
-  const totalStaked = formatTokenString(poolData.total_staked_quantity);
-  const totalWeight = formatTokenString(poolData.total_staked_weight);
-  const { symbol } = formatTokenString(poolData.reward_pool.quantity);
+  // Parse pool data
+  const [totalStakedAmount, symbol] = poolData.total_staked_quantity.split(' ');
+  const totalStakedFormatted = parseFloat(totalStakedAmount).toFixed(8);
 
+  // Parse weight data
   let userWeight = '0.00000000';
   let userPercent = '0.00';
   if (userStakedQuantity && userTierWeight) {
-    const { amount: userAmount } = formatTokenString(userStakedQuantity);
+    const [userAmount] = userStakedQuantity.split(' ');
     const userWeightNum = parseFloat(userAmount) * parseFloat(userTierWeight);
     userWeight = userWeightNum.toFixed(8);
-    const { amount: totalWeightAmount } = formatTokenString(poolData.total_staked_weight);
+    const [totalWeightAmount] = poolData.total_staked_weight.split(' ');
     userPercent = ((userWeightNum / parseFloat(totalWeightAmount)) * 100).toFixed(2);
   }
 
   return (
-    <Card className="w-full crystal-bg group">
+    <Card className="w-full crystal-bg">
       <CardHeader>
         <CardTitle>Pool Statistics</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
-            <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-              <Shield className="w-8 h-8 text-purple-500" />
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
+            <div className={cn("p-2 rounded-lg bg-purple-500/10 transition-all")}>
+              <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-slate-400">Total Staked</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs md:text-sm text-slate-400">Total Staked</p>
               <div className="flex items-center gap-2">
-                <p className="text-lg font-medium text-purple-200">
-                  {totalStaked.amount}
+                <p className="text-sm md:text-base font-medium text-purple-200 truncate">
+                  {totalStakedFormatted}
                 </p>
-                <TokenImage symbol={symbol} className="w-6 h-6" />
+                <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
             <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-              <Scale className="w-8 h-8 text-purple-500" />
+              <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-slate-400">Total Weight</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs md:text-sm text-slate-400">Total Weight</p>
               <div className="flex items-center gap-2">
-                <p className="text-lg font-medium text-purple-200">
-                  {totalWeight.amount}
+                <p className="text-sm md:text-base font-medium text-purple-200 truncate">
+                  {parseFloat(poolData.total_staked_weight).toFixed(8)}
                 </p>
-                <TokenImage symbol={symbol} className="w-6 h-6" />
+                <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               </div>
             </div>
           </div>
 
           <div className="md:col-span-2 flex flex-col gap-4">
-            {/* Rewards Container */}
-            <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+            <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
               <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-                <TrendingUp className="w-8 h-8 text-purple-500" />
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-400">Rewards</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs md:text-sm text-slate-400">Rewards</p>
                 <div className="flex items-center gap-2">
-                  <div className="text-lg font-medium text-purple-200">
+                  <div className="text-sm md:text-base font-medium text-purple-200 truncate">
                     <AnimatingTokenAmount value={currentRewards} />
                   </div>
-                  <TokenImage symbol={symbol} className="w-6 h-6" />
+                  <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                 </div>
               </div>
             </div>
 
-            {/* User Weight Container */}
             {userWeight !== '0.00000000' && (
-              <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-4 border border-slate-700/50 transition-all group-hover:border-purple-500/20">
+              <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
                 <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-                  <Scale className="w-8 h-8 text-purple-500" />
+                  <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-slate-400">Your Pool Weight</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs md:text-sm text-slate-400">Your Pool Weight</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <p className="text-lg font-medium text-purple-200">
+                      <p className="text-sm md:text-base font-medium text-purple-200 truncate">
                         {userWeight}
                       </p>
-                      <TokenImage symbol={symbol} className="w-6 h-6" />
+                      <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                     </div>
-                    <div className="bg-slate-900/50 px-3 py-1 rounded-lg">
-                      <span className="text-sm text-purple-200">{userPercent}% of pool</span>
+                    <div className="bg-slate-900/50 px-2 py-1 rounded-lg">
+                      <span className="text-xs md:text-sm text-purple-200">{userPercent}% of pool</span>
                     </div>
                   </div>
                 </div>
