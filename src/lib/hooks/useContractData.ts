@@ -1,11 +1,10 @@
-// src/lib/hooks/useContractData.ts
 import { useState, useContext, useCallback, useEffect } from 'react';
 import { WharfkitContext } from '../wharfkit/context';
 import { PoolEntity } from '../types/pool';
 import { StakedEntity } from '../types/staked';
 import { TierEntity } from '../types/tier';
 import { ConfigEntity } from '../types/config';
-import { DEFAULT_TIERS } from '../config/tiers';
+import { TIER_CONFIG } from '../config/tierConfig';
 
 const API_BASE_URL = 'https://maestrobeatz.servegame.com:3003/kek-staking';
 const API_ENDPOINTS = {
@@ -19,6 +18,14 @@ const DEFAULT_CONFIG: ConfigEntity = {
   cooldown_seconds_per_claim: 60,
   vault_account: "stakevault"
 };
+
+// Convert TIER_CONFIG to TierEntity array for contract compatibility
+const CONTRACT_TIERS: TierEntity[] = Object.entries(TIER_CONFIG).map(([key, value]) => ({
+  tier: key,
+  tier_name: value.displayName,
+  weight: value.weight,
+  staked_up_to_percent: value.staked_up_to_percent
+}));
 
 interface StakingData {
   pools: PoolEntity[];
@@ -35,18 +42,21 @@ interface APIResponse<T> {
 
 // Helper function to enrich stake data with proper tier information
 function enrichStakeData(stake: StakedEntity): StakedEntity {
-  const matchingTier = DEFAULT_TIERS.find(t => 
-    t.tier.toLowerCase() === stake.tier.toLowerCase()
-  );
-
-  if (matchingTier) {
+  // Convert legacy tier names to new letter-based system if needed
+  const tierLetter = stake.tier.toLowerCase();
+  if (TIER_CONFIG[tierLetter]) {
     return {
       ...stake,
-      tier: matchingTier.tier
+      tier: tierLetter
     };
   }
 
-  return stake;
+  // Fallback to 'a' (Level 0) if tier is invalid
+  console.warn(`Invalid tier detected: ${stake.tier}, defaulting to Level 0`);
+  return {
+    ...stake,
+    tier: 'a'
+  };
 }
 
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
@@ -143,11 +153,11 @@ export function useContractData() {
         return amountB - amountA;
       });
 
-      // Return combined data
+      // Return combined data with new tier system
       const stakingData: StakingData = {
         pools,
         stakes: sortedStakes,
-        tiers: DEFAULT_TIERS,
+        tiers: CONTRACT_TIERS,
         config: DEFAULT_CONFIG
       };
 
@@ -161,7 +171,7 @@ export function useContractData() {
       return {
         pools: [],
         stakes: [],
-        tiers: DEFAULT_TIERS,
+        tiers: CONTRACT_TIERS,
         config: DEFAULT_CONFIG
       };
     } finally {
