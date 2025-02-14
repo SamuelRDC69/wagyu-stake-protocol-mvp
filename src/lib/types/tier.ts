@@ -21,4 +21,5 @@ export interface TierProgress {
   additionalAmountNeeded?: number;  // Additional amount needed with fee adjustment
 }
 
-export type TierVariant = 'supplier' | 'merchant' | 'trader' | 'marketmkr' | 'exchange';
+// Type for tier variants (a through v)
+export type TierVariant = keyof typeof TIER_CONFIG;
