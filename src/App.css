@@ -15,7 +15,7 @@
 
 /* Dialog styles */
 .DialogOverlay {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, calc(0.5 * var(--golden-ratio-inverse)));
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -23,56 +23,56 @@
 
 .DialogContent {
   background-color: white;
-  border-radius: 6px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border-radius: calc(6px * var(--golden-ratio));
+  box-shadow: var(--shadow-lg);
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 90vw;
-  max-width: 450px;
+  max-width: calc(450px * var(--golden-ratio-inverse));
   max-height: 85vh;
-  padding: 25px;
+  padding: calc(25px * var(--golden-ratio-inverse));
   z-index: 101;
 }
 
 /* Game-specific utility classes */
 .crystal-card {
   background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(calc(10px * var(--golden-ratio-inverse)));
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  border-radius: var(--radius-lg);
+  padding: calc(1.5rem * var(--golden-ratio));
+  margin-bottom: calc(1rem * var(--golden-ratio));
 }
 
 /* Animation classes */
 .animate-float {
-  animation: float 3s ease-in-out infinite;
+  animation: float calc(3s * var(--golden-ratio)) ease-in-out infinite;
 }
 
 .animate-glow {
-  animation: glow 2s ease-in-out infinite;
+  animation: glow calc(2s * var(--golden-ratio)) ease-in-out infinite;
 }
 
 .animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse calc(2s * var(--golden-ratio)) cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Custom scrollbar for the game */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: calc(8px * var(--golden-ratio-inverse));
+  height: calc(8px * var(--golden-ratio-inverse));
 }
 
 ::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -82,13 +82,13 @@
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .crystal-card {
-    padding: 1rem;
-    margin-bottom: 0.75rem;
+    padding: calc(1rem * var(--golden-ratio-inverse));
+    margin-bottom: calc(0.75rem * var(--golden-ratio-inverse));
   }
 
   .DialogContent {
     width: 95vw;
-    padding: 20px;
+    padding: calc(20px * var(--golden-ratio-inverse));
   }
 }
 
@@ -105,22 +105,30 @@
 
 /* Button styles */
 .game-button {
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.5), rgba(79, 70, 229, 0.5));
+  background: linear-gradient(
+    calc(135deg * var(--golden-ratio-inverse)), 
+    rgba(147, 51, 234, 0.5), 
+    rgba(79, 70, 229, 0.5)
+  );
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  padding: calc(0.75rem * var(--golden-ratio-inverse)) calc(1.5rem * var(--golden-ratio));
   color: white;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all calc(0.2s * var(--golden-ratio-inverse)) ease;
   position: relative;
   z-index: 10;
   touch-action: manipulation;
 }
 
 .game-button:hover {
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.7), rgba(79, 70, 229, 0.7));
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(
+    calc(135deg * var(--golden-ratio-inverse)), 
+    rgba(147, 51, 234, 0.7), 
+    rgba(79, 70, 229, 0.7)
+  );
+  transform: translateY(calc(-1px * var(--golden-ratio)));
+  box-shadow: var(--shadow-md);
 }
 
 .game-button:active {
@@ -129,31 +137,31 @@
 
 /* Loading animation */
 .loading-spinner {
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid rgba(147, 51, 234, 0.5);
+  border: calc(3px * var(--golden-ratio-inverse)) solid rgba(255, 255, 255, 0.1);
+  border-top: calc(3px * var(--golden-ratio-inverse)) solid rgba(147, 51, 234, 0.5);
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  animation: spin 1s linear infinite;
+  width: calc(24px * var(--golden-ratio));
+  height: calc(24px * var(--golden-ratio));
+  animation: spin calc(1s * var(--golden-ratio)) linear infinite;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  100% { transform: rotate(calc(360deg * var(--golden-ratio))); }
 }
 
 /* Status indicators */
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: calc(8px * var(--golden-ratio-inverse));
+  height: calc(8px * var(--golden-ratio-inverse));
   border-radius: 50%;
   display: inline-block;
-  margin-right: 6px;
+  margin-right: calc(6px * var(--golden-ratio-inverse));
 }
 
 .status-dot.active {
   background: #10B981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 calc(8px * var(--golden-ratio)) rgba(16, 185, 129, 0.5);
 }
 
 .status-dot.inactive {
@@ -162,10 +170,10 @@
 
 .status-dot.warning {
   background: #FBBF24;
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 calc(8px * var(--golden-ratio)) rgba(251, 191, 36, 0.5);
 }
 
 .status-dot.error {
   background: #EF4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 calc(8px * var(--golden-ratio)) rgba(239, 68, 68, 0.5);
 }
