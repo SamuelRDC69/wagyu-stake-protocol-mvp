@@ -1,18 +1,15 @@
-// src/lib/utils/tierUtils.ts
-import { TierEntity, TierProgress, TierVariant } from '../types/tier';
-import { Store, Building2, TrendingUp, BarChart3 } from 'lucide-react';
+import { TierEntity, TierProgress } from '../types/tier';
 import { parseTokenString } from './tokenUtils';
-import { cn } from '@/lib/utils';
-import { DEFAULT_TIERS } from '../config/tiers';
+import { TIER_CONFIG, getTierStyle, getTierIcon, getTierDisplayName as getConfigTierName } from '../config/tierConfig';
 
 const FEE_RATE = 0.003; // 0.3% fee as per contract
 const PRECISION = 100000000; // 8 decimal places for WAX
 
 // Define the progression type
-type TierProgressionType = typeof TIER_PROGRESSION[number];
+type TierProgressionType = keyof typeof TIER_CONFIG;
 
-// Tier progression order matching contract
-const TIER_PROGRESSION = ['supplier', 'merchant', 'trader', 'marketmkr', 'exchange'] as const;
+// Tier progression order matching contract (a through v)
+const TIER_PROGRESSION = Object.keys(TIER_CONFIG) as TierProgressionType[];
 
 // Sort tiers to match progression
 const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
@@ -22,51 +19,6 @@ const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
     return aIndex - bIndex;
   });
 };
-
-// Helper function for tier matching
-const findMatchingTier = (tierKey: string): TierEntity | undefined => {
-  const normalizedTierKey = tierKey.toLowerCase().trim();
-  return DEFAULT_TIERS.find(t => t.tier.toLowerCase() === normalizedTierKey);
-};
-
-// Tier configuration with styling and icons
-export const TIER_CONFIG = {
-  supplier: {
-    color: 'text-emerald-500',
-    bgColor: 'bg-emerald-500/10',
-    progressColor: 'bg-emerald-500',
-    borderColor: 'border-emerald-500/20',
-    icon: Store,
-  },
-  merchant: {
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-    progressColor: 'bg-blue-500',
-    borderColor: 'border-blue-500/20',
-    icon: Building2,
-  },
-  trader: {
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
-    progressColor: 'bg-purple-500',
-    borderColor: 'border-purple-500/20',
-    icon: TrendingUp,
-  },
-  marketmkr: {
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
-    progressColor: 'bg-amber-500',
-    borderColor: 'border-amber-500/20',
-    icon: BarChart3,
-  },
-  exchange: {
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10',
-    progressColor: 'bg-red-500',
-    borderColor: 'border-red-500/20',
-    icon: Building2,
-  },
-} as const;
 
 // Helper function to apply WAX precision
 const applyWaxPrecision = (value: number): number => {
@@ -230,8 +182,10 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
-  const normalizedTier = tier.toLowerCase().replace(/\s+/g, '');
-  return TIER_CONFIG[normalizedTier as keyof typeof TIER_CONFIG] || TIER_CONFIG.supplier;
+  return {
+    ...getTierStyle(tier),
+    icon: getTierIcon(tier)
+  };
 };
 
 export const isTierUpgradeAvailable = (
@@ -264,13 +218,10 @@ export const isTierUpgradeAvailable = (
   }
 };
 
-export function getTierDisplayName(tierKey: string): string {
-  const matchingTier = findMatchingTier(tierKey);
-  return matchingTier?.tier_name || tierKey;
-}
+export const getTierDisplayName = (tierKey: string): string => {
+  return getConfigTierName(tierKey);
+};
 
-export function getTierWeight(tierKey: string): string {
-  const matchingTier = findMatchingTier(tierKey);
-  const weight = matchingTier ? parseFloat(matchingTier.weight) : 1.0;
-  return weight.toFixed(2);
-}
+export const getTierWeight = (tierKey: string): string => {
+  return TIER_CONFIG[tierKey.toLowerCase()]?.weight || '1.0';
+};
