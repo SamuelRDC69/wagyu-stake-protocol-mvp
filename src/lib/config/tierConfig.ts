@@ -16,15 +16,19 @@ export interface TierConfig {
   style: TierStyle;
 }
 
-// Create a color range for 22 tiers
+// In tierConfig.ts, update the createTierStyle function:
 export const createTierStyle = (index: number): TierStyle => {
   // Calculate hue for smooth progression (280 to 360 + 0 to 280)
   const hue = (280 + (360 / 22) * index) % 360;
+  const saturation = 70;
+  const lightness = 60;
+
+  // Change the format to use Tailwind's arbitrary value syntax
   return {
-    color: `text-[hsl(${hue},70%,60%)]`,
-    bgColor: `bg-[hsl(${hue},70%,60%)]/10`,
-    borderColor: `border-[hsl(${hue},70%,60%)]/20`,
-    progressColor: `bg-[hsl(${hue},70%,60%)]`
+    color: `text-[color:hsl(${hue}deg,${saturation}%,${lightness}%)]`,
+    bgColor: `bg-[color:hsl(${hue}deg,${saturation}%,${lightness}%_/_0.1)]`,
+    borderColor: `border-[color:hsl(${hue}deg,${saturation}%,${lightness}%_/_0.2)]`,
+    progressColor: `bg-[color:hsl(${hue}deg,${saturation}%,${lightness}%)]`
   };
 };
 
