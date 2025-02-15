@@ -48,14 +48,6 @@ function enrichStakeData(stake: StakedEntity): StakedEntity {
   };
 }
 
-  // Fallback to 'a' (Level 0) if tier is invalid
-  console.warn(`Invalid tier detected: ${stake.tier}, defaulting to Level 0`);
-  return {
-    ...stake,
-    tier: 'a'
-  };
-}
-
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   console.log(`[API] Starting fetch from: ${fullUrl}`);
