@@ -519,7 +519,7 @@ const userStatusProps = useMemo(() => ({
             <div className="crystal-bg rounded-2xl p-6 border border-purple-500/20">
               <h2 className="text-2xl font-bold mb-6 text-purple-200 flex items-center gap-3">
                 <Crown className="w-8 h-8 text-purple-500" />
-                Select Your Kingdom
+                Select Farm
               </h2>
               <Select 
                 onValueChange={(value) => {
