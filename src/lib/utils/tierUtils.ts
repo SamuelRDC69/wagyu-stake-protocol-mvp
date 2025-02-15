@@ -25,13 +25,20 @@ const applyWaxPrecision = (value: number): number => {
   return Math.round(value * PRECISION) / PRECISION;
 };
 
-// Get tier config with styles
 export const getTierConfig = (tier: string) => {
   const config = TIER_CONFIG[tier.toLowerCase()] || TIER_CONFIG.a;
-  return {
-    ...config.style,
-    icon: config.icon
-  };
+  return config.style
+    ? {
+        ...config.style,
+        icon: config.icon
+      }
+    : {
+        color: 'text-slate-500',
+        bgColor: 'bg-slate-500/10',
+        borderColor: 'border-slate-500/20',
+        progressColor: 'bg-slate-500',
+        icon: config.icon
+      };
 };
 
 // Export tier determination logic
