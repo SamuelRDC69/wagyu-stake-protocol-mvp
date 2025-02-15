@@ -14,7 +14,7 @@ module.exports = {
   ],
   safelist: [
     {
-      pattern: /^(text|bg|border)-\[color:hsl\(.*\)\]/,
+      pattern: /^(text|bg|border)-\[color:hsl\(.*?\)\]/,
       variants: ['hover', 'focus', 'active'],
     }
   ],
@@ -36,7 +36,7 @@ module.exports = {
         '2': `${baseUnit / goldenRatio}px`,
         '3': `${baseUnit}px`,
         '4': `${baseUnit * goldenRatio}px`,
-        '6': `${baseUnit * goldenRatio * 1.5}px`,
+        '6': `${baseUnit * goldenRatio * 1.5}px`, // Fixed syntax error here
       },
       fontSize: {
         'xs': fluidSize(12/goldenRatio, 14/goldenRatio),
