@@ -17,12 +17,8 @@ export interface TierConfig {
 }
 
 // Create a color range for 22 tiers using HSL
-// Starting from deep purple (280) through the spectrum back to red (360)
-// This creates a natural progression through colors
 const getTierStyle = (index: number): TierStyle => {
-  // Calculate hue for smooth progression (280 to 360 + 0 to 280)
   const hue = (280 + (360 / 22) * index) % 360;
-  // Maintain consistent saturation and lightness for cohesive look
   const saturation = 70;
   const lightness = 60;
 
@@ -33,6 +29,19 @@ const getTierStyle = (index: number): TierStyle => {
     progressColor: `bg-[hsl(${hue},${saturation}%,${lightness}%)]`
   };
 };
+
+// Helper functions
+export function getDisplayName(tier: string): string {
+  return TIER_CONFIG[tier.toLowerCase()]?.displayName || tier;
+}
+
+export function getTierStyle(tier: string): TierStyle {
+  return TIER_CONFIG[tier.toLowerCase()]?.style || TIER_CONFIG.a.style;
+}
+
+export function getTierIcon(tier: string): LucideIcon {
+  return TIER_CONFIG[tier.toLowerCase()]?.icon || Store;
+}
 
 export const TIER_CONFIG: Record<string, TierConfig> = {
   a: {
