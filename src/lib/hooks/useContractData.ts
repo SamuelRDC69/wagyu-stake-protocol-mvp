@@ -42,14 +42,11 @@ interface APIResponse<T> {
 
 // Helper function to enrich stake data with proper tier information
 function enrichStakeData(stake: StakedEntity): StakedEntity {
-  // Convert legacy tier names to new letter-based system if needed
-  const tierLetter = stake.tier.toLowerCase();
-  if (TIER_CONFIG[tierLetter]) {
-    return {
-      ...stake,
-      tier: tierLetter
-    };
-  }
+  return {
+    ...stake,
+    tier: stake.tier.toLowerCase() // Just ensure lowercase, no need for fallback or conversion
+  };
+}
 
   // Fallback to 'a' (Level 0) if tier is invalid
   console.warn(`Invalid tier detected: ${stake.tier}, defaulting to Level 0`);
