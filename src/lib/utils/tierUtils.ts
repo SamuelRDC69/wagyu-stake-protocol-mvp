@@ -1,6 +1,6 @@
 import { TierEntity, TierProgress } from '../types/tier';
 import { parseTokenString } from './tokenUtils';
-import { TIER_CONFIG, getTierStyle, getTierIcon, getTierDisplayName as getConfigTierName } from '../config/tierConfig';
+import { TIER_CONFIG } from '../config/tierConfig';
 
 const FEE_RATE = 0.003; // 0.3% fee as per contract
 const PRECISION = 100000000; // 8 decimal places for WAX
@@ -10,6 +10,25 @@ type TierProgressionType = keyof typeof TIER_CONFIG;
 
 // Tier progression order matching contract (a through v)
 const TIER_PROGRESSION = Object.keys(TIER_CONFIG) as TierProgressionType[];
+
+// Helper functions for tier styling and display
+const getTierStyle = (tier: string) => {
+  const index = TIER_PROGRESSION.indexOf(tier.toLowerCase() as TierProgressionType);
+  const hue = (280 + (360 / 22) * index) % 360;
+  const saturation = 70;
+  const lightness = 60;
+
+  return {
+    color: `text-[hsl(${hue},${saturation}%,${lightness}%)]`,
+    bgColor: `bg-[hsl(${hue},${saturation}%,${lightness}%)]/10`,
+    borderColor: `border-[hsl(${hue},${saturation}%,${lightness}%)]/20`,
+    progressColor: `bg-[hsl(${hue},${saturation}%,${lightness}%)]`
+  };
+};
+
+const getTierIcon = (tier: string) => {
+  return TIER_CONFIG[tier.toLowerCase()]?.icon;
+};
 
 // Sort tiers to match progression
 const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
@@ -182,9 +201,11 @@ export const calculateTierProgress = (
 };
 
 export const getTierConfig = (tier: string) => {
+  const style = getTierStyle(tier);
+  const icon = getTierIcon(tier);
   return {
-    ...getTierStyle(tier),
-    icon: getTierIcon(tier)
+    ...style,
+    icon
   };
 };
 
@@ -219,7 +240,7 @@ export const isTierUpgradeAvailable = (
 };
 
 export const getTierDisplayName = (tierKey: string): string => {
-  return getConfigTierName(tierKey);
+  return TIER_CONFIG[tierKey.toLowerCase()]?.displayName || tierKey;
 };
 
 export const getTierWeight = (tierKey: string): string => {
