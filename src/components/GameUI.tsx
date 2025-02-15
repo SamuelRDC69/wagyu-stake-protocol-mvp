@@ -538,7 +538,7 @@ const userStatusProps = useMemo(() => ({
                 value={selectedPool?.pool_id?.toString()}
               >
                 <SelectTrigger className="w-full bg-slate-800/30 border-purple-500/20 text-purple-200 h-12">
-                  <SelectValue placeholder="Choose your kingdom" />
+                  <SelectValue placeholder="Select Farm" />
                 </SelectTrigger>
                 <SelectContent className="bg-white/5 backdrop-blur-xl border-purple-500/20">
                   <div className="py-2">
@@ -551,7 +551,7 @@ const userStatusProps = useMemo(() => ({
                             value={pool.pool_id.toString()}
                             className="text-purple-100 hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer"
                           >
-                            {`${symbol} Kingdom - Realm #${pool.pool_id}`}
+                            {`${symbol} Farm - Pool #${pool.pool_id}`}
                           </SelectItem>
                         );
                       } catch (e) {
@@ -644,7 +644,7 @@ const userStatusProps = useMemo(() => ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
-              Stakeland
+              BerryFi
             </h1>
             
             {session ? (
