@@ -139,7 +139,6 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                 <p className="text-sm md:text-base font-medium text-purple-200 truncate">
                   {parseFloat(poolData.total_staked_weight).toFixed(8)}
                 </p>
-                <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               </div>
             </div>
           </div>
@@ -172,7 +171,6 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                       <p className="text-sm md:text-base font-medium text-purple-200 truncate">
                         {userWeight}
                       </p>
-                      <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                     </div>
                     <div className="bg-slate-900/50 px-2 py-1 rounded-lg">
                       <span className="text-xs md:text-sm text-purple-200">{userPercent}% of Farm</span>
