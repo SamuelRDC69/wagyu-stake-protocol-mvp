@@ -11,25 +11,6 @@ type TierProgressionType = keyof typeof TIER_CONFIG;
 // Tier progression order matching contract (a through v)
 const TIER_PROGRESSION = Object.keys(TIER_CONFIG) as TierProgressionType[];
 
-// Helper functions for tier styling and display
-const getTierStyle = (tier: string) => {
-  const index = TIER_PROGRESSION.indexOf(tier.toLowerCase() as TierProgressionType);
-  const hue = (280 + (360 / 22) * index) % 360;
-  const saturation = 70;
-  const lightness = 60;
-
-  return {
-    color: `text-[hsl(${hue},${saturation}%,${lightness}%)]`,
-    bgColor: `bg-[hsl(${hue},${saturation}%,${lightness}%)]/10`,
-    borderColor: `border-[hsl(${hue},${saturation}%,${lightness}%)]/20`,
-    progressColor: `bg-[hsl(${hue},${saturation}%,${lightness}%)]`
-  };
-};
-
-const getTierIcon = (tier: string) => {
-  return TIER_CONFIG[tier.toLowerCase()]?.icon;
-};
-
 // Sort tiers to match progression
 const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
   return [...tiers].sort((a, b) => {
@@ -42,6 +23,15 @@ const sortTiersByProgression = (tiers: TierEntity[]): TierEntity[] => {
 // Helper function to apply WAX precision
 const applyWaxPrecision = (value: number): number => {
   return Math.round(value * PRECISION) / PRECISION;
+};
+
+// Get tier config with styles
+export const getTierConfig = (tier: string) => {
+  const config = TIER_CONFIG[tier.toLowerCase()] || TIER_CONFIG.a;
+  return {
+    ...config.style,
+    icon: config.icon
+  };
 };
 
 // Export tier determination logic
@@ -198,15 +188,6 @@ export const calculateTierProgress = (
     console.error('Error in calculateTierProgress:', error);
     return null;
   }
-};
-
-export const getTierConfig = (tier: string) => {
-  const style = getTierStyle(tier);
-  const icon = getTierIcon(tier);
-  return {
-    ...style,
-    icon
-  };
 };
 
 export const isTierUpgradeAvailable = (
