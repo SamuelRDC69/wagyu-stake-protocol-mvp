@@ -77,12 +77,16 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <div className={cn("p-2 rounded-lg transition-all", tierStyle.bgColor)}>
               <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6", tierStyle.color)} />
             </div>
-            <TierBadge 
-              tier={stakedData.tier}
-              animate={isUpgradeAvailable}
-              showLevel
-              className="transition-all"
-            />
+            <span className="text-slate-100">{getTierDisplayName(stakedData.tier)}</span>
+            {isUpgradeAvailable && (
+              <TierBadge 
+                tier={stakedData.tier}
+                animate
+                className="ml-2 shine-effect"
+              >
+                Tier Up Ready!
+              </TierBadge>
+            )}
           </div>
         </div>
       </CardHeader>
