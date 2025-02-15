@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { getTierConfig, getTierDisplayName } from '@/lib/config/tierConfig';
+import { getTierConfig, getTierDisplayName } from '@/lib/utils/tierUtils';
 
 interface TierBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   tier: string;
