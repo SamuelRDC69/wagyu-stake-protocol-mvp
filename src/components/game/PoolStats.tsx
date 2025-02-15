@@ -175,7 +175,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                       <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                     </div>
                     <div className="bg-slate-900/50 px-2 py-1 rounded-lg">
-                      <span className="text-xs md:text-sm text-purple-200">{userPercent}% of pool</span>
+                      <span className="text-xs md:text-sm text-purple-200">{userPercent}% of Farm</span>
                     </div>
                   </div>
                 </div>
