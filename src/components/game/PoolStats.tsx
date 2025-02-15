@@ -110,7 +110,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
   return (
     <Card className="w-full crystal-bg">
       <CardHeader>
-        <CardTitle>Pool Statistics</CardTitle>
+        <CardTitle>Farm Stats</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
