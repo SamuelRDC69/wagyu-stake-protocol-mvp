@@ -1,8 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-
 const goldenRatio = 1.618;
 const baseUnit = 16;
-
 // Helper function for fluid typography
 const fluidSize = (min, max) => `clamp(${min}px, ${min/16}rem + 1vw, ${max}px)`;
 
@@ -13,6 +11,12 @@ module.exports = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
+  ],
+  safelist: [
+    {
+      pattern: /^(text|bg|border)-\[color:hsl\(.*\)\]/,
+      variants: ['hover', 'focus', 'active'],
+    }
   ],
   theme: {
     container: {
