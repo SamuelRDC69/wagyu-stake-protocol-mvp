@@ -137,7 +137,10 @@ export const UserStatus = React.memo<UserStatusProps>(({
     }
   };
 
-  const tierStyle = stakedData ? getTierConfig(stakedData.tier) : undefined;
+const tierStyle = stakedData ? getTierConfig(stakedData.tier) : undefined;
+console.log('Current tier style:', tierStyle); // Add this line
+
+
 
   return (
     <Card className="w-full crystal-bg">
