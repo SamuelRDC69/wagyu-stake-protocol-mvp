@@ -119,7 +119,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
               <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm text-slate-400">Total Staked</p>
+              <p className="text-xs md:text-sm text-slate-400">Total Staked to Farm</p>
               <div className="flex items-center gap-2">
                 <p className="text-sm md:text-base font-medium text-purple-200 truncate">
                   {totalStakedFormatted}
@@ -134,7 +134,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
               <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm text-slate-400">Total Weight</p>
+              <p className="text-xs md:text-sm text-slate-400">Farm Total Weight</p>
               <div className="flex items-center gap-2">
                 <p className="text-sm md:text-base font-medium text-purple-200 truncate">
                   {parseFloat(poolData.total_staked_weight).toFixed(8)}
@@ -150,7 +150,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                 <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Rewards</p>
+                <p className="text-xs md:text-sm text-slate-400">Farm Rewards Pool</p>
                 <div className="flex items-center gap-2">
                   <div className="text-sm md:text-base font-medium text-purple-200 truncate">
                     <AnimatingTokenAmount value={currentRewards} />
@@ -166,7 +166,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                   <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs md:text-sm text-slate-400">Your Pool Weight</p>
+                  <p className="text-xs md:text-sm text-slate-400">Your Total Weight</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <p className="text-sm md:text-base font-medium text-purple-200 truncate">
