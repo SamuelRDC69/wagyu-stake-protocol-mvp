@@ -16,16 +16,151 @@ export interface TierConfig {
   style: TierStyle;
 }
 
-// Create a color palette for each tier level
 export const createTierStyle = (index: number): TierStyle => {
-  // Using a single known working color pattern
-  return {
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
-    borderColor: 'border-purple-500/20',
-    progressColor: 'bg-purple-500'
-  };
+  const colorSets = [
+    // Purple progression (0-4)
+    {
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/20',
+      progressColor: 'bg-purple-500'
+    },
+    {
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-600/10',
+      borderColor: 'border-purple-600/20',
+      progressColor: 'bg-purple-600'
+    },
+    {
+      color: 'text-purple-700',
+      bgColor: 'bg-purple-700/10',
+      borderColor: 'border-purple-700/20',
+      progressColor: 'bg-purple-700'
+    },
+    {
+      color: 'text-indigo-500',
+      bgColor: 'bg-indigo-500/10',
+      borderColor: 'border-indigo-500/20',
+      progressColor: 'bg-indigo-500'
+    },
+    {
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-600/10',
+      borderColor: 'border-indigo-600/20',
+      progressColor: 'bg-indigo-600'
+    },
+    // Blue progression (5-8)
+    {
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/20',
+      progressColor: 'bg-blue-500'
+    },
+    {
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-600/10',
+      borderColor: 'border-blue-600/20',
+      progressColor: 'bg-blue-600'
+    },
+    {
+      color: 'text-cyan-500',
+      bgColor: 'bg-cyan-500/10',
+      borderColor: 'border-cyan-500/20',
+      progressColor: 'bg-cyan-500'
+    },
+    {
+      color: 'text-cyan-600',
+      bgColor: 'bg-cyan-600/10',
+      borderColor: 'border-cyan-600/20',
+      progressColor: 'bg-cyan-600'
+    },
+    // Teal/Green progression (9-12)
+    {
+      color: 'text-teal-500',
+      bgColor: 'bg-teal-500/10',
+      borderColor: 'border-teal-500/20',
+      progressColor: 'bg-teal-500'
+    },
+    {
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-600/10',
+      borderColor: 'border-teal-600/20',
+      progressColor: 'bg-teal-600'
+    },
+    {
+      color: 'text-emerald-500',
+      bgColor: 'bg-emerald-500/10',
+      borderColor: 'border-emerald-500/20',
+      progressColor: 'bg-emerald-500'
+    },
+    {
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-600/10',
+      borderColor: 'border-emerald-600/20',
+      progressColor: 'bg-emerald-600'
+    },
+    // Warm progression (13-16)
+    {
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/20',
+      progressColor: 'bg-amber-500'
+    },
+    {
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-500/10',
+      borderColor: 'border-orange-500/20',
+      progressColor: 'bg-orange-500'
+    },
+    {
+      color: 'text-rose-500',
+      bgColor: 'bg-rose-500/10',
+      borderColor: 'border-rose-500/20',
+      progressColor: 'bg-rose-500'
+    },
+    {
+      color: 'text-pink-500',
+      bgColor: 'bg-pink-500/10',
+      borderColor: 'border-pink-500/20',
+      progressColor: 'bg-pink-500'
+    },
+    // Elite progression (17-21)
+    {
+      color: 'text-violet-500',
+      bgColor: 'bg-violet-500/10',
+      borderColor: 'border-violet-500/20',
+      progressColor: 'bg-violet-500'
+    },
+    {
+      color: 'text-violet-600',
+      bgColor: 'bg-violet-600/10',
+      borderColor: 'border-violet-600/20',
+      progressColor: 'bg-violet-600'
+    },
+    {
+      color: 'text-fuchsia-500',
+      bgColor: 'bg-fuchsia-500/10',
+      borderColor: 'border-fuchsia-500/20',
+      progressColor: 'bg-fuchsia-500'
+    },
+    {
+      color: 'text-fuchsia-600',
+      bgColor: 'bg-fuchsia-600/10',
+      borderColor: 'border-fuchsia-600/20',
+      progressColor: 'bg-fuchsia-600'
+    },
+    // Final elite tier
+    {
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-400/10',
+      borderColor: 'border-purple-400/20',
+      progressColor: 'bg-purple-400'
+    }
+  ];
+
+  return colorSets[Math.min(index, colorSets.length - 1)];
 };
+
 
 export const TIER_CONFIG: Record<string, TierConfig> = {
   a: {
