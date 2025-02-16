@@ -18,40 +18,39 @@ export interface TierConfig {
 
 // Create a color palette for each tier level
 export const createTierStyle = (index: number): TierStyle => {
-  // Define color progression
+  // Define color progression in hex
   const colors = [
-    { r: 147, g: 51, b: 234 },  // Purple
-    { r: 79, g: 70, b: 229 },   // Indigo
-    { r: 59, g: 130, b: 246 },  // Blue
-    { r: 14, g: 165, b: 233 },  // Light Blue
-    { r: 6, g: 182, b: 212 },   // Cyan
-    { r: 20, g: 184, b: 166 },  // Teal
-    { r: 16, g: 185, b: 129 },  // Emerald
-    { r: 34, g: 197, b: 94 },   // Green
-    { r: 132, g: 204, b: 22 },  // Lime
-    { r: 234, g: 179, b: 8 },   // Yellow
-    { r: 245, g: 158, b: 11 },  // Orange
-    { r: 249, g: 115, b: 22 },  // Dark Orange
-    { r: 239, g: 68, b: 68 },   // Red
-    { r: 236, g: 72, b: 153 },  // Pink
-    { r: 217, g: 70, b: 239 },  // Fuchsia
-    { r: 168, g: 85, b: 247 },  // Purple
-    { r: 147, g: 51, b: 234 },  // Purple
-    { r: 126, g: 34, b: 206 },  // Deep Purple
-    { r: 107, g: 33, b: 168 },  // Darker Purple
-    { r: 88, g: 28, b: 135 },   // Very Dark Purple
-    { r: 67, g: 20, b: 104 },   // Extremely Dark Purple
-    { r: 126, g: 34, b: 206 },  // Final Level Deep Purple
+    '#9333EA',  // Purple (Level 0)
+    '#8B5CF6',  // Lighter Purple (Level 1)
+    '#7C3AED',  // Medium Purple (Level 2)
+    '#6D28D9',  // Darker Purple (Level 3)
+    '#5B21B6',  // Deep Purple (Level 4)
+    '#4C1D95',  // Very Deep Purple (Level 5)
+    '#2563EB',  // Blue (Level 6)
+    '#1D4ED8',  // Darker Blue (Level 7)
+    '#047857',  // Green (Level 8)
+    '#059669',  // Emerald (Level 9)
+    '#0D9488',  // Teal (Level 10)
+    '#0891B2',  // Cyan (Level 11)
+    '#0369A1',  // Light Blue (Level 12)
+    '#1D4ED8',  // Blue (Level 13)
+    '#4338CA',  // Indigo (Level 14)
+    '#5B21B6',  // Purple (Level 15)
+    '#6D28D9',  // Darker Purple (Level 16)
+    '#7C3AED',  // Even Darker Purple (Level 17)
+    '#8B5CF6',  // Rich Purple (Level 18)
+    '#9333EA',  // Bright Purple (Level 19)
+    '#A855F7',  // Vibrant Purple (Level 20)
+    '#C084FC',  // Royal Purple (Level 21)
   ];
 
   const color = colors[Math.min(index, colors.length - 1)];
   
-  // Use EXACTLY the same format that worked before
   return {
-    color: `text-[rgb(${color.r},${color.g},${color.b})]`,
-    bgColor: `bg-[rgba(${color.r},${color.g},${color.b},0.1)]`,
-    borderColor: `border-[rgba(${color.r},${color.g},${color.b},0.2)]`,
-    progressColor: `bg-[rgb(${color.r},${color.g},${color.b})]`
+    color: `text-[${color}]`,
+    bgColor: `bg-[${color}]/10`,
+    borderColor: `border-[${color}]/20`,
+    progressColor: `bg-[${color}]`
   };
 };
 
