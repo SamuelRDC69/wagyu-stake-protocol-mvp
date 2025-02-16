@@ -12,9 +12,9 @@ module.exports = {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
-  safelist: [
+safelist: [
   {
-    pattern: /^(text|bg|border)-\[\#.*\]/,
+    pattern: /^(text|bg|border)-\[color:#.*\]/, // Update for color: prefix
     variants: ['hover', 'focus', 'active'],
   }
 ],
