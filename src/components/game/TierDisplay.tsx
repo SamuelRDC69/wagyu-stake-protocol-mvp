@@ -128,8 +128,8 @@ console.log('Applied tier classes:', {
                 Progress to {getTierDisplayName(nextTier.tier)}
               </p>
               {nextTierStyle && (
-<div className={cn("p-2 rounded-lg transition-all bg-purple-500")}>
-  <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6 text-purple-500")} />
+<div className="p-2 rounded-lg transition-all bg-[#9333ea]">  // Test with hex
+  <TierIcon className="w-5 h-5 md:w-6 md:h-6 text-[#9333ea]" />
 </div>
               )}
             </div>
