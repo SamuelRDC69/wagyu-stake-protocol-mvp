@@ -14,11 +14,11 @@ module.exports = {
   ],
   safelist: [
   {
-    pattern: /^(text|bg|border)-\[color:hsl\(.*\)\]/,
-    pattern: /^(text|bg|border)-\[.*\]/,  // More permissive pattern
+    pattern: /^(text|bg|border)-\[hsl\(.*\)\]/,
     variants: ['hover', 'focus', 'active'],
   }
 ],
+
   theme: {
     container: {
       center: true,
