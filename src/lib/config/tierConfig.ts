@@ -46,11 +46,12 @@ export const createTierStyle = (index: number): TierStyle => {
 
   const color = colors[Math.min(index, colors.length - 1)];
   
+  // Use EXACTLY the same format that worked before
   return {
-    color: `text-[${color}]`,
-    bgColor: `bg-[${color}]/10`,  // Using Tailwind's opacity modifier
-    borderColor: `border-[${color}]/20`,
-    progressColor: `bg-[${color}]`
+    color: `text-[rgb(${color.r},${color.g},${color.b})]`,
+    bgColor: `bg-[rgba(${color.r},${color.g},${color.b},0.1)]`,
+    borderColor: `border-[rgba(${color.r},${color.g},${color.b},0.2)]`,
+    progressColor: `bg-[rgb(${color.r},${color.g},${color.b})]`
   };
 };
 
