@@ -13,11 +13,12 @@ module.exports = {
     './src/**/*.{ts,tsx}',
   ],
   safelist: [
-    {
-      pattern: /^(text|bg|border)-\[color:hsl\(.*?\)\]/,
-      variants: ['hover', 'focus', 'active'],
-    }
-  ],
+  {
+    pattern: /^(text|bg|border)-\[color:hsl\(.*\)\]/,
+    pattern: /^(text|bg|border)-\[.*\]/,  // More permissive pattern
+    variants: ['hover', 'focus', 'active'],
+  }
+],
   theme: {
     container: {
       center: true,
