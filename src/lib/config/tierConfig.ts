@@ -18,39 +18,12 @@ export interface TierConfig {
 
 // Create a color palette for each tier level
 export const createTierStyle = (index: number): TierStyle => {
-  // Define color progression in hex
-  const colors = [
-    '#9333EA',  // Purple (Level 0)
-    '#8B5CF6',  // Lighter Purple (Level 1)
-    '#7C3AED',  // Medium Purple (Level 2)
-    '#6D28D9',  // Darker Purple (Level 3)
-    '#5B21B6',  // Deep Purple (Level 4)
-    '#4C1D95',  // Very Deep Purple (Level 5)
-    '#2563EB',  // Blue (Level 6)
-    '#1D4ED8',  // Darker Blue (Level 7)
-    '#047857',  // Green (Level 8)
-    '#059669',  // Emerald (Level 9)
-    '#0D9488',  // Teal (Level 10)
-    '#0891B2',  // Cyan (Level 11)
-    '#0369A1',  // Light Blue (Level 12)
-    '#1D4ED8',  // Blue (Level 13)
-    '#4338CA',  // Indigo (Level 14)
-    '#5B21B6',  // Purple (Level 15)
-    '#6D28D9',  // Darker Purple (Level 16)
-    '#7C3AED',  // Even Darker Purple (Level 17)
-    '#8B5CF6',  // Rich Purple (Level 18)
-    '#9333EA',  // Bright Purple (Level 19)
-    '#A855F7',  // Vibrant Purple (Level 20)
-    '#C084FC',  // Royal Purple (Level 21)
-  ];
-
-  const color = colors[Math.min(index, colors.length - 1)];
-  
+  // Using a single known working color pattern
   return {
-    color: `text-[color:${color}]`,
-    bgColor: `bg-[color:${color}]/10`,
-    borderColor: `border-[color:${color}]/20`,
-    progressColor: `bg-[color:${color}]`
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/20',
+    progressColor: 'bg-purple-500'
   };
 };
 
