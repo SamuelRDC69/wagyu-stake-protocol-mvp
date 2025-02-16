@@ -16,18 +16,41 @@ export interface TierConfig {
   style: TierStyle;
 }
 
-// In tierConfig.ts, update the createTierStyle function:
-// In tierConfig.ts, simplify the HSL syntax further
+// Create a color palette for each tier level
 export const createTierStyle = (index: number): TierStyle => {
-  // Calculate hue for smooth progression (280 to 360 + 0 to 280)
-  const hue = (280 + (360 / 22) * index) % 360;
+  // Define color progression
+  const colors = [
+    { r: 147, g: 51, b: 234 },  // Purple
+    { r: 79, g: 70, b: 229 },   // Indigo
+    { r: 59, g: 130, b: 246 },  // Blue
+    { r: 14, g: 165, b: 233 },  // Light Blue
+    { r: 6, g: 182, b: 212 },   // Cyan
+    { r: 20, g: 184, b: 166 },  // Teal
+    { r: 16, g: 185, b: 129 },  // Emerald
+    { r: 34, g: 197, b: 94 },   // Green
+    { r: 132, g: 204, b: 22 },  // Lime
+    { r: 234, g: 179, b: 8 },   // Yellow
+    { r: 245, g: 158, b: 11 },  // Orange
+    { r: 249, g: 115, b: 22 },  // Dark Orange
+    { r: 239, g: 68, b: 68 },   // Red
+    { r: 236, g: 72, b: 153 },  // Pink
+    { r: 217, g: 70, b: 239 },  // Fuchsia
+    { r: 168, g: 85, b: 247 },  // Purple
+    { r: 147, g: 51, b: 234 },  // Purple
+    { r: 126, g: 34, b: 206 },  // Deep Purple
+    { r: 107, g: 33, b: 168 },  // Darker Purple
+    { r: 88, g: 28, b: 135 },   // Very Dark Purple
+    { r: 67, g: 20, b: 104 },   // Extremely Dark Purple
+    { r: 126, g: 34, b: 206 },  // Final Level Deep Purple
+  ];
+
+  const color = colors[Math.min(index, colors.length - 1)];
   
-  // Use RGB values directly to avoid any HSL parsing issues
   return {
-    color: `text-[rgb(147,51,234)]`,  // Example purple color
-    bgColor: `bg-[rgba(147,51,234,0.1)]`,
-    borderColor: `border-[rgba(147,51,234,0.2)]`,
-    progressColor: `bg-[rgb(147,51,234)]`
+    color: `text-[rgb(${color.r},${color.g},${color.b})]`,
+    bgColor: `bg-[rgba(${color.r},${color.g},${color.b},0.1)]`,
+    borderColor: `border-[rgba(${color.r},${color.g},${color.b},0.2)]`,
+    progressColor: `bg-[rgb(${color.r},${color.g},${color.b})]`
   };
 };
 
