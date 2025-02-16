@@ -23,12 +23,12 @@ export const createTierStyle = (index: number): TierStyle => {
   const saturation = 70;
   const lightness = 60;
 
-  // Change the format to use Tailwind's arbitrary value syntax
+  // Change to simpler HSL syntax without the 'color:' prefix
   return {
-    color: `text-[color:hsl(${hue}deg,${saturation}%,${lightness}%)]`,
-    bgColor: `bg-[color:hsl(${hue}deg,${saturation}%,${lightness}%_/_0.1)]`,
-    borderColor: `border-[color:hsl(${hue}deg,${saturation}%,${lightness}%_/_0.2)]`,
-    progressColor: `bg-[color:hsl(${hue}deg,${saturation}%,${lightness}%)]`
+    color: `text-[hsl(${hue}deg,${saturation}%,${lightness}%)]`,
+    bgColor: `bg-[hsl(${hue}deg,${saturation}%,${lightness}%_/_0.1)]`,
+    borderColor: `border-[hsl(${hue}deg,${saturation}%,${lightness}%_/_0.2)]`,
+    progressColor: `bg-[hsl(${hue}deg,${saturation}%,${lightness}%)]`
   };
 };
 
