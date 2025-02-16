@@ -17,18 +17,17 @@ export interface TierConfig {
 }
 
 // In tierConfig.ts, update the createTierStyle function:
+// In tierConfig.ts, simplify the HSL syntax further
 export const createTierStyle = (index: number): TierStyle => {
   // Calculate hue for smooth progression (280 to 360 + 0 to 280)
   const hue = (280 + (360 / 22) * index) % 360;
-  const saturation = 70;
-  const lightness = 60;
-
-  // Change to simpler HSL syntax without the 'color:' prefix
+  
+  // Use RGB values directly to avoid any HSL parsing issues
   return {
-    color: `text-[hsl(${hue}deg,${saturation}%,${lightness}%)]`,
-    bgColor: `bg-[hsl(${hue}deg,${saturation}%,${lightness}%_/_0.1)]`,
-    borderColor: `border-[hsl(${hue}deg,${saturation}%,${lightness}%_/_0.2)]`,
-    progressColor: `bg-[hsl(${hue}deg,${saturation}%,${lightness}%)]`
+    color: `text-[rgb(147,51,234)]`,  // Example purple color
+    bgColor: `bg-[rgba(147,51,234,0.1)]`,
+    borderColor: `border-[rgba(147,51,234,0.2)]`,
+    progressColor: `bg-[rgb(147,51,234)]`
   };
 };
 
