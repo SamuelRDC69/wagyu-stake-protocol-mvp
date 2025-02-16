@@ -47,10 +47,10 @@ export const createTierStyle = (index: number): TierStyle => {
   const color = colors[Math.min(index, colors.length - 1)];
   
   return {
-    color: `text-[${color}]`,
-    bgColor: `bg-[${color}]/10`,
-    borderColor: `border-[${color}]/20`,
-    progressColor: `bg-[${color}]`
+    color: `text-[color:${color}]`,
+    bgColor: `bg-[color:${color}]/10`,
+    borderColor: `border-[color:${color}]/20`,
+    progressColor: `bg-[color:${color}]`
   };
 };
 
