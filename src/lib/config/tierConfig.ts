@@ -18,30 +18,30 @@ export interface TierConfig {
 
 // Create a color palette for each tier level
 export const createTierStyle = (index: number): TierStyle => {
-  // Define color progression as hex values
+  // Define color progression
   const colors = [
-    '#9333EA',  // Purple
-    '#4F46E5',  // Indigo
-    '#3B82F6',  // Blue
-    '#0EA5E9',  // Light Blue
-    '#06B6D4',  // Cyan
-    '#14B8A6',  // Teal
-    '#10B981',  // Emerald
-    '#22C55E',  // Green
-    '#84CC16',  // Lime
-    '#EAB308',  // Yellow
-    '#F59E0B',  // Orange
-    '#F97316',  // Dark Orange
-    '#EF4444',  // Red
-    '#EC4899',  // Pink
-    '#D946EF',  // Fuchsia
-    '#A855F7',  // Purple
-    '#9333EA',  // Purple
-    '#7E22CE',  // Deep Purple
-    '#6B21A8',  // Darker Purple
-    '#581C87',  // Very Dark Purple
-    '#431468',  // Extremely Dark Purple
-    '#7E22CE',  // Final Level Deep Purple
+    { r: 147, g: 51, b: 234 },  // Purple
+    { r: 79, g: 70, b: 229 },   // Indigo
+    { r: 59, g: 130, b: 246 },  // Blue
+    { r: 14, g: 165, b: 233 },  // Light Blue
+    { r: 6, g: 182, b: 212 },   // Cyan
+    { r: 20, g: 184, b: 166 },  // Teal
+    { r: 16, g: 185, b: 129 },  // Emerald
+    { r: 34, g: 197, b: 94 },   // Green
+    { r: 132, g: 204, b: 22 },  // Lime
+    { r: 234, g: 179, b: 8 },   // Yellow
+    { r: 245, g: 158, b: 11 },  // Orange
+    { r: 249, g: 115, b: 22 },  // Dark Orange
+    { r: 239, g: 68, b: 68 },   // Red
+    { r: 236, g: 72, b: 153 },  // Pink
+    { r: 217, g: 70, b: 239 },  // Fuchsia
+    { r: 168, g: 85, b: 247 },  // Purple
+    { r: 147, g: 51, b: 234 },  // Purple
+    { r: 126, g: 34, b: 206 },  // Deep Purple
+    { r: 107, g: 33, b: 168 },  // Darker Purple
+    { r: 88, g: 28, b: 135 },   // Very Dark Purple
+    { r: 67, g: 20, b: 104 },   // Extremely Dark Purple
+    { r: 126, g: 34, b: 206 },  // Final Level Deep Purple
   ];
 
   const color = colors[Math.min(index, colors.length - 1)];
