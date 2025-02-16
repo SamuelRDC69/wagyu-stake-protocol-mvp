@@ -131,11 +131,11 @@ console.log('Applied tier classes:', {
               <p className="text-slate-300 text-sm">
                 Progress to {getTierDisplayName(nextTier.tier)}
               </p>
-              {nextTierStyle && (
-<div className="p-2 rounded-lg transition-all bg-[#9333ea]">  // Test with hex
-  <TierIcon className="w-5 h-5 md:w-6 md:h-6 text-[#9333ea]" />
-</div>
-              )}
+{nextTierStyle && (
+  <div className={cn("p-2 rounded-lg transition-all", nextTierStyle.bgColor)}>
+    <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6", nextTierStyle.color)} />
+  </div>
+)}
             </div>
             <div className="space-y-2">
               {totalAmountForNext && (
