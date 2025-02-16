@@ -58,6 +58,13 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 const tierStyle = getTierConfig(stakedData.tier);
 const TierIcon = tierStyle.icon;
 
+const tierStyle = getTierConfig(stakedData.tier);
+const TierIcon = tierStyle.icon;
+
+// Add these logs:
+console.log('Direct hex class:', cn("p-2 rounded-lg transition-all", "bg-[#9333ea]"));
+console.log('TierStyle class:', cn("p-2 rounded-lg transition-all", tierStyle.bgColor));
+
 console.log('Applied tier classes:', {
   tier: stakedData.tier,
   color: tierStyle?.color,
