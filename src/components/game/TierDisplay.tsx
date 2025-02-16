@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { TierProgress, TierEntity } from '@/lib/types/tier';
 import { StakedEntity } from '@/lib/types/staked';
-import { getTierConfig, calculateSafeUnstakeAmount, getTierDisplayName } from '@/lib/utils/tierUtils';
+import { getTierConfig, calculateSafeUnstakeAmount, getTierDisplayName, getTierWeight } from '@/lib/utils/tierUtils';
 import { formatNumber } from '@/lib/utils/formatUtils';
 import { cn } from '@/lib/utils';
 
@@ -124,7 +124,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
                   Maximum Level Achieved!
                 </p>
                 <p className="text-sm text-slate-300">
-                  Enjoying {getTierConfig(stakedData.tier).weight}x rewards multiplier
+                  Enjoying {getTierWeight(stakedData.tier)}x rewards multiplier
                 </p>
               </div>
             </div>
