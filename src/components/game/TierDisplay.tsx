@@ -55,20 +55,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-const tierStyle = getTierConfig(stakedData.tier);
-const TierIcon = tierStyle.icon;
-
-// Add these logs:
-console.log('Direct hex class:', cn("p-2 rounded-lg transition-all", "bg-[#9333ea]"));
-console.log('TierStyle class:', cn("p-2 rounded-lg transition-all", tierStyle.bgColor));
-
-console.log('Applied tier classes:', {
-  tier: stakedData.tier,
-  color: tierStyle?.color,
-  bgColor: tierStyle?.bgColor,
-  progressColor: tierStyle?.progressColor
-});
-
+  const tierStyle = getTierConfig(stakedData.tier);
+  const TierIcon = tierStyle.icon;
 
   const { 
     currentStakedAmount, 
@@ -125,17 +113,41 @@ console.log('Applied tier classes:', {
           </div>
         </div>
 
-        {nextTier && typeof additionalAmountNeeded === 'number' && (
+        {stakedData.tier === 'v' ? (
+          <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className={cn("p-2 rounded-lg transition-all", tierStyle.bgColor)}>
+                <TierIcon className={cn("w-6 h-6", tierStyle.color)} />
+              </div>
+              <div className="text-center">
+                <p className={cn("text-lg font-medium", tierStyle.color)}>
+                  Maximum Level Achieved!
+                </p>
+                <p className="text-sm text-slate-300">
+                  Enjoying {getTierConfig(stakedData.tier).weight}x rewards multiplier
+                </p>
+              </div>
+            </div>
+            <div className="bg-slate-900/50 rounded-lg p-3">
+              <p className="text-sm text-slate-300">
+                Currently staking {formatNumber(currentStakedAmount)} {symbol}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                You've reached the highest possible tier level
+              </p>
+            </div>
+          </div>
+        ) : nextTier && typeof additionalAmountNeeded === 'number' && (
           <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50">
             <div className="flex items-center justify-between mb-2">
               <p className="text-slate-300 text-sm">
                 Progress to {getTierDisplayName(nextTier.tier)}
               </p>
-{nextTierStyle && (
-  <div className={cn("p-2 rounded-lg transition-all", nextTierStyle.bgColor)}>
-    <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6", nextTierStyle.color)} />
-  </div>
-)}
+              {nextTierStyle && (
+                <div className={cn("p-2 rounded-lg", nextTierStyle.bgColor)}>
+                  <TierIcon className={cn("w-4 h-4", nextTierStyle.color)} />
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               {totalAmountForNext && (
@@ -156,17 +168,6 @@ console.log('Applied tier classes:', {
                 Currently staking {formatNumber(currentStakedAmount)} {symbol}
               </p>
             </div>
-          </div>
-        )}
-
-        {stakedData.tier === 'v' && (
-          <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 text-center">
-            <p className={cn("text-base md:text-lg font-medium", tierStyle.color)}>
-              Maximum Tier Reached!
-            </p>
-            <p className="text-sm text-slate-300 mt-1">
-              Enjoying maximum staking rewards
-            </p>
           </div>
         )}
       </CardContent>
