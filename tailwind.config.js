@@ -14,7 +14,7 @@ module.exports = {
   ],
   safelist: [
   {
-    pattern: /^(text|bg|border)-\[hsl\(.*\)\]/,
+    pattern: /^(text|bg|border)-\[rgb.*\]/,
     variants: ['hover', 'focus', 'active'],
   }
 ],
