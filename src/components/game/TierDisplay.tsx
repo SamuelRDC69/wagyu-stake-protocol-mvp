@@ -128,9 +128,9 @@ console.log('Applied tier classes:', {
                 Progress to {getTierDisplayName(nextTier.tier)}
               </p>
               {nextTierStyle && (
-                <div className={cn("p-2 rounded-lg", nextTierStyle.bgColor)}>
-                  <TierIcon className={cn("w-4 h-4", nextTierStyle.color)} />
-                </div>
+<div className={cn("p-2 rounded-lg transition-all bg-purple-500")}>
+  <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6 text-purple-500")} />
+</div>
               )}
             </div>
             <div className="space-y-2">
