@@ -55,8 +55,16 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }
 
-  const tierStyle = getTierConfig(stakedData.tier);
-  const TierIcon = tierStyle.icon;
+const tierStyle = getTierConfig(stakedData.tier);
+const TierIcon = tierStyle.icon;
+
+console.log('Applied tier classes:', {
+  tier: stakedData.tier,
+  color: tierStyle?.color,
+  bgColor: tierStyle?.bgColor,
+  progressColor: tierStyle?.progressColor
+});
+
 
   const { 
     currentStakedAmount, 
