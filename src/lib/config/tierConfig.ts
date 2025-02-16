@@ -46,11 +46,12 @@ export const createTierStyle = (index: number): TierStyle => {
 
   const color = colors[Math.min(index, colors.length - 1)];
   
+  // The key change is here - use rgba for ALL colors, with different opacities
   return {
-    color: `text-[rgb(${color.r},${color.g},${color.b})]`,
-    bgColor: `bg-[rgba(${color.r},${color.g},${color.b},0.1)]`,
-    borderColor: `border-[rgba(${color.r},${color.g},${color.b},0.2)]`,
-    progressColor: `bg-[rgb(${color.r},${color.g},${color.b})]`
+    color: `text-[rgba(${color.r},${color.g},${color.b},1)]`,  // Full opacity for text
+    bgColor: `bg-[rgba(${color.r},${color.g},${color.b},0.1)]`,  // 10% opacity for background
+    borderColor: `border-[rgba(${color.r},${color.g},${color.b},0.2)]`,  // 20% opacity for border
+    progressColor: `bg-[rgba(${color.r},${color.g},${color.b},1)]`  // Full opacity for progress
   };
 };
 
