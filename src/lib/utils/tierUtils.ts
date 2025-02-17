@@ -171,22 +171,31 @@ export const calculateTierProgress = (
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-      // Calculate base amount needed for next tier
       const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
-      const targetAmount = (currentThreshold * totalValue) / 100;
       
-      if (stakedValue < targetAmount) {
-        // Calculate raw amount needed without fee
-        const rawNeeded = targetAmount - stakedValue;
+      // Calculate target staked percentage we need to achieve
+      const target = currentThreshold;
+      
+      // If x is the amount to stake (before fee):
+      // (currentStaked + x(1-FEE_RATE)) / (totalValue + x) = target/100
+      // Solve for x:
+      // (currentStaked + x(1-FEE_RATE)) = (target/100)(totalValue + x)
+      // currentStaked + x(1-FEE_RATE) = (target/100)totalValue + (target/100)x
+      // x(1-FEE_RATE - target/100) = (target/100)totalValue - currentStaked
+      // x = ((target/100)totalValue - currentStaked) / (1-FEE_RATE - target/100)
+      
+      const targetAmount = (target/100) * totalValue;
+      const denominator = (1 - FEE_RATE - target/100);
+      
+      if (denominator !== 0) {
+        const amountNeeded = (targetAmount - stakedValue) / denominator;
         
-        // Add platform fee to the displayed amount
-        // If user needs to add X WAX, they need to send X/(1-FEE_RATE) to account for the fee
-        const amountWithFee = rawNeeded / (1 - FEE_RATE);
-        
-        totalAmountForNext = applyWaxPrecision(targetAmount);
-        additionalAmountNeeded = applyWaxPrecision(amountWithFee);
-      } else {
-        additionalAmountNeeded = 0;
+        if (amountNeeded > 0) {
+          totalAmountForNext = applyWaxPrecision(targetAmount);
+          additionalAmountNeeded = applyWaxPrecision(Math.max(0, amountNeeded));
+        } else {
+          additionalAmountNeeded = 0;
+        }
       }
     }
 
