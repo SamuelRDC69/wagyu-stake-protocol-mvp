@@ -82,6 +82,7 @@ export const determineTier = (
 };
 
 // Calculate safe unstake amount that won't drop tier (WITHOUT fee consideration)
+// Calculate safe unstake amount that won't drop tier (WITHOUT fee consideration)
 export const calculateSafeUnstakeAmount = (
   stakedAmount: string,
   totalStaked: string,
@@ -94,14 +95,26 @@ export const calculateSafeUnstakeAmount = (
     
     if (totalValue === 0) return 0;
 
-    // Calculate minimum amount needed using integer arithmetic
-    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
-    const minRequiredRaw = (currentTierThreshold * totalValue) / 100;
-    const minRequired = applyWaxPrecision(minRequiredRaw);
+    // Get the sorted tiers
+    const sortedTiers = [...tiers].sort((a, b) => 
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+    );
 
-    // Calculate maximum safe unstake amount (without fee since fee is for staking only)
+    // Find the current tier index
+    const currentTierIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
+    
+    // For tier level 0 or if tier not found, minimum is 0
+    if (currentTierIndex <= 0) {
+      return applyWaxPrecision(stakedValue);
+    }
+
+    // Get the previous tier's threshold - this is what we need to stay above
+    const prevTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
+    const minRequired = (prevTierThreshold * totalValue) / 100;
+
+    // Calculate how much we can unstake while staying above the previous tier's threshold
     const safeAmount = Math.max(0, stakedValue - minRequired);
-
+    
     return applyWaxPrecision(safeAmount);
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
