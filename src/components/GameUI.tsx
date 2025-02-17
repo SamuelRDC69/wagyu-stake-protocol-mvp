@@ -115,32 +115,34 @@ const GameUI: React.FC = () => {
     }
   }, [fetchData, selectedPool, addToast]);
 
-  useEffect(() => {
-    if (session) {
-      loadData();
-    } else {
-      setGameData({
-        pools: [],
-        stakes: [],
-        tiers: [],
-        config: undefined
-      });
-      setSelectedPool(undefined);
-    }
-  }, [session, loadData]);
+useEffect(() => {
+  if (session) {
+    const initialLoad = async () => {
+      const data = await fetchData();
+      if (data) {
+        setGameData({
+          pools: data.pools,
+          stakes: data.stakes,
+          tiers: data.tiers,
+          config: data.config
+        });
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && session) {
-        loadData();
+        if (data.pools.length > 0 && !selectedPool) {
+          setSelectedPool(data.pools[0]);
+        }
       }
     };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [session, loadData]);
+    initialLoad();
+  } else {
+    setGameData({
+      pools: [],
+      stakes: [],
+      tiers: [],
+      config: undefined
+    });
+    setSelectedPool(undefined);
+  }
+}, [session]);
 
   const findClaimTransfer = (transaction: any) => {
     const actionTraces = transaction?.response?.processed?.action_traces;
