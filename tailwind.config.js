@@ -12,13 +12,12 @@ module.exports = {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
-safelist: [
-  {
-    pattern: /^(text|bg|border)-\[color:#.*\]/, // Update for color: prefix
-    variants: ['hover', 'focus', 'active'],
-  }
-],
-
+  safelist: [
+    {
+      pattern: /^(text|bg|border)-\[color:hsl\(.*\)\]/,
+      variants: ['hover', 'focus', 'active'],
+    }
+  ],
   theme: {
     container: {
       center: true,
@@ -32,26 +31,52 @@ safelist: [
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Neue Haas Unica', 'system-ui', 'sans-serif'],
+        heading: ['Poppins', 'sans-serif'],
+        imaki: ['Imaki', 'cursive'],
+        display: ['Poppins', 'system-ui', 'sans-serif'],
+      },
       spacing: {
         '1': `${baseUnit / (goldenRatio * 2)}px`,
         '2': `${baseUnit / goldenRatio}px`,
         '3': `${baseUnit}px`,
         '4': `${baseUnit * goldenRatio}px`,
-        '6': `${baseUnit * goldenRatio * 1.5}px`, // Fixed syntax error here
+        '6': `${baseUnit * goldenRatio * 1.5}px`,
       },
       fontSize: {
-        'xs': fluidSize(12/goldenRatio, 14/goldenRatio),
-        'sm': fluidSize(14/goldenRatio, 16/goldenRatio),
-        'base': fluidSize(16, 18),
-        'lg': fluidSize(16 * goldenRatio/1.2, 18 * goldenRatio),
-        'xl': fluidSize(16 * goldenRatio, 20 * goldenRatio),
-        '2xl': fluidSize(16 * goldenRatio * 1.2, 24 * goldenRatio),
-        '3xl': fluidSize(16 * goldenRatio * 1.5, 30 * goldenRatio),
+        // Base text size scaling
+        'xs': `calc(${baseUnit}px / ${goldenRatio})`,
+        'sm': `calc(${baseUnit}px * ${1/goldenRatio})`,
+        'base': `${baseUnit}px`,
+        'lg': `calc(${baseUnit}px * ${goldenRatio})`,
+        'xl': `calc(${baseUnit}px * ${goldenRatio} * ${goldenRatio})`,
+        '2xl': `calc(${baseUnit}px * ${goldenRatio} * ${goldenRatio} * ${goldenRatio})`,
+        '3xl': `calc(${baseUnit}px * ${goldenRatio} * ${goldenRatio} * ${goldenRatio} * ${goldenRatio})`,
+        
+        // Fluid typography for responsive scaling
+        'fluid-xs': fluidSize(12/goldenRatio, 14/goldenRatio),
+        'fluid-sm': fluidSize(14/goldenRatio, 16/goldenRatio),
+        'fluid-base': fluidSize(16, 18),
+        'fluid-lg': fluidSize(16 * goldenRatio/1.2, 18 * goldenRatio),
+        'fluid-xl': fluidSize(16 * goldenRatio, 20 * goldenRatio),
+        'fluid-2xl': fluidSize(16 * goldenRatio * 1.2, 24 * goldenRatio),
+        'fluid-3xl': fluidSize(16 * goldenRatio * 1.5, 30 * goldenRatio),
+      },
+      fontWeight: {
+        'ultralight': 200,
+        'light': 300,
+        'regular': 400,
+        'medium': 500,
+        'bold': 700,
+        'heavy': 800,
+        'black': 900,
       },
       lineHeight: {
         'tight': '1.2',
         'normal': String(goldenRatio),
         'relaxed': String(goldenRatio * 1.2),
+        'display': String(goldenRatio * 0.8), // For headings
       },
       colors: {
         border: "hsl(var(--border))",
