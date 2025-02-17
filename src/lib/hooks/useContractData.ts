@@ -19,7 +19,6 @@ const DEFAULT_CONFIG: ConfigEntity = {
   vault_account: "stakevault"
 };
 
-// Convert TIER_CONFIG to TierEntity array for contract compatibility
 const CONTRACT_TIERS: TierEntity[] = Object.entries(TIER_CONFIG).map(([key, value]) => ({
   tier: key,
   tier_name: value.displayName,
@@ -40,26 +39,21 @@ interface APIResponse<T> {
   error?: string;
 }
 
-// Helper function to enrich stake data with proper tier information
 function enrichStakeData(stake: StakedEntity): StakedEntity {
   return {
     ...stake,
-    tier: stake.tier.toLowerCase() // Just ensure lowercase, no need for fallback or conversion
+    tier: stake.tier.toLowerCase()
   };
 }
 
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
-  console.log(`[API] Starting fetch from: ${fullUrl}`);
-  
   try {
     const response = await fetch(fullUrl);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
     console.error('[API] Error:', error);
     throw error;
@@ -71,7 +65,7 @@ export function useContractData() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastFetch, setLastFetch] = useState(0);
-  const FETCH_COOLDOWN = 5000; // 5 second cooldown between fetches
+  const FETCH_COOLDOWN = 5000;
 
   const fetchData = useCallback(async () => {
     if (!session) return null;
@@ -84,24 +78,15 @@ export function useContractData() {
     setLoading(true);
     
     try {
-      // Fetch pools data
       const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>(API_ENDPOINTS.POOLS);
       const pools = poolsResponse.pools || [];
-
-      // Fetch leaderboard data
       const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(API_ENDPOINTS.LEADERBOARD);
-      
-      // Process leaderboard stakes
-      const processedLeaderboardStakes = leaderboardStakes.map(stake => 
-        enrichStakeData(stake)
-      );
+      const processedLeaderboardStakes = leaderboardStakes.map(stake => enrichStakeData(stake));
 
-      // Check if current user's stakes are in leaderboard
       const userStakesInLeaderboard = processedLeaderboardStakes.some(
         stake => stake.owner === session.actor.toString()
       );
 
-      // Only fetch user stakes if they're not in leaderboard
       let userStakes: StakedEntity[] = [];
       if (!userStakesInLeaderboard) {
         try {
@@ -124,7 +109,6 @@ export function useContractData() {
 
       setLastFetch(now);
 
-      // Combine leaderboard and user stakes
       const combinedStakes = [
         ...processedLeaderboardStakes,
         ...userStakes.filter(userStake => 
@@ -135,28 +119,22 @@ export function useContractData() {
         )
       ];
 
-      // Sort stakes by staked quantity in descending order
       const sortedStakes = combinedStakes.sort((a, b) => {
         const amountA = parseFloat(a.staked_quantity.split(' ')[0]);
         const amountB = parseFloat(b.staked_quantity.split(' ')[0]);
         return amountB - amountA;
       });
 
-      // Return combined data with new tier system
-      const stakingData: StakingData = {
+      return {
         pools,
         stakes: sortedStakes,
         tiers: CONTRACT_TIERS,
         config: DEFAULT_CONFIG
       };
 
-      return stakingData;
-
     } catch (err) {
       console.error('Error in fetchData:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      
-      // Return default data on error
       return {
         pools: [],
         stakes: [],
@@ -166,17 +144,26 @@ export function useContractData() {
     } finally {
       setLoading(false);
     }
-  }, [session, lastFetch]);
+  }, [session]);
 
-  // Set up automatic refresh when session exists
   useEffect(() => {
     if (!session) return;
 
+    const refreshLeaderboardAndPools = async () => {
+      try {
+        const poolsResponse = await fetchFromAPI<{ pools: PoolEntity[] }>(API_ENDPOINTS.POOLS);
+        const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(API_ENDPOINTS.LEADERBOARD);
+        setLastFetch(Date.now());
+      } catch (err) {
+        console.error('Error in periodic refresh:', err);
+      }
+    };
+
     fetchData();
-    const interval = setInterval(fetchData, 30000); // 30 second refresh interval
+    const interval = setInterval(refreshLeaderboardAndPools, 30000);
 
     return () => clearInterval(interval);
-  }, [session, fetchData]);
+  }, [session]);
 
   return {
     fetchData,
