@@ -172,22 +172,26 @@ export const calculateTierProgress = (
 
     if (nextTier) {
       const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+      const targetPercentage = currentThreshold + 0.00001; // Just slightly over threshold
       
-      // Calculate target staked percentage we need to achieve
-      const target = currentThreshold;
+      // Calculate the minimum total staked amount needed to exceed current tier
+      // If we stake amount x:
+      // 1. Total pool becomes: totalValue + x*(1-FEE_RATE)
+      // 2. Our staked amount becomes: stakedValue + x*(1-FEE_RATE)
+      // 3. We need: (stakedValue + x*(1-FEE_RATE)) / (totalValue + x*(1-FEE_RATE)) > targetPercentage/100
       
-      // If x is the amount to stake (before fee):
-      // (currentStaked + x(1-FEE_RATE)) / (totalValue + x) = target/100
-      // Solve for x:
-      // (currentStaked + x(1-FEE_RATE)) = (target/100)(totalValue + x)
-      // currentStaked + x(1-FEE_RATE) = (target/100)totalValue + (target/100)x
-      // x(1-FEE_RATE - target/100) = (target/100)totalValue - currentStaked
-      // x = ((target/100)totalValue - currentStaked) / (1-FEE_RATE - target/100)
+      // Solving for x:
+      // (stakedValue + x*(1-FEE_RATE)) > (targetPercentage/100)(totalValue + x*(1-FEE_RATE))
+      // stakedValue + x*(1-FEE_RATE) > (targetPercentage/100)*totalValue + (targetPercentage/100)*x*(1-FEE_RATE)
+      // x*(1-FEE_RATE) - (targetPercentage/100)*x*(1-FEE_RATE) > (targetPercentage/100)*totalValue - stakedValue
+      // x*(1-FEE_RATE)*(1 - targetPercentage/100) > (targetPercentage/100)*totalValue - stakedValue
+      // x > ((targetPercentage/100)*totalValue - stakedValue) / ((1-FEE_RATE)*(1 - targetPercentage/100))
       
-      const targetAmount = (target/100) * totalValue;
-      const denominator = (1 - FEE_RATE - target/100);
+      const targetAmount = (targetPercentage/100) * totalValue;
+      const denominator = (1-FEE_RATE) * (1 - targetPercentage/100);
       
       if (denominator !== 0) {
+        // Calculate amount needed including fee compensation
         const amountNeeded = (targetAmount - stakedValue) / denominator;
         
         if (amountNeeded > 0) {
