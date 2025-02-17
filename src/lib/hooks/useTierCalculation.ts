@@ -49,20 +49,22 @@ export function useTierCalculation(
         parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
       );
 
-      // Find current tier based on staked percentage
+// Find current tier based on staked percentage - matching contract behavior
       let currentTier = sortedTiers[0];
       let currentTierIndex = 0;
 
+      // Since tiers are sorted by staked_up_to_percent, find the first tier where
+      // the threshold is greater than or equal to the user's percentage
+      // This matches the contract's lower_bound behavior
       for (let i = 0; i < sortedTiers.length; i++) {
         const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
-        
-        if (stakedPercent <= tierThreshold) {
-          currentTier = i > 0 ? sortedTiers[i - 1] : sortedTiers[0];
-          currentTierIndex = i > 0 ? i - 1 : 0;
+        if (tierThreshold >= stakedPercent) {
+          currentTier = sortedTiers[i];
+          currentTierIndex = i;
           break;
         }
-
-        // If we've reached the last tier and still haven't found a match
+        
+        // If we've reached the last tier, use it
         if (i === sortedTiers.length - 1) {
           currentTier = sortedTiers[i];
           currentTierIndex = i;
