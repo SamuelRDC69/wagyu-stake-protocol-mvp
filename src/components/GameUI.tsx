@@ -1,3 +1,4 @@
+import React, { useContext, useState, useMemo, useEffect, useCallback, FC } from 'react';
 import { Crown, 
   Sword, 
   Shield, 
@@ -549,3 +550,5 @@ const GameUI: React.FC = () => {
     </div>
   );
 };
+
+export default GameUI;
