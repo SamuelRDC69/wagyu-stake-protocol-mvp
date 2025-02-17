@@ -49,24 +49,21 @@ export function useTierCalculation(
         parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
       );
 
-      // Find the tier where the staked percentage is less than or equal to the threshold
-      let currentTier = sortedTiers[0];
-      let currentTierIndex = 0;
+      // Find current tier based on staked percentage
+      let currentTier = sortedTiers[sortedTiers.length - 1]; // Start with max tier
+      let currentTierIndex = sortedTiers.length - 1;
 
-      for (let i = 0; i < sortedTiers.length; i++) {
+      // Loop backwards through tiers to find the first tier where
+      // staked percentage is greater than its "staked up to" threshold
+      for (let i = 0; i < sortedTiers.length - 1; i++) {
         const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
         
         if (stakedPercent <= tierThreshold) {
+          // We found the first tier where our percentage doesn't exceed the threshold
+          // So the current tier is this one
           currentTier = sortedTiers[i];
           currentTierIndex = i;
           break;
-        }
-        
-        // If we've reached the last tier and haven't found a match,
-        // use the last tier
-        if (i === sortedTiers.length - 1) {
-          currentTier = sortedTiers[i];
-          currentTierIndex = i;
         }
       }
 
