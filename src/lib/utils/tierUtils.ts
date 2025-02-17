@@ -96,12 +96,22 @@ export const calculateSafeUnstakeAmount = (
 
     // Get the previous tier's threshold - need to stay above this to maintain current tier
     const prevTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
-    const minRequired = (prevTierThreshold * totalValue) / 100;
-
-    // Calculate how much we can unstake while staying above previous tier's threshold
-    const safeAmount = Math.max(0, stakedValue - minRequired);
     
-    return applyWaxPrecision(safeAmount);
+    // Calculate what the pool will be after unstaking
+    // x = amount to unstake
+    // (stakedValue - x) / (totalValue - x) > prevTierThreshold/100
+    // (stakedValue - x) > (prevTierThreshold/100) * (totalValue - x)
+    // stakedValue - x > (prevTierThreshold/100 * totalValue) - (prevTierThreshold/100 * x)
+    // stakedValue - (prevTierThreshold/100 * totalValue) > x * (1 - prevTierThreshold/100)
+    // x = (stakedValue - (prevTierThreshold/100 * totalValue)) / (1 - prevTierThreshold/100)
+    
+    const targetAmount = (prevTierThreshold/100 * totalValue);
+    const denominator = (1 - prevTierThreshold/100);
+    
+    if (denominator === 0) return 0;
+    
+    const safeAmount = (stakedValue - targetAmount) / denominator;
+    return applyWaxPrecision(Math.max(0, safeAmount));
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
     return 0;
