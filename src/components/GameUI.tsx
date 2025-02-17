@@ -332,13 +332,13 @@ useEffect(() => {
     );
   }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
 
-  const userStatusProps = useMemo(() => ({
-    stakedData: playerStake,
-    config: gameData.config,
-    poolSymbol: selectedPool ? parseTokenString(selectedPool.total_staked_quantity).symbol : '',
-    tierProgress: tierProgress || undefined,
-    isLoading: loading
-  }), [playerStake, gameData.config, selectedPool, tierProgress, loading]);
+const userStatusProps = useMemo(() => ({
+  stakedData: playerStake,
+  config: gameData.config,
+  poolSymbol: selectedPool ? parseTokenString(selectedPool.total_staked_quantity).symbol : '',
+  tierProgress: tierProgress || undefined,
+  isLoading: false // Remove loading state from user status
+}), [playerStake, gameData.config, selectedPool, tierProgress]);
 
   const renderContent = () => {
     if (!session && activeTab !== 'leaderboard') {
