@@ -161,10 +161,11 @@ export const calculateTierProgress = (
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-      const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
+      // Use the current tier's threshold since that's what we need to exceed
+      const targetThreshold = parseFloat(currentTier.staked_up_to_percent);
       
-      // Calculate amount needed for next tier
-      totalAmountForNext = applyWaxPrecision((nextTierThreshold * totalValue) / 100);
+      // Calculate amount needed to exceed current tier's threshold
+      totalAmountForNext = applyWaxPrecision((targetThreshold * totalValue) / 100);
       
       if (stakedValue < totalAmountForNext) {
         // Calculate raw amount needed
