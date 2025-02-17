@@ -141,12 +141,11 @@ export const calculateTierProgress = (
     let progress = 0;
     if (nextTier) {
       const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
-      const nextThreshold = parseFloat(nextTier.staked_up_to_percent);
       const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
 
-      // Calculate progress based on difference between current and next tier thresholds
-      const range = nextThreshold - currentThreshold;
-      progress = ((stakedPercent - currentThreshold) / range) * 100;
+      // Calculate progress from prev tier threshold to current tier threshold
+      const range = currentThreshold - prevThreshold;
+      progress = ((stakedPercent - prevThreshold) / range) * 100;
     } else {
       progress = 100; // Max tier
     }
