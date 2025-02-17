@@ -171,18 +171,20 @@ export const calculateTierProgress = (
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-      // Use the current tier's threshold since that's what we need to exceed
-      const targetThreshold = parseFloat(currentTier.staked_up_to_percent);
+      // Calculate base amount needed for next tier
+      const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+      const targetAmount = (currentThreshold * totalValue) / 100;
       
-      // Calculate amount needed to exceed current tier's threshold
-      totalAmountForNext = applyWaxPrecision((targetThreshold * totalValue) / 100);
-      
-      if (stakedValue < totalAmountForNext) {
-        // Calculate raw amount needed
-        const rawNeeded = totalAmountForNext - stakedValue;
-        // Add fee consideration
-        const withFee = rawNeeded / (1 - FEE_RATE);
-        additionalAmountNeeded = applyWaxPrecision(withFee);
+      if (stakedValue < targetAmount) {
+        // Calculate raw amount needed without fee
+        const rawNeeded = targetAmount - stakedValue;
+        
+        // Add platform fee to the displayed amount
+        // If user needs to add X WAX, they need to send X/(1-FEE_RATE) to account for the fee
+        const amountWithFee = rawNeeded / (1 - FEE_RATE);
+        
+        totalAmountForNext = applyWaxPrecision(targetAmount);
+        additionalAmountNeeded = applyWaxPrecision(amountWithFee);
       } else {
         additionalAmountNeeded = 0;
       }
