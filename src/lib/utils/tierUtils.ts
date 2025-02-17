@@ -49,6 +49,9 @@ export const determineTier = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
+    // Start with lowest tier
+    let currentTier = sortedTiers[0];
+
     // Loop through tiers to find the right tier for this percentage
     for (let i = 0; i < sortedTiers.length; i++) {
       const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
