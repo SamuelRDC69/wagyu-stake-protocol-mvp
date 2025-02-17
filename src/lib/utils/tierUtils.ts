@@ -67,6 +67,10 @@ export const determineTier = (
   }
 };
 
+export const getTierWeight = (tierKey: string): string => {
+  return TIER_CONFIG[tierKey.toLowerCase()]?.weight || '1.0';
+};
+
 // Calculate safe unstake amount that won't drop to a lower tier
 export const calculateSafeUnstakeAmount = (
   stakedAmount: string,
@@ -192,6 +196,29 @@ export const getTierDisplayName = (tierKey: string): string => {
   return TIER_CONFIG[tierKey.toLowerCase()]?.displayName || tierKey;
 };
 
-export const getTierWeight = (tierKey: string): string => {
-  return TIER_CONFIG[tierKey.toLowerCase()]?.weight || '1.0';
+// Check if tier upgrade is available
+export const isTierUpgradeAvailable = (
+  stakedAmount: string,
+  totalStaked: string,
+  currentTier: TierEntity,
+  tiers: TierEntity[]
+): boolean => {
+  try {
+    const { amount: stakedValue } = parseTokenString(stakedAmount);
+    const { amount: totalValue } = parseTokenString(totalStaked);
+    
+    if (totalValue === 0) return false;
+
+    // Calculate staked percentage
+    const stakedPercent = Math.min((stakedValue / totalValue) * 100, 100);
+    
+    // Find current tier's "staked up to" percentage
+    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+    
+    // If we exceed current tier's threshold, upgrade is available
+    return stakedPercent > currentThreshold;
+  } catch (error) {
+    console.error('Error checking tier upgrade availability:', error);
+    return false;
+  }
 };
