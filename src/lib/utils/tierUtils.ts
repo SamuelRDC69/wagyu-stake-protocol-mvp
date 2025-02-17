@@ -49,13 +49,11 @@ export const determineTier = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    let currentTier = sortedTiers[0];
-
-    // Loop through tiers - if we exceed a tier's "up to" percentage, we're in the next tier
-    for (let i = 0; i < sortedTiers.length - 1; i++) {
-      if (stakedPercent > parseFloat(sortedTiers[i].staked_up_to_percent)) {
-        currentTier = sortedTiers[i + 1];
-      } else {
+    // Loop through tiers to find the right tier for this percentage
+    for (let i = 0; i < sortedTiers.length; i++) {
+      const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
+      if (stakedPercent <= tierThreshold) {
+        currentTier = sortedTiers[i];
         break;
       }
     }
@@ -140,12 +138,17 @@ export const calculateTierProgress = (
     // Calculate progress percentage
     let progress = 0;
     if (nextTier) {
+      // Find which threshold we're working between
+      const prevThreshold = currentTierIndex > 0 
+        ? parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent) 
+        : 0;
       const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
-      const prevThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
-
-      // Calculate progress from prev tier threshold to current tier threshold
+      
+      // Calculate progress within current tier's range
       const range = currentThreshold - prevThreshold;
-      progress = ((stakedPercent - prevThreshold) / range) * 100;
+      if (range > 0) {
+        progress = ((stakedPercent - prevThreshold) / range) * 100;
+      }
     } else {
       progress = 100; // Max tier
     }
@@ -157,28 +160,15 @@ export const calculateTierProgress = (
     if (nextTier) {
       const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
       
-      // Calculate what total pool will be after staking the needed amount
-      // x = amount to stake
-      // (currentStaked + x) / (totalValue + x) = nextTierThreshold/100
-      // Solve for x:
-      // (currentStaked + x) = (nextTierThreshold/100) * (totalValue + x)
-      // currentStaked + x = (nextTierThreshold/100 * totalValue) + (nextTierThreshold/100 * x)
-      // x - (nextTierThreshold/100 * x) = (nextTierThreshold/100 * totalValue) - currentStaked
-      // x * (1 - nextTierThreshold/100) = (nextTierThreshold/100 * totalValue) - currentStaked
-      // x = ((nextTierThreshold/100 * totalValue) - currentStaked) / (1 - nextTierThreshold/100)
-      
-      const targetAmount = (nextTierThreshold/100 * totalValue);
-      const denominator = (1 - nextTierThreshold/100);
-      const amountNeeded = denominator !== 0 ? 
-        (targetAmount - stakedValue) / denominator :
-        0;
-
-      totalAmountForNext = applyWaxPrecision(targetAmount);
+      // Calculate amount needed for next tier
+      totalAmountForNext = applyWaxPrecision((nextTierThreshold * totalValue) / 100);
       
       if (stakedValue < totalAmountForNext) {
+        // Calculate raw amount needed
+        const rawNeeded = totalAmountForNext - stakedValue;
         // Add fee consideration
-        const withFee = amountNeeded / (1 - FEE_RATE);
-        additionalAmountNeeded = applyWaxPrecision(Math.max(0, withFee));
+        const withFee = rawNeeded / (1 - FEE_RATE);
+        additionalAmountNeeded = applyWaxPrecision(withFee);
       } else {
         additionalAmountNeeded = 0;
       }
