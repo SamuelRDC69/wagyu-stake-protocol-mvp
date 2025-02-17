@@ -141,7 +141,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50">
             <div className="flex items-center justify-between mb-2">
               <p className="text-slate-300 text-sm">
-                Progress to {getTierDisplayName(nextTier.tier)}
+                Progress to {getTierDisplayName(currentTierIndex < TIER_KEYS.length - 1 ? TIER_KEYS[currentTierIndex + 1] : 'v')}
               </p>
               {nextTierStyle && (
                 <div className={cn("p-2 rounded-lg", nextTierStyle.bgColor)}>
