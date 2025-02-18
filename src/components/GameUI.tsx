@@ -473,44 +473,55 @@ const userStatusProps = useMemo(() => ({
     }
   };
 
+const BerryFiLogo = () => {
+  return (
+    <h1 className="flex items-baseline">
+      <span className="font-imaki text-3xl bg-gradient-to-r from-purple-200 to-purple-300 text-transparent bg-clip-text">
+        Berry
+      </span>
+      <span className="font-heading text-3xl bg-gradient-to-r from-purple-300 to-purple-400 text-transparent bg-clip-text">
+        Fi
+      </span>
+    </h1>
+  );
+};
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
-      {/* Header */}
-      <div className="relative crystal-bg py-4 border-b border-purple-500/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-purple-400 text-transparent bg-clip-text">
-              BerryFi
-            </h1>
-            
-            {session ? (
-              <div className="flex items-center gap-4">
-                <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
-                  <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
-                  <span className="text-purple-200 font-medium">
-                    {session.actor.toString()}
-                  </span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                variant="outline" 
-                className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200"
-                onClick={handleLogin}
-              >
-                Connect Wallet
-              </Button>
-            )}
+{/* Header */}
+<div className="relative crystal-bg py-4 border-b border-purple-500/20">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center">
+      <BerryFiLogo />
+      
+      {session ? (
+        <div className="flex items-center gap-4">
+          <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group">
+            <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
+            <span className="font-medium text-base text-purple-200">
+              {session.actor.toString()}
+            </span>
           </div>
+          <Button 
+            variant="outline" 
+            className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200 text-base"
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
         </div>
-      </div>
+      ) : (
+        <Button 
+          variant="outline" 
+          className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200 text-base"
+          onClick={handleLogin}
+        >
+          Connect Wallet
+        </Button>
+      )}
+    </div>
+  </div>
+</div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
