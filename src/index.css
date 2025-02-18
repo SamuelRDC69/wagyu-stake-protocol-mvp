@@ -2,18 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Update the font-face declarations in index.css */
 @font-face {
-  font-family: 'Imaki';
-  src: url('/public/ImakiBoldItalic-g5d1.ttf.otf') format('opentype');
-  font-weight: bold;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  src: url('/public/Poppins-Black.ttf') format('truetype');
-  font-weight: 900;
+  font-family: 'Berryfield';
+  src: url('/public/berryfield.ttf') format('truetype');
+  font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
@@ -168,8 +161,14 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* All other text elements should use Neue Haas Unica */
+  p, span, div, button, input, select, textarea {
+    font-family: 'Neue Haas Unica', system-ui, sans-serif;
+  }
+
+  /* Only headers use Poppins */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', system-ui, sans-serif;
     font-weight: 900;
     line-height: calc(1 * var(--golden-ratio-inverse));
   }
