@@ -144,18 +144,9 @@ console.log('Current tier style:', tierStyle); // Add this line
 
   return (
     <Card className="w-full crystal-bg">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Your Status</CardTitle>
-          {stakedData && tierStyle && (
-            <TierBadge 
-              tier={stakedData.tier}
-              showLevel
-              className="transition-all"
-            />
-          )}
-        </div>
-      </CardHeader>
+<CardHeader>
+  <CardTitle>Your Status</CardTitle>
+</CardHeader>
       <CardContent>
         <div className="space-y-4">
           {stakedData ? (
