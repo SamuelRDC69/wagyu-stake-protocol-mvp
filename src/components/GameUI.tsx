@@ -16,6 +16,7 @@ import { useContractData } from '../lib/hooks/useContractData';
 import { useTierCalculation } from '../lib/hooks/useTierCalculation';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/lib/contexts/ToastContext';
+import { TierBadge } from './ui/TierBadge';
 
 // UI Components
 import {
