@@ -7,6 +7,7 @@ interface TierBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   showIcon?: boolean;
   showLevel?: boolean;
   animate?: boolean;
+  compact?: boolean;
 }
 
 export const TierBadge: React.FC<TierBadgeProps> = ({
@@ -14,6 +15,7 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
   showIcon = true,
   showLevel = true,
   animate = false,
+  compact = false,
   className,
   ...props
 }) => {
@@ -24,18 +26,26 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs md:text-sm font-medium',
-        'border transition-all duration-200',
+        'inline-flex items-center gap-1.5 rounded-lg font-medium transition-all duration-200',
+        !compact && 'gap-2 px-2.5 py-1 text-xs md:text-sm',
+        compact && 'gap-1.5 px-2 py-0.5 text-xs',
+        'border border-slate-700/50',
         style.bgColor,
         style.color,
-        'border-slate-700/50',
         animate && 'animate-pulse',
         className
       )}
       {...props}
     >
-      {showIcon && <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />}
-      <span className="relative top-px">
+      {showIcon && (
+        <Icon 
+          className={cn(
+            "flex-shrink-0",
+            compact ? "w-3 h-3" : "w-3.5 h-3.5 md:w-4 md:h-4"
+          )} 
+        />
+      )}
+      <span className="relative top-px truncate">
         {showLevel ? displayName : tier.toUpperCase()}
       </span>
     </div>
