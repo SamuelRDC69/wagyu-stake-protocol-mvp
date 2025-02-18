@@ -31,12 +31,12 @@ module.exports = {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['Neue Haas Unica', 'system-ui', 'sans-serif'],
-        heading: ['Poppins', 'sans-serif'],
-        imaki: ['Imaki', 'cursive'],
-        display: ['Poppins', 'system-ui', 'sans-serif'],
-      },
+fontFamily: {
+      sans: ['Neue Haas Unica', 'system-ui', 'sans-serif'],
+      heading: ['Poppins', 'system-ui', 'sans-serif'],
+      berryfield: ['Berryfield', 'system-ui', 'sans-serif'],
+      display: ['Neue Haas Unica', 'system-ui', 'sans-serif'],
+    },
       spacing: {
         '1': `${baseUnit / (goldenRatio * 2)}px`,
         '2': `${baseUnit / goldenRatio}px`,
