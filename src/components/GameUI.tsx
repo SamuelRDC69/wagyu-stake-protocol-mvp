@@ -355,10 +355,10 @@ const userStatusProps = useMemo(() => ({
         return (
           <div className="space-y-6">
             <div className="crystal-bg rounded-2xl p-6 border border-purple-500/20">
-              <h2 className="text-2xl font-bold mb-6 text-purple-200 flex items-center gap-3">
-                <Crown className="w-8 h-8 text-purple-500" />
-                Select Farm
-              </h2>
+<h2 className="text-lg font-medium mb-4 text-purple-200 flex items-center gap-2">
+  <Crown className="w-5 h-5 text-purple-500" />
+  Select Farm
+</h2>
               <Select 
                 onValueChange={(value) => {
                   try {
