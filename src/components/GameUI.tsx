@@ -476,10 +476,10 @@ const userStatusProps = useMemo(() => ({
 const BerryFiLogo = () => {
   return (
     <h1 className="flex items-baseline">
-      <span className="font-berryfield text-lg bg-gradient-to-r from-purple-200 to-purple-300 text-transparent bg-clip-text">
+      <span className="font-berryfield text-lg leading-relaxed py-1 bg-gradient-to-r from-purple-200 to-purple-300 text-transparent bg-clip-text">
         Berry
       </span>
-      <span className="font-heading text-lg bg-gradient-to-r from-purple-300 to-purple-400 text-transparent bg-clip-text">
+      <span className="font-heading text-lg leading-relaxed py-1 bg-gradient-to-r from-purple-300 to-purple-400 text-transparent bg-clip-text">
         Fi
       </span>
     </h1>
