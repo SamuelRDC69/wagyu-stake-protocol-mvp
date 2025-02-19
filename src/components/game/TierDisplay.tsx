@@ -40,6 +40,9 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   if (isLoading || !tierProgress || !stakedData) {
     return (
       <Card className="w-full crystal-bg">
+        <CardHeader>
+          <CardTitle>Level Status</CardTitle>
+        </CardHeader>
         <CardContent className="p-6">
           {isLoading ? (
             <div className="animate-pulse space-y-4">
@@ -72,22 +75,21 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   return (
     <Card className="w-full crystal-bg group">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn("p-2 rounded-lg transition-all", tierStyle.bgColor)}>
-              <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6", tierStyle.color)} />
-            </div>
-            <span className="text-slate-100">{getTierDisplayName(stakedData.tier)}</span>
-            {isUpgradeAvailable && (
-              <TierBadge 
-                tier={stakedData.tier}
-                animate
-                className="ml-2 shine-effect"
-              >
-                Tier Up Ready!
-              </TierBadge>
-            )}
+        <CardTitle>Level Status</CardTitle>
+        <div className="flex items-center gap-2 mt-2">
+          <div className={cn("p-2 rounded-lg transition-all", tierStyle.bgColor)}>
+            <TierIcon className={cn("w-5 h-5 md:w-6 md:h-6", tierStyle.color)} />
           </div>
+          <span className="text-slate-100">{getTierDisplayName(stakedData.tier)}</span>
+          {isUpgradeAvailable && (
+            <TierBadge 
+              tier={stakedData.tier}
+              animate
+              className="ml-2 shine-effect"
+            >
+              Tier Up Ready!
+            </TierBadge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
