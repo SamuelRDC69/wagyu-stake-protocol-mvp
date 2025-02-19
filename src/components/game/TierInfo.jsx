@@ -1,3 +1,4 @@
+// src/components/game/TierInfo.tsx
 import React from 'react';
 import { ChartBar, Scale, ArrowBigUp, Gauge, AlertCircle } from 'lucide-react';
 import {
@@ -7,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface TierInfoProps {
+export interface TierInfoProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -137,3 +138,5 @@ export const TierInfo: React.FC<TierInfoProps> = ({
     </Dialog>
   );
 };
+
+export default TierInfo;
