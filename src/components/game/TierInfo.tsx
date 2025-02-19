@@ -1,6 +1,6 @@
 // src/components/game/TierInfo.tsx
 import React from 'react';
-import { ChartBar, Scale, ArrowBigUp, Gauge, AlertCircle } from 'lucide-react';
+import { BarChart, Scale, ArrowBigUp, Gauge, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export interface TierInfoProps {
+interface TierInfoProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const TierInfo: React.FC<TierInfoProps> = ({
+const TierInfo: React.FC<TierInfoProps> = ({
   open,
   onOpenChange,
 }) => {
@@ -40,7 +40,7 @@ export const TierInfo: React.FC<TierInfoProps> = ({
 
           <div>
             <h3 className="font-semibold mb-2 text-purple-300 flex items-center gap-2">
-              <ChartBar className="w-4 h-4" />
+              <BarChart className="w-4 h-4" />
               Progress Bar
             </h3>
             <ul className="space-y-1 text-sm text-slate-300">
@@ -139,4 +139,6 @@ export const TierInfo: React.FC<TierInfoProps> = ({
   );
 };
 
+export type { TierInfoProps };
+export { TierInfo };
 export default TierInfo;
