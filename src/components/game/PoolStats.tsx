@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback, memo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Shield, TrendingUp, Scale } from 'lucide-react';
+import { Shield, TrendingUp, Scale, Info } from 'lucide-react';
 import { PoolEntity } from '@/lib/types/pool';
 import { cn } from '@/lib/utils';
 import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
 import { TokenImage } from '@/components/ui/TokenImage';
+import { Button } from '@/components/ui/button';
+import { FarmStatsInfo } from './FarmStatsInfo';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
@@ -21,6 +23,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
 }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
   const [updateKey, setUpdateKey] = useState<number>(0);
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
 
   const calculateCurrentRewards = useCallback(() => {
     if (!poolData) return 0;
@@ -60,7 +63,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     return (
       <Card className="w-full crystal-bg">
         <CardHeader>
-          <CardTitle>Farm Statistics</CardTitle>
+          <CardTitle>Farm Status</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
@@ -83,7 +86,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     return (
       <Card className="w-full crystal-bg">
         <CardHeader>
-          <CardTitle>Farm Statistics</CardTitle>
+          <CardTitle>Farm Status</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-red-400 text-center">No pool data available</div>
@@ -108,81 +111,96 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
   }
 
   return (
-    <Card className="w-full crystal-bg">
-      <CardHeader>
-        <CardTitle>Farm Status</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
-            <div className={cn("p-2 rounded-lg bg-purple-500/10 transition-all")}>
-              <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm text-slate-400">Total Staked to Farm</p>
-              <div className="flex items-center gap-2">
-                <p className="text-sm md:text-base font-medium text-purple-200 truncate">
-                  {totalStakedFormatted}
-                </p>
-                <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
-            <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-              <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-sm text-slate-400">Farm Total Weight</p>
-              <div className="flex items-center gap-2">
-                <p className="text-sm md:text-base font-medium text-purple-200 truncate">
-                  {parseFloat(poolData.total_staked_weight).toFixed(8)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="md:col-span-2 flex flex-col gap-4">
+    <>
+      <Card className="w-full crystal-bg">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+          <CardTitle>Farm Status</CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 bg-slate-800/30 hover:bg-slate-700/50"
+            onClick={() => setIsInfoDialogOpen(true)}
+          >
+            <Info className="h-4 w-4 text-purple-400" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
-              <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
+              <div className={cn("p-2 rounded-lg bg-purple-500/10 transition-all")}>
+                <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Farm Rewards Pool</p>
+                <p className="text-xs md:text-sm text-slate-400">Total Staked to Farm</p>
                 <div className="flex items-center gap-2">
-                  <div className="text-sm md:text-base font-medium text-purple-200 truncate">
-                    <AnimatingTokenAmount value={currentRewards} />
-                  </div>
+                  <p className="text-sm md:text-base font-medium text-purple-200 truncate">
+                    {totalStakedFormatted}
+                  </p>
                   <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                 </div>
               </div>
             </div>
 
-            {userWeight !== '0.00000000' && (
+            <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
+              <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+                <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs md:text-sm text-slate-400">Farm Total Weight</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm md:text-base font-medium text-purple-200 truncate">
+                    {parseFloat(poolData.total_staked_weight).toFixed(8)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:col-span-2 flex flex-col gap-4">
               <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
                 <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
-                  <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
+                  <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs md:text-sm text-slate-400">Your Total Weight</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm md:text-base font-medium text-purple-200 truncate">
-                        {userWeight}
-                      </p>
+                  <p className="text-xs md:text-sm text-slate-400">Farm Rewards Pool</p>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm md:text-base font-medium text-purple-200 truncate">
+                      <AnimatingTokenAmount value={currentRewards} />
                     </div>
-                    <div className="bg-slate-900/50 px-2 py-1 rounded-lg">
-                      <span className="text-xs md:text-sm text-purple-200">{userPercent}% of Farm</span>
-                    </div>
+                    <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                   </div>
                 </div>
               </div>
-            )}
+
+              {userWeight !== '0.00000000' && (
+                <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
+                  <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
+                    <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs md:text-sm text-slate-400">Your Total Weight</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm md:text-base font-medium text-purple-200 truncate">
+                          {userWeight}
+                        </p>
+                      </div>
+                      <div className="bg-slate-900/50 px-2 py-1 rounded-lg">
+<span className="text-xs md:text-sm text-purple-200">{userPercent}% of Farm</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <FarmStatsInfo 
+        open={isInfoDialogOpen}
+        onOpenChange={setIsInfoDialogOpen}
+      />
+    </>
   );
 });
 
