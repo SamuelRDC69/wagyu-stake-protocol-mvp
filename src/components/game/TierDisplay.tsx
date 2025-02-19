@@ -15,7 +15,9 @@ import { StakedEntity } from '@/lib/types/staked';
 import { getTierConfig, calculateSafeUnstakeAmount, getTierDisplayName, getTierWeight } from '@/lib/utils/tierUtils';
 import { formatNumber } from '@/lib/utils/formatUtils';
 import { cn } from '@/lib/utils';
-import { Info } from 'lucide-react';
+import { Info, ChevronDown } from 'lucide-react';  // Add ChevronDown
+import { TierInfo } from './TierInfo';  // Add new TierInfo component
+
 
 interface TierDisplayProps {
   tierProgress?: TierProgress;
@@ -35,6 +37,8 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   allTiers
 }) => {
   const [isMultiplierDialogOpen, setMultiplierDialogOpen] = useState(false);
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
+
   
   const safeUnstakeAmount = React.useMemo(() => {
     if (!stakedData?.staked_quantity || !totalStaked || !allTiers || !tierProgress?.currentTier) {
@@ -105,25 +109,34 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
                 </TierBadge>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className={cn(
-                "text-base font-semibold",
-                tierStyle.color
-              )}>
-                {currentMultiplier}x
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "p-1 hover:bg-slate-800/50",
-                  tierStyle.bgColor
-                )}
-                onClick={() => setMultiplierDialogOpen(true)}
-              >
-                <Info className={cn("w-4 h-4", tierStyle.color)} />
-              </Button>
-            </div>
+<div className="flex items-center gap-2">
+  <span className={cn(
+    "text-base font-semibold",
+    tierStyle.color
+  )}>
+    {currentMultiplier}x
+  </span>
+  <Button
+    variant="ghost"
+    size="icon"
+    className={cn(
+      "p-1 hover:bg-slate-800/50",
+      tierStyle.bgColor
+    )}
+    onClick={() => setMultiplierDialogOpen(true)}
+  >
+    <ChevronDown className={cn("w-4 h-4", tierStyle.color)} />
+  </Button>
+  <Button
+    variant="ghost"
+    size="icon"
+    className="h-8 w-8 bg-slate-800/30 hover:bg-slate-700/50"
+    onClick={() => setIsInfoDialogOpen(true)}
+  >
+    <Info className="h-4 w-4 text-purple-400" />
+  </Button>
+</div>
+
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -255,6 +268,10 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+      <TierInfo 
+        open={isInfoDialogOpen}
+        onOpenChange={setIsInfoDialogOpen}
+      />
     </>
   );
 };
