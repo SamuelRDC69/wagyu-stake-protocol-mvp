@@ -43,10 +43,6 @@ export const UserStatusInfo: React.FC<UserStatusInfoProps> = ({
                 <span>•</span>
                 <span>Each stake has a 0.3% platform fee deducted</span>
               </li>
-              <li className="flex gap-2">
-                <span>•</span>
-                <span>Minimum stake amount determined by fee calculation (334 tokens)</span>
-              </li>
             </ul>
           </div>
 
