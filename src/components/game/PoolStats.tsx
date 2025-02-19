@@ -60,7 +60,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     return (
       <Card className="w-full crystal-bg">
         <CardHeader>
-          <CardTitle>Pool Statistics</CardTitle>
+          <CardTitle>Farm Statistics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
@@ -83,7 +83,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     return (
       <Card className="w-full crystal-bg">
         <CardHeader>
-          <CardTitle>Pool Statistics</CardTitle>
+          <CardTitle>Farm Statistics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-red-400 text-center">No pool data available</div>
@@ -110,7 +110,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
   return (
     <Card className="w-full crystal-bg">
       <CardHeader>
-        <CardTitle>Farm Stats</CardTitle>
+        <CardTitle>Farm Status</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
