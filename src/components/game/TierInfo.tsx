@@ -19,13 +19,13 @@ const TierInfo: React.FC<TierInfoProps> = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700/50">
-        <DialogHeader>
+      <DialogContent className="bg-slate-900 border-slate-700/50 max-h-[85vh] md:max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 z-20 bg-slate-900 pb-4 -mx-6 px-6">
           <DialogTitle className="text-purple-200">
             Understanding Level Statistics
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 text-slate-200">
+        <div className="space-y-6 text-slate-200 overflow-y-auto pr-2">
           {/* Important Notice */}
           <div className="bg-slate-800/50 rounded-lg p-4 border border-amber-500/20">
             <div className="flex items-center gap-2 text-amber-400 mb-2">
