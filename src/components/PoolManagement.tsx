@@ -300,17 +300,18 @@ const PoolManagement = ({
               type="text"
               value={emissionRateInput}
               onChange={(e) => {
-                const value = e.target.value;
-                if (validateEmissionRate(value)) {
-                  setEmissionRateInput(value);
-                  if (value !== '' && value !== '.') {
-                    const chainValue = formatEmissionRateForChain(value);
-                    setNewPool({
-                      ...newPool,
-                      emission_rate: chainValue
-                    });
-                  }
-                }
+const value = e.target.value;
+const precision = getPrecisionFromSymbol(newPool.staked_token_symbol);
+if (validateEmissionRate(value, precision)) {
+  setEmissionRateInput(value);
+  if (value !== '' && value !== '.') {
+    const chainValue = formatEmissionRateForChain(value, precision);
+    setNewPool({
+      ...newPool,
+      emission_rate: chainValue
+    });
+  }
+}
               }}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
               placeholder="e.g., 0.05500000"
