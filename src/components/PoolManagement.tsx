@@ -23,11 +23,11 @@ const PoolManagement = ({
   const [newPool, setNewPool] = useState({
     staked_token_contract: '',
     staked_token_symbol: '',
-    total_staked_quantity: '0.0000 WAX', // Default changed to 4 decimals
+    total_staked_quantity: '', // Default changed to 4 decimals
     total_staked_weight: '',
     reward_pool: {
       quantity: '',
-      contract: 'eosio.token'
+      contract: ''
     },
     emission_unit: 86400,
     emission_rate: 0,
