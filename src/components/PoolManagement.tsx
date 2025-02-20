@@ -167,7 +167,7 @@ const PoolManagement = ({
         total_staked_weight: '',
         reward_pool: {
           quantity: '',
-          contract: 'eosio.token'
+          contract: ''
         },
         emission_unit: 86400,
         emission_rate: 0,
