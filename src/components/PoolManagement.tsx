@@ -23,7 +23,7 @@ const PoolManagement = ({
   const [newPool, setNewPool] = useState({
     staked_token_contract: '',
     staked_token_symbol: '',
-    total_staked_quantity: '0.00000000 WAX',
+    total_staked_quantity: '0.0000 WAX', // Default changed to 4 decimals
     total_staked_weight: '',
     reward_pool: {
       quantity: '',
@@ -36,91 +36,101 @@ const PoolManagement = ({
     last_emission_updated_at: new Date().toISOString()
   });
 
-  const [emissionRateInput, setEmissionRateInput] = useState('0.00000000');
+  const [emissionRateInput, setEmissionRateInput] = useState('0.0000');
   const [weightUpdateForm, setWeightUpdateForm] = useState({
     poolId: '',
     weight: ''
   });
 
-  const validateEmissionRate = (value: string): boolean => {
+  // Helper to get precision from symbol format (e.g., "4,WAX" returns 4)
+  const getPrecisionFromSymbol = (symbolStr: string): number => {
+    const parts = symbolStr.split(',');
+    return parts.length === 2 ? parseInt(parts[0]) : 4; // Default to 4 if not specified
+  };
+
+  // Format number with specific precision
+  const formatWithPrecision = (value: number, precision: number): string => {
+    return value.toFixed(precision);
+  };
+
+  const validateEmissionRate = (value: string, precision: number): boolean => {
     if (value === '' || value === '.') return true;
-    const decimalRegex = /^\d*\.?\d{0,8}$/;
+    const decimalRegex = new RegExp(`^\\d*\\.?\\d{0,${precision}}$`);
     return decimalRegex.test(value) && parseFloat(value) >= 0;
   };
 
-const formatTimePoint = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  
-  // Ensure date is in the future
-  if (date <= now) {
-    date.setMinutes(now.getMinutes() + 5);
-  }
-  
-  // Convert to microseconds and ensure it's a proper number format
-  // This matches EOSIO's time_point format expectations
-  return Math.floor(date.getTime() * 1000).toString();
-};
-
-  const formatEmissionRateForChain = (value: string): number => {
-    const amount = parseFloat(value || '0');
-    return Math.floor(amount * 100000000); // 8 decimals precision
+  const formatTimePoint = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    if (date <= now) {
+      date.setMinutes(now.getMinutes() + 5);
+    }
+    
+    return Math.floor(date.getTime() * 1000).toString();
   };
 
-const validatePoolData = (data: typeof newPool): void => {
-  const startDate = new Date(data.emission_start_at);
-  const endDate = new Date(data.emission_end_at);
-  const now = new Date();
+  // Corrected to handle emission rate precision properly
+  const formatEmissionRateForChain = (value: string, precision: number): number => {
+    const amount = parseFloat(value || '0');
+    // For 4 decimals, multiply by 10000, for 8 decimals multiply by 100000000
+    return Math.floor(amount * Math.pow(10, precision));
+  };
 
-  if (startDate <= now) {
-    throw new Error('Emission start time must be in the future');
-  }
+  const validatePoolData = (data: typeof newPool): void => {
+    const startDate = new Date(data.emission_start_at);
+    const endDate = new Date(data.emission_end_at);
+    const now = new Date();
 
-  if (endDate <= startDate) {
-    throw new Error('Emission end time must be after start time');
-  }
+    if (startDate <= now) {
+      throw new Error('Emission start time must be in the future');
+    }
 
-  if (!data.staked_token_symbol.includes(',')) {
-    throw new Error('Token symbol must include precision (e.g., 8,WAX)');
-  }
+    if (endDate <= startDate) {
+      throw new Error('Emission end time must be after start time');
+    }
 
-  // Validate time point conversion
-  const startTimePoint = formatTimePoint(data.emission_start_at);
-  const endTimePoint = formatTimePoint(data.emission_end_at);
-  
-  if (!startTimePoint || !endTimePoint) {
-    throw new Error('Invalid date format');
-  }
+    if (!data.staked_token_symbol.includes(',')) {
+      throw new Error('Token symbol must include precision (e.g., 4,WAX)');
+    }
 
-  try {
-    parseInt(startTimePoint);
-    parseInt(endTimePoint);
-  } catch (e) {
-    throw new Error('Invalid time format');
-  }
-};
+    const startTimePoint = formatTimePoint(data.emission_start_at);
+    const endTimePoint = formatTimePoint(data.emission_end_at);
+    
+    if (!startTimePoint || !endTimePoint) {
+      throw new Error('Invalid date format');
+    }
+
+    try {
+      parseInt(startTimePoint);
+      parseInt(endTimePoint);
+    } catch (e) {
+      throw new Error('Invalid time format');
+    }
+  };
 
   const formatPoolData = (data: typeof newPool): Omit<PoolEntity, 'pool_id' | 'is_active'> => {
-    const symbol = data.staked_token_symbol.toUpperCase();
+    const [precision, symbol] = data.staked_token_symbol.split(',');
+    const tokenPrecision = parseInt(precision);
     
     const total_staked_weight = data.total_staked_weight.includes(' ') 
       ? data.total_staked_weight.split(' ').map((part: string, i: number) => {
-          if (i === 0) return parseFloat(part).toFixed(8);
+          if (i === 0) return formatWithPrecision(parseFloat(part), tokenPrecision);
           return part.toUpperCase();
         }).join(' ')
-      : `${parseFloat(data.total_staked_weight).toFixed(8)} WAX`;
+      : `${formatWithPrecision(parseFloat(data.total_staked_weight), tokenPrecision)} ${symbol}`;
 
     const [amount, symbol_contract] = (data.reward_pool.quantity || '').split('@');
-    const [quantity_amount = '0', quantity_symbol = 'WAX'] = (amount || '').split(' ');
+    const [quantity_amount = '0', quantity_symbol = symbol] = (amount || '').split(' ');
     const formatted_reward_pool = {
-      quantity: `${parseFloat(quantity_amount).toFixed(8)} ${quantity_symbol.toUpperCase()}`,
+      quantity: `${formatWithPrecision(parseFloat(quantity_amount), tokenPrecision)} ${quantity_symbol.toUpperCase()}`,
       contract: data.reward_pool.contract || 'eosio.token'
     };
 
     return {
       staked_token_contract: data.staked_token_contract,
-      staked_token_symbol: symbol,
-      total_staked_quantity: '0.00000000 WAX',
+      staked_token_symbol: `${tokenPrecision},${symbol.toUpperCase()}`,
+      total_staked_quantity: `${formatWithPrecision(0, tokenPrecision)} ${symbol.toUpperCase()}`,
       total_staked_weight,
       reward_pool: formatted_reward_pool,
       emission_unit: data.emission_unit,
@@ -131,28 +141,29 @@ const validatePoolData = (data: typeof newPool): void => {
     };
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    validatePoolData(newPool);
-    console.log('Pool data validation passed');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      validatePoolData(newPool);
+      console.log('Pool data validation passed');
 
-    const formattedData = formatPoolData(newPool);
-    console.log('Formatted data to send:', {
-      ...formattedData,
-      emission_start_at: parseInt(formattedData.emission_start_at),
-      emission_end_at: parseInt(formattedData.emission_end_at),
-      last_emission_updated_at: parseInt(formattedData.emission_start_at)
-    });
+      const formattedData = formatPoolData(newPool);
+      console.log('Formatted data to send:', {
+        ...formattedData,
+        emission_start_at: parseInt(formattedData.emission_start_at),
+        emission_end_at: parseInt(formattedData.emission_end_at),
+        last_emission_updated_at: parseInt(formattedData.emission_start_at)
+      });
 
-    await onAddPool(formattedData);
-      
-      // Reset form
+      await onAddPool(formattedData);
+        
+      // Reset form with proper precision
+      const precision = getPrecisionFromSymbol(formattedData.staked_token_symbol);
       setNewPool({
         staked_token_contract: '',
         staked_token_symbol: '',
-        total_staked_quantity: '0.00000000 WAX',
+        total_staked_quantity: `${formatWithPrecision(0, precision)} WAX`,
         total_staked_weight: '',
         reward_pool: {
           quantity: '',
@@ -160,16 +171,16 @@ const handleSubmit = async (e: React.FormEvent) => {
         },
         emission_unit: 86400,
         emission_rate: 0,
-        emission_start_at: new Date(Date.now() + 300000).toISOString(), // 5 minutes in future
+        emission_start_at: new Date(Date.now() + 300000).toISOString(),
         emission_end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         last_emission_updated_at: new Date().toISOString()
       });
-      setEmissionRateInput('0.00000000');
-  } catch (e) {
-    console.error('Error creating pool:', e);
-    alert(e instanceof Error ? e.message : 'An error occurred');
-  }
-};
+      setEmissionRateInput(formatWithPrecision(0, precision));
+    } catch (e) {
+      console.error('Error creating pool:', e);
+      alert(e instanceof Error ? e.message : 'An error occurred');
+    }
+  };
 
  return (
     <div className="bg-slate-800 rounded-lg p-6">
