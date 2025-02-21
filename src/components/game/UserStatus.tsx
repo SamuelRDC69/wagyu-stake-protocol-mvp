@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { TierBadge } from '../ui/TierBadge';
 import { CooldownTimer } from './CooldownTimer';
@@ -41,6 +41,7 @@ interface UserStatusProps {
   onUnstake: (amount: string) => Promise<void>;
   onStake: (amount: string) => Promise<void>;
   poolSymbol: string;
+  poolQuantity: string; // Added to get decimals from pool
   isLoading?: boolean;
   tierProgress?: TierProgress | null;
 }
@@ -53,6 +54,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
   onUnstake,
   onStake,
   poolSymbol,
+  poolQuantity,
   isLoading,
   tierProgress
 }) => {
@@ -63,6 +65,18 @@ export const UserStatus = React.memo<UserStatusProps>(({
   const [unstakeAmount, setUnstakeAmount] = useState('');
   const [stakeAmount, setStakeAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Get decimals from pool quantity
+  const { decimals } = useMemo(() => 
+    parseTokenString(poolQuantity), 
+    [poolQuantity]
+  );
+
+  // Create step and min values based on decimals
+  const stepValue = useMemo(() => 
+    `0.${'0'.repeat(decimals - 1)}1`,
+    [decimals]
+  );
 
   if (isLoading) {
     return (
@@ -101,7 +115,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
     if (stakedData) {
       const { amount: maxAmount } = parseTokenString(stakedData.staked_quantity);
       if (numValue > maxAmount) {
-        setUnstakeAmount(maxAmount.toString());
+        setUnstakeAmount(maxAmount.toFixed(decimals));
       } else {
         setUnstakeAmount(value);
       }
@@ -163,7 +177,7 @@ export const UserStatus = React.memo<UserStatusProps>(({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-300">Staked Amount</span>
                     <span className={cn("font-medium text-sm md:text-base", tierStyle?.color || "text-slate-200")}>
-                      {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)}
+                      {formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol, decimals)}
                     </span>
                   </div>
                   
@@ -268,8 +282,8 @@ export const UserStatus = React.memo<UserStatusProps>(({
                 <div className="space-y-4">
                   <Input
                     type="number"
-                    step="0.00000001"
-                    min="0.00000001"
+                    step={stepValue}
+                    min={stepValue}
                     placeholder={`Amount of ${poolSymbol}`}
                     value={stakeAmount}
                     onChange={(e) => setStakeAmount(e.target.value)}
@@ -304,14 +318,14 @@ export const UserStatus = React.memo<UserStatusProps>(({
                   <DialogTitle>Unstake Tokens</DialogTitle>
                   <DialogDescription className="text-slate-400">
                     Enter the amount you want to unstake
-                    {stakedData && ` (Max: ${formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol)})`}
+                    {stakedData && ` (Max: ${formatTokenAmount(parseFloat(stakedData.staked_quantity), poolSymbol, decimals)})`}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Input
                     type="number"
-                    step="0.00000001"
-                    min="0.00000001"
+                    step={stepValue}
+                    min={stepValue}
                     max={stakedData ? parseTokenString(stakedData.staked_quantity).amount : 0}
                     placeholder={`Amount of ${poolSymbol}`}
                     value={unstakeAmount}
