@@ -124,7 +124,7 @@ const PoolManagement = ({
     const [quantity_amount = '0', quantity_symbol = symbol] = (amount || '').split(' ');
     const formatted_reward_pool = {
       quantity: `${formatWithPrecision(parseFloat(quantity_amount), tokenPrecision)} ${quantity_symbol.toUpperCase()}`,
-      contract: data.reward_pool.contract || 'eosio.token'
+      contract: data.reward_pool.contract
     };
 
     return {
