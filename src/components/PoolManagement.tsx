@@ -261,7 +261,7 @@ const PoolManagement = ({
                 reward_pool: { 
                   ...newPool.reward_pool, 
                   quantity: e.target.value,
-                  contract: 'eosio.token'
+                  contract: e.target.value.split('@')[1] || newPool.staked_token_contract
                 }
               })}
               className="w-full bg-slate-900 rounded-lg px-3 py-2 text-white"
