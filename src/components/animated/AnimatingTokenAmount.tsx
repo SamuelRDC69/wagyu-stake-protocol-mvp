@@ -2,8 +2,13 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { usePrevious } from "../../lib/hooks/animation";
 
-function formatForDisplay(number = 0) {
-  return number.toFixed(8).split("").reverse();
+interface AnimatingTokenAmountProps {
+  value: number;
+  decimals?: number;
+}
+
+function formatForDisplay(number = 0, decimals = 8) {
+  return number.toFixed(decimals).split("").reverse();
 }
 
 function DecimalColumn() {
@@ -55,8 +60,8 @@ function NumberColumn({ digit, delta }: { digit: string; delta: string | null })
   );
 }
 
-export default function AnimatingTokenAmount({ value }: { value: number }) {
-  const numArray = formatForDisplay(value);
+export default function AnimatingTokenAmount({ value, decimals = 8 }: AnimatingTokenAmountProps) {
+  const numArray = formatForDisplay(value, decimals);
   const previousNumber = usePrevious(value);
 
   let delta: string | null = null;
