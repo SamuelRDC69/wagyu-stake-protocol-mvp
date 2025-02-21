@@ -337,8 +337,9 @@ const userStatusProps = useMemo(() => ({
   stakedData: playerStake,
   config: gameData.config,
   poolSymbol: selectedPool ? parseTokenString(selectedPool.total_staked_quantity).symbol : '',
+  poolQuantity: selectedPool?.total_staked_quantity || '', // Add this line
   tierProgress: tierProgress || undefined,
-  isLoading: false // Remove loading state from user status
+  isLoading: false
 }), [playerStake, gameData.config, selectedPool, tierProgress]);
 
   const renderContent = () => {
