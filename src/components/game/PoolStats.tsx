@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from 'react';
+import React, { useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Shield, TrendingUp, Scale, Info } from 'lucide-react';
 import { PoolEntity } from '@/lib/types/pool';
@@ -7,6 +7,7 @@ import AnimatingTokenAmount from '../animated/AnimatingTokenAmount';
 import { TokenImage } from '@/components/ui/TokenImage';
 import { Button } from '@/components/ui/button';
 import { FarmStatsInfo } from './FarmStatsInfo';
+import { parseTokenString } from '@/lib/utils/tokenUtils';
 
 interface PoolStatsProps {
   poolData?: PoolEntity;
@@ -25,23 +26,30 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
   const [updateKey, setUpdateKey] = useState<number>(0);
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
 
+  // Get decimals from pool data
+  const { decimals, symbol } = useMemo(() => 
+    parseTokenString(poolData?.total_staked_quantity),
+    [poolData?.total_staked_quantity]
+  );
+
   const calculateCurrentRewards = useCallback(() => {
     if (!poolData) return 0;
 
     try {
       const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-      const initialAmount = Math.round(parseFloat(initialAmountStr) * 100000000);
+      const multiplier = Math.pow(10, decimals);
+      const initialAmount = Math.round(parseFloat(initialAmountStr) * multiplier);
       const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
       const currentTime = new Date().getTime();
       const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
       const additionalAmount = Math.floor(elapsedSeconds * 500);
       const totalAmount = initialAmount + additionalAmount;
-      return totalAmount / 100000000;
+      return totalAmount / multiplier;
     } catch (error) {
       console.error('Error calculating rewards:', error);
       return 0;
     }
-  }, [poolData]);
+  }, [poolData, decimals]);
 
   useEffect(() => {
     setUpdateKey(prev => prev + 1);
@@ -95,19 +103,19 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     );
   }
 
-  // Parse pool data
-  const [totalStakedAmount, symbol] = poolData.total_staked_quantity.split(' ');
-  const totalStakedFormatted = parseFloat(totalStakedAmount).toFixed(8);
+  // Parse pool data with correct decimals
+  const { amount: totalStakedAmount } = parseTokenString(poolData.total_staked_quantity);
+  const totalStakedFormatted = totalStakedAmount.toFixed(decimals);
 
-  // Parse weight data
-  let userWeight = '0.00000000';
+  // Parse weight data with correct decimals
+  let userWeight = '0'.padEnd(decimals + 2, '0');
   let userPercent = '0.00';
   if (userStakedQuantity && userTierWeight) {
-    const [userAmount] = userStakedQuantity.split(' ');
-    const userWeightNum = parseFloat(userAmount) * parseFloat(userTierWeight);
-    userWeight = userWeightNum.toFixed(8);
-    const [totalWeightAmount] = poolData.total_staked_weight.split(' ');
-    userPercent = ((userWeightNum / parseFloat(totalWeightAmount)) * 100).toFixed(2);
+    const { amount: userAmount } = parseTokenString(userStakedQuantity);
+    const userWeightNum = userAmount * parseFloat(userTierWeight);
+    userWeight = userWeightNum.toFixed(decimals);
+    const { amount: totalWeightAmount } = parseTokenString(poolData.total_staked_weight);
+    userPercent = ((userWeightNum / totalWeightAmount) * 100).toFixed(2);
   }
 
   return (
@@ -149,7 +157,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                 <p className="text-xs md:text-sm text-slate-400">Farm Total Weight</p>
                 <div className="flex items-center gap-2">
                   <p className="text-sm md:text-base font-medium text-purple-200 truncate">
-                    {parseFloat(poolData.total_staked_weight).toFixed(8)}
+                    {parseFloat(poolData.total_staked_weight).toFixed(decimals)}
                   </p>
                 </div>
               </div>
@@ -164,14 +172,17 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                   <p className="text-xs md:text-sm text-slate-400">Farm Rewards Pool</p>
                   <div className="flex items-center gap-2">
                     <div className="text-sm md:text-base font-medium text-purple-200 truncate">
-                      <AnimatingTokenAmount value={currentRewards} />
+                      <AnimatingTokenAmount 
+                        value={currentRewards} 
+                        decimals={decimals}
+                      />
                     </div>
                     <TokenImage symbol={symbol} className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                   </div>
                 </div>
               </div>
 
-              {userWeight !== '0.00000000' && (
+              {userWeight !== '0'.padEnd(decimals + 2, '0') && (
                 <div className="flex items-center gap-3 bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50 transition-all hover:bg-slate-800/40">
                   <div className={cn("p-2 rounded-lg bg-purple-500/10")}>
                     <Scale className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />
@@ -185,7 +196,7 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
                         </p>
                       </div>
                       <div className="bg-slate-900/50 px-2 py-1 rounded-lg">
-<span className="text-xs md:text-sm text-purple-200">{userPercent}% of Farm</span>
+                        <span className="text-xs md:text-sm text-purple-200">{userPercent}% of Farm</span>
                       </div>
                     </div>
                   </div>
