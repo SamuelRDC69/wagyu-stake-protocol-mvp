@@ -161,23 +161,23 @@ useEffect(() => {
     return claimAction?.act.data;
   };
 
-  const handleStake = async (amount: string) => {
-    if (!session || !selectedPool) return;
-    
-    try {
-      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-      const formattedAmount = parseFloat(amount).toFixed(8);
-      const action = {
-        account: Name.from(selectedPool.staked_token_contract),
-        name: Name.from('transfer'),
-        authorization: [session.permissionLevel],
-        data: {
-          from: session.actor,
-          to: CONTRACTS.STAKING.NAME,
-          quantity: `${formattedAmount} ${symbol}`,
-          memo: 'stake'
-        }
-      };
+const handleStake = async (amount: string) => {
+  if (!session || !selectedPool) return;
+  
+  try {
+    const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(decimals); // Changed from 8 to decimals
+    const action = {
+      account: Name.from(selectedPool.staked_token_contract),
+      name: Name.from('transfer'),
+      authorization: [session.permissionLevel],
+      data: {
+        from: session.actor,
+        to: CONTRACTS.STAKING.NAME,
+        quantity: `${formattedAmount} ${symbol}`,
+        memo: 'stake'
+      }
+    };
 
       const result = await session.transact({ actions: [action] });
       const claimTransfer = findClaimTransfer(result);
@@ -202,22 +202,22 @@ useEffect(() => {
     }
   };
 
-  const handleUnstake = async (amount: string) => {
-    if (!session || !selectedPool || !playerStake) return;
-    
-    try {
-      const { symbol } = parseTokenString(selectedPool.total_staked_quantity);
-      const formattedAmount = parseFloat(amount).toFixed(8);
-      const action = {
-        account: Name.from(CONTRACTS.STAKING.NAME),
-        name: Name.from('unstake'),
-        authorization: [session.permissionLevel],
-        data: {
-          claimer: session.actor,
-          pool_id: selectedPool.pool_id,
-          quantity: `${formattedAmount} ${symbol}`,
-        }
-      };
+const handleUnstake = async (amount: string) => {
+  if (!session || !selectedPool || !playerStake) return;
+  
+  try {
+    const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(decimals); // Changed from 8 to decimals
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('unstake'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id,
+        quantity: `${formattedAmount} ${symbol}`,
+      }
+    };
 
       await session.transact({ actions: [action] });
 
