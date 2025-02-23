@@ -32,24 +32,28 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     [poolData?.total_staked_quantity]
   );
 
-  const calculateCurrentRewards = useCallback(() => {
-    if (!poolData) return 0;
+const calculateCurrentRewards = useCallback(() => {
+  if (!poolData) return 0;
 
-    try {
-      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-      const multiplier = Math.pow(10, decimals);
-      const initialAmount = Math.round(parseFloat(initialAmountStr) * multiplier);
-      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-      const currentTime = new Date().getTime();
-      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-      const additionalAmount = Math.floor(elapsedSeconds * 500);
-      const totalAmount = initialAmount + additionalAmount;
-      return totalAmount / multiplier;
-    } catch (error) {
-      console.error('Error calculating rewards:', error);
-      return 0;
-    }
-  }, [poolData, decimals]);
+  try {
+    const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+    const multiplier = Math.pow(10, decimals);
+    const initialAmount = Math.round(parseFloat(initialAmountStr) * multiplier);
+    const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+    const currentTime = new Date().getTime();
+    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+    
+    // Calculate emissions based on pool data
+    const emissionsPerSecond = poolData.emission_rate / poolData.emission_unit;
+    const additionalAmount = Math.floor(elapsedSeconds * emissionsPerSecond * multiplier);
+    
+    const totalAmount = initialAmount + additionalAmount;
+    return totalAmount / multiplier;
+  } catch (error) {
+    console.error('Error calculating rewards:', error);
+    return 0;
+  }
+}, [poolData, decimals]);
 
   useEffect(() => {
     setUpdateKey(prev => prev + 1);
