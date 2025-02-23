@@ -42,16 +42,16 @@ const calculateCurrentRewards = useCallback(() => {
     const currentTime = new Date().getTime();
     const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
     
-    // For emission_rate 10, emission_unit 1 = 0.1000 per second
-    const emissionsPerSecond = (poolData.emission_rate / poolData.emission_unit) / Math.pow(10, decimals);
-    const additionalAmount = elapsedSeconds * emissionsPerSecond;
+    // Match contract calculation exactly:
+    // time_diff * emission_rate / emission_unit 
+    const additionalAmount = (elapsedSeconds * poolData.emission_rate) / poolData.emission_unit;
     
     return initialAmount + additionalAmount;
   } catch (error) {
     console.error('Error calculating rewards:', error);
     return 0;
   }
-}, [poolData, decimals]);
+}, [poolData]);
 
   useEffect(() => {
     setUpdateKey(prev => prev + 1);
