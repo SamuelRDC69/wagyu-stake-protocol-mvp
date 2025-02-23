@@ -37,18 +37,16 @@ const calculateCurrentRewards = useCallback(() => {
 
   try {
     const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    const multiplier = Math.pow(10, decimals);
-    const initialAmount = Math.round(parseFloat(initialAmountStr) * multiplier);
+    const initialAmount = parseFloat(initialAmountStr);
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
     const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
     
-    // For emission_rate 10, emission_unit 1 = 0.1000 per second for 4 decimal token
-    const emissionsPerSecond = poolData.emission_rate / poolData.emission_unit;
-    const additionalAmount = Math.floor(elapsedSeconds * emissionsPerSecond);
+    // For emission_rate 10, emission_unit 1 = 0.1000 per second
+    const emissionsPerSecond = (poolData.emission_rate / poolData.emission_unit) / Math.pow(10, decimals);
+    const additionalAmount = elapsedSeconds * emissionsPerSecond;
     
-    const totalAmount = initialAmount + additionalAmount;
-    return totalAmount / multiplier;
+    return initialAmount + additionalAmount;
   } catch (error) {
     console.error('Error calculating rewards:', error);
     return 0;
