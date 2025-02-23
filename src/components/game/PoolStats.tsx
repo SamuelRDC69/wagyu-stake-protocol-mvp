@@ -43,9 +43,9 @@ const calculateCurrentRewards = useCallback(() => {
     const currentTime = new Date().getTime();
     const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
     
-    // Calculate emissions based on pool data
+    // For emission_rate 10, emission_unit 1 = 0.1000 per second for 4 decimal token
     const emissionsPerSecond = poolData.emission_rate / poolData.emission_unit;
-    const additionalAmount = Math.floor(elapsedSeconds * emissionsPerSecond * multiplier);
+    const additionalAmount = Math.floor(elapsedSeconds * emissionsPerSecond);
     
     const totalAmount = initialAmount + additionalAmount;
     return totalAmount / multiplier;
