@@ -40,13 +40,11 @@ const calculateCurrentRewards = useCallback(() => {
     const initialAmount = parseFloat(initialAmountStr);
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
+    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
     
-    // Convert to nanoseconds
-    const elapsedNanos = (currentTime - lastUpdate) * 1000000;
-    
-    // Match contract calculation exactly
-    const additionalAmount = (elapsedNanos * poolData.emission_rate) / 
-                           (poolData.emission_unit * 1000000000);
+    // Same calculation as contract: rate/unit = tokens per second
+    const perSecond = (poolData.emission_rate / poolData.emission_unit) / 100; // Divide by 100 since asset type isn't handling decimals for us
+    const additionalAmount = elapsedSeconds * perSecond;
     
     return initialAmount + additionalAmount;
   } catch (error) {
