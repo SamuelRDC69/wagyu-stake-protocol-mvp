@@ -45,10 +45,16 @@ const calculateCurrentRewards = useCallback(() => {
     // Get token decimals
     const { decimals } = parseTokenString(poolData.reward_pool.quantity);
     
-    // Formula based on observed rates
-    const tokensPerSecond = (poolData.emission_rate / poolData.emission_unit) * Math.pow(10, -(decimals+2));
-    const additionalAmount = elapsedSeconds * tokensPerSecond;
+    let tokensPerSecond;
+    if (decimals === 4) {
+      // REK formula: emission_rate * 0.01
+      tokensPerSecond = poolData.emission_rate * 0.01;
+    } else {
+      // WAX formula: emission_rate * 0.0000000001
+      tokensPerSecond = poolData.emission_rate * 0.0000000001;
+    }
     
+    const additionalAmount = elapsedSeconds * tokensPerSecond;
     return initialAmount + additionalAmount;
   } catch (error) {
     console.error('Error calculating rewards:', error);
