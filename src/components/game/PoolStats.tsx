@@ -45,9 +45,8 @@ const calculateCurrentRewards = useCallback(() => {
     // Get token decimals
     const { decimals } = parseTokenString(poolData.reward_pool.quantity);
     
-    // Formula derived from observed data:
-    // emission_rate / (10^(decimals+2)) = tokens per second
-    const tokensPerSecond = poolData.emission_rate / (Math.pow(10, decimals + 2));
+    // Formula based on observed rates
+    const tokensPerSecond = poolData.emission_rate * Math.pow(10, -(decimals-1));
     const additionalAmount = elapsedSeconds * tokensPerSecond;
     
     return initialAmount + additionalAmount;
