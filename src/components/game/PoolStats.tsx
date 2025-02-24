@@ -42,11 +42,13 @@ const calculateCurrentRewards = useCallback(() => {
     const currentTime = new Date().getTime();
     const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
     
-    // Based on observation:
-    // REK (4 decimals): rate 10 -> 0.1000/sec
-    // This suggests multiply by 0.01
-    const perSecond = (poolData.emission_rate / poolData.emission_unit) * 0.01;
-    const additionalAmount = elapsedSeconds * perSecond;
+    // Get token decimals
+    const { decimals } = parseTokenString(poolData.reward_pool.quantity);
+    
+    // Formula derived from observed data:
+    // emission_rate / (10^(decimals+2)) = tokens per second
+    const tokensPerSecond = poolData.emission_rate / (Math.pow(10, decimals + 2));
+    const additionalAmount = elapsedSeconds * tokensPerSecond;
     
     return initialAmount + additionalAmount;
   } catch (error) {
