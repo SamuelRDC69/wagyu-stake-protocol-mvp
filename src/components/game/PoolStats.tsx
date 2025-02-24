@@ -40,14 +40,13 @@ const calculateCurrentRewards = useCallback(() => {
     const initialAmount = parseFloat(initialAmountStr);
     const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
     const currentTime = new Date().getTime();
-    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
     
-    // Get precision from pool data just like contract does
-    const { decimals } = parseTokenString(poolData.reward_pool.quantity);
-    const precision_divisor = Math.pow(10, decimals);
+    // Convert to nanoseconds
+    const elapsedNanos = (currentTime - lastUpdate) * 1000000;
     
-    const emissionsPerSecond = poolData.emission_rate / (poolData.emission_unit * precision_divisor);
-    const additionalAmount = elapsedSeconds * emissionsPerSecond;
+    // Match contract calculation exactly
+    const additionalAmount = (elapsedNanos * poolData.emission_rate) / 
+                           (poolData.emission_unit * 1000000000);
     
     return initialAmount + additionalAmount;
   } catch (error) {
