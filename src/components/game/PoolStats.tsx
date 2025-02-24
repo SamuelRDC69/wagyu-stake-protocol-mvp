@@ -47,11 +47,11 @@ const calculateCurrentRewards = useCallback(() => {
     
     let tokensPerSecond;
     if (decimals === 4) {
-      // REK formula: emission_rate * 0.01
+      // For 4 decimal token (REK): emission_rate * 0.01
       tokensPerSecond = poolData.emission_rate * 0.01;
     } else {
-      // WAX formula: emission_rate * 0.0000001 (removed one zero)
-      tokensPerSecond = poolData.emission_rate * 0.0000001;
+      // For 8 decimal token (WAX): emission_rate * 0.0000000001
+      tokensPerSecond = poolData.emission_rate * 0.0000000001;
     }
     
     const additionalAmount = elapsedSeconds * tokensPerSecond;
