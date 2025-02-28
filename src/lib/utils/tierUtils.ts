@@ -25,23 +25,43 @@ export const determineTier = (
     }
 
     // Calculate percentage with precise decimal handling
-    const stakedPercent = Math.min((stakedValue / totalValue) * 100, 100);
+    const stakedPercent = (stakedValue / totalValue) * 100;
+    
+    console.log(`Staked: ${stakedValue}, Total: ${totalValue}, Percent: ${stakedPercent}%`);
 
     // Sort tiers by percentage threshold
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find the tier where the staked percentage falls within its range
+    // Find the appropriate tier using binary search approach
+    let left = 0;
+    let right = sortedTiers.length - 1;
+    let resultTier = sortedTiers[0]; // Default to lowest tier
+    
+    // Find the tier with the highest threshold that's still below the staked percentage
     for (let i = 0; i < sortedTiers.length; i++) {
       const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
+      
       if (stakedPercent <= tierThreshold) {
-        return sortedTiers[i];
+        // Found the first tier where threshold >= stakedPercent
+        // If this is not the first tier, the previous tier is our answer
+        if (i > 0) {
+          resultTier = sortedTiers[i-1];
+        } else {
+          resultTier = sortedTiers[0];
+        }
+        break;
+      }
+      
+      // If we've reached the last tier and still haven't found a match,
+      // the staked percentage is higher than all thresholds, so use the highest tier
+      if (i === sortedTiers.length - 1) {
+        resultTier = sortedTiers[i];
       }
     }
-
-    // If no tier found (exceeded all thresholds), return highest tier
-    return sortedTiers[sortedTiers.length - 1];
+    
+    return resultTier;
   } catch (error) {
     console.error('Error determining tier:', error);
     return tiers[0];
