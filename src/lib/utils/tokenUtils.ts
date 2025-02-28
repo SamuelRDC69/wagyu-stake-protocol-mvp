@@ -7,7 +7,6 @@ export const parseTokenString = (tokenString: string | undefined) => {
       decimals: 8
     };
   }
-
   try {
     const parts = tokenString.trim().split(' ');
     const amountStr = parts[0] || '0';
@@ -15,11 +14,16 @@ export const parseTokenString = (tokenString: string | undefined) => {
     const amount = parseFloat(amountStr) || 0;
     
     // Detect decimals from the amount string
-    const decimals = amountStr.includes('.') ? 
-      amountStr.split('.')[1].length : 
-      // If no decimal in string, detect from symbol format
-      (amountStr.match(/0+$/)?.[0]?.length || 8);
-
+    let decimals = 8; // Default fallback
+    
+    if (amountStr.includes('.')) {
+      // If amount has decimal point, count decimal places
+      decimals = amountStr.split('.')[1].length;
+    } else {
+      // Try to detect from contract data or use fallback
+      decimals = 8;
+    }
+    
     return {
       amount,
       symbol,
@@ -39,10 +43,15 @@ export const parseTokenString = (tokenString: string | undefined) => {
 export const formatTokenAmount = (
   amount: number | undefined,
   symbol: string,
-  decimals: number = 8
+  decimals?: number
 ): string => {
   if (amount === undefined || isNaN(amount)) {
-    return `0.${'0'.repeat(decimals)} ${symbol}`;
+    const defaultDecimals = decimals || 8;
+    return `0.${'0'.repeat(defaultDecimals)} ${symbol}`;
   }
-  return `${amount.toFixed(decimals)} ${symbol}`;
+  
+  // Use provided decimals or default to 8
+  const tokenDecimals = decimals || 8;
+  
+  return `${amount.toFixed(tokenDecimals)} ${symbol}`;
 };
