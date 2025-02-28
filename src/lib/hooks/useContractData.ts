@@ -171,21 +171,31 @@ export function useContractData() {
     }
   }, [session, lastFetch]);
 
-  // Fetch leaderboard data for a specific token/pool
-  const fetchLeaderboardByPool = useCallback(async (poolId: number) => {
-    setLoading(true);
+// Fetch leaderboard data for a specific token/pool
+const fetchLeaderboardByPool = useCallback(async (poolId: number) => {
+  setLoading(true);
+  try {
+    // Try the specific endpoint first
     try {
       const endpoint = API_ENDPOINTS.FILTERED_LEADERBOARD(poolId);
       const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(endpoint);
       return leaderboardStakes.map(stake => enrichStakeData(stake));
     } catch (err) {
-      console.error('Error fetching filtered leaderboard:', err);
-      setError(err instanceof Error ? err : new Error('Failed to load leaderboard'));
-      return [];
-    } finally {
-      setLoading(false);
+      // If specific endpoint fails, fall back to general leaderboard and filter
+      console.warn('Filtered leaderboard API failed, falling back to global leaderboard');
+      const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(API_ENDPOINTS.LEADERBOARD);
+      return leaderboardStakes
+        .filter(stake => stake.pool_id === poolId)
+        .map(stake => enrichStakeData(stake));
     }
-  }, []);
+  } catch (err) {
+    console.error('Error fetching filtered leaderboard:', err);
+    setError(err instanceof Error ? err : new Error('Failed to load leaderboard'));
+    return [];
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     if (!session) return;
