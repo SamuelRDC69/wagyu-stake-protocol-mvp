@@ -46,7 +46,8 @@ import { ConfigEntity } from '../lib/types/config';
 import { parseTokenString } from '../lib/utils/tokenUtils';
 import { 
   calculateTierProgress, 
-  isTierUpgradeAvailable 
+  isTierUpgradeAvailable,
+  determineTier
 } from '../lib/utils/tierUtils';
 
 interface NavItem {
@@ -81,6 +82,7 @@ interface ActionTrace {
 const GameUI: React.FC = () => {
   const { session, setSession, sessionKit } = useContext(WharfkitContext);
   const [activeTab, setActiveTab] = useState<string>('kingdom');
+  const [previousTab, setPreviousTab] = useState<string>('kingdom');
   const [selectedPool, setSelectedPool] = useState<PoolEntity | undefined>();
   const { fetchData, loading } = useContractData();
   const { addToast } = useToast();
@@ -90,6 +92,7 @@ const GameUI: React.FC = () => {
     tiers: [],
     config: undefined
   });
+  const [isProcessingTransaction, setIsProcessingTransaction] = useState<boolean>(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -116,34 +119,41 @@ const GameUI: React.FC = () => {
     }
   }, [fetchData, selectedPool, addToast]);
 
-useEffect(() => {
-  if (session) {
-    const initialLoad = async () => {
-      const data = await fetchData();
-      if (data) {
-        setGameData({
-          pools: data.pools,
-          stakes: data.stakes,
-          tiers: data.tiers,
-          config: data.config
-        });
+  useEffect(() => {
+    if (session) {
+      const initialLoad = async () => {
+        const data = await fetchData();
+        if (data) {
+          setGameData({
+            pools: data.pools,
+            stakes: data.stakes,
+            tiers: data.tiers,
+            config: data.config
+          });
 
-        if (data.pools.length > 0 && !selectedPool) {
-          setSelectedPool(data.pools[0]);
+          if (data.pools.length > 0 && !selectedPool) {
+            setSelectedPool(data.pools[0]);
+          }
         }
-      }
-    };
-    initialLoad();
-  } else {
-    setGameData({
-      pools: [],
-      stakes: [],
-      tiers: [],
-      config: undefined
-    });
-    setSelectedPool(undefined);
-  }
-}, [session]);
+      };
+      initialLoad();
+    } else {
+      setGameData({
+        pools: [],
+        stakes: [],
+        tiers: [],
+        config: undefined
+      });
+      setSelectedPool(undefined);
+    }
+  }, [session]);
+
+  // After transaction, return to previous tab
+  useEffect(() => {
+    if (!isProcessingTransaction && previousTab !== activeTab) {
+      setActiveTab(previousTab);
+    }
+  }, [isProcessingTransaction, previousTab]);
 
   const findClaimTransfer = (transaction: any) => {
     const actionTraces = transaction?.response?.processed?.action_traces;
@@ -154,42 +164,48 @@ useEffect(() => {
     const claimAction = actionTraces.find(trace => 
       trace.act.account === 'eosio.token' &&
       trace.act.name === 'transfer' && 
-      trace.act.data.from === 'test1ngstake' &&
       trace.act.data.memo === 'Token staking reward.'
     );
 
     return claimAction?.act.data;
   };
 
-const handleStake = async (amount: string) => {
-  if (!session || !selectedPool) return;
-  
-  try {
-    const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
-    const formattedAmount = parseFloat(amount).toFixed(decimals); // Changed from 8 to decimals
-    const action = {
-      account: Name.from(selectedPool.staked_token_contract),
-      name: Name.from('transfer'),
-      authorization: [session.permissionLevel],
-      data: {
-        from: session.actor,
-        to: CONTRACTS.STAKING.NAME,
-        quantity: `${formattedAmount} ${symbol}`,
-        memo: 'stake'
-      }
-    };
+  const handleStake = async (amount: string) => {
+    if (!session || !selectedPool) return;
+    
+    try {
+      setPreviousTab(activeTab);
+      setIsProcessingTransaction(true);
+      
+      const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
+      const formattedAmount = parseFloat(amount).toFixed(decimals);
+      const action = {
+        account: Name.from(selectedPool.staked_token_contract),
+        name: Name.from('transfer'),
+        authorization: [session.permissionLevel],
+        data: {
+          from: session.actor,
+          to: CONTRACTS.STAKING.NAME,
+          quantity: `${formattedAmount} ${symbol}`,
+          memo: 'stake'
+        }
+      };
 
       const result = await session.transact({ actions: [action] });
       const claimTransfer = findClaimTransfer(result);
 
+      // Determine the appropriate message based on if tokens were also claimed
+      const toastMessage = claimTransfer?.quantity
+        ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.quantity}`
+        : `Staked ${formattedAmount} ${symbol}`;
+
       addToast({
         type: 'success',
         title: 'Stake Successful!',
-        message: claimTransfer?.quantity
-          ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.quantity}`
-          : `Staked ${formattedAmount} ${symbol}`
+        message: toastMessage
       });
 
+      // Immediately refresh data to get the updated tier
       await loadData();
     } catch (error) {
       console.error('Stake error:', error);
@@ -198,26 +214,30 @@ const handleStake = async (amount: string) => {
         title: 'Stake Failed',
         message: 'Failed to stake tokens. Please try again.'
       });
-      await loadData();
+    } finally {
+      setIsProcessingTransaction(false);
     }
   };
 
-const handleUnstake = async (amount: string) => {
-  if (!session || !selectedPool || !playerStake) return;
-  
-  try {
-    const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
-    const formattedAmount = parseFloat(amount).toFixed(decimals); // Changed from 8 to decimals
-    const action = {
-      account: Name.from(CONTRACTS.STAKING.NAME),
-      name: Name.from('unstake'),
-      authorization: [session.permissionLevel],
-      data: {
-        claimer: session.actor,
-        pool_id: selectedPool.pool_id,
-        quantity: `${formattedAmount} ${symbol}`,
-      }
-    };
+  const handleUnstake = async (amount: string) => {
+    if (!session || !selectedPool || !playerStake) return;
+    
+    try {
+      setPreviousTab(activeTab);
+      setIsProcessingTransaction(true);
+      
+      const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
+      const formattedAmount = parseFloat(amount).toFixed(decimals);
+      const action = {
+        account: Name.from(CONTRACTS.STAKING.NAME),
+        name: Name.from('unstake'),
+        authorization: [session.permissionLevel],
+        data: {
+          claimer: session.actor,
+          pool_id: selectedPool.pool_id,
+          quantity: `${formattedAmount} ${symbol}`,
+        }
+      };
 
       await session.transact({ actions: [action] });
 
@@ -235,7 +255,8 @@ const handleUnstake = async (amount: string) => {
         title: 'Unstake Failed',
         message: 'Failed to unstake tokens. Please try again.'
       });
-      await loadData();
+    } finally {
+      setIsProcessingTransaction(false);
     }
   };
 
@@ -243,6 +264,9 @@ const handleUnstake = async (amount: string) => {
     if (!session || !selectedPool) return;
     
     try {
+      setPreviousTab(activeTab);
+      setIsProcessingTransaction(true);
+      
       const action = {
         account: Name.from(CONTRACTS.STAKING.NAME),
         name: Name.from('claim'),
@@ -272,7 +296,8 @@ const handleUnstake = async (amount: string) => {
         title: 'Claim Failed',
         message: 'Failed to claim rewards. Please try again.'
       });
-      await loadData();
+    } finally {
+      setIsProcessingTransaction(false);
     }
   };
 
@@ -333,16 +358,27 @@ const handleUnstake = async (amount: string) => {
     );
   }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
 
-const userStatusProps = useMemo(() => ({
-  stakedData: playerStake,
-  config: gameData.config,
-  poolSymbol: selectedPool ? parseTokenString(selectedPool.total_staked_quantity).symbol : '',
-  poolQuantity: selectedPool?.total_staked_quantity || '', // Add this line
-  tierProgress: tierProgress || undefined,
-  isLoading: false
-}), [playerStake, gameData.config, selectedPool, tierProgress]);
+  const userStatusProps = useMemo(() => ({
+    stakedData: playerStake,
+    config: gameData.config,
+    poolSymbol: selectedPool ? parseTokenString(selectedPool.total_staked_quantity).symbol : '',
+    poolQuantity: selectedPool?.total_staked_quantity || '', // Add token quantity for decimals
+    tierProgress: tierProgress || undefined,
+    isLoading: loading
+  }), [playerStake, gameData.config, selectedPool, tierProgress, loading]);
 
   const renderContent = () => {
+    // If processing a transaction, show a loading indicator
+    if (isProcessingTransaction) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <div className="loading-spinner" />
+          <p className="text-purple-200">Processing transaction...</p>
+        </div>
+      );
+    }
+
+    // If not logged in and not viewing leaderboard, show login prompt
     if (!session && activeTab !== 'leaderboard') {
       return (
         <div className="flex justify-center items-center h-64">
@@ -356,10 +392,10 @@ const userStatusProps = useMemo(() => ({
         return (
           <div className="space-y-6">
             <div className="crystal-bg rounded-2xl p-6 border border-purple-500/20">
-<h2 className="text-lg font-medium mb-4 text-purple-200 flex items-center gap-2">
-  <Crown className="w-5 h-5 text-purple-500" />
-  Select Farm
-</h2>
+              <h2 className="text-lg font-medium mb-4 text-purple-200 flex items-center gap-2">
+                <Crown className="w-5 h-5 text-purple-500" />
+                Select Farm
+              </h2>
               <Select 
                 onValueChange={(value) => {
                   try {
@@ -429,7 +465,7 @@ const userStatusProps = useMemo(() => ({
 
                   {gameData.config && (
                     <UserStatus 
-                      key={`user-${playerStake?.staked_quantity}-${playerStake?.cooldown_end_at}`}
+                      key={`user-${playerStake?.staked_quantity}-${playerStake?.cooldown_end_at}-${selectedPool.pool_id}`}
                       {...userStatusProps}
                       {...memoizedHandlers}
                     />
@@ -475,65 +511,65 @@ const userStatusProps = useMemo(() => ({
     }
   };
 
-const BerryFiLogo = () => {
-  return (
-    <h1 className="flex items-baseline">
-      <span className="font-poppins font-black text-lg leading-relaxed py-1 bg-gradient-to-r from-purple-200 to-purple-300 text-transparent bg-clip-text">
-        Berry
-      </span>
-      <span className="font-poppins font-black text-lg leading-relaxed py-1 bg-gradient-to-r from-purple-300 to-purple-400 text-transparent bg-clip-text">
-        Fi
-      </span>
-    </h1>
-  );
-};
+  const BerryFiLogo = () => {
+    return (
+      <h1 className="flex items-baseline">
+        <span className="font-poppins font-black text-lg leading-relaxed py-1 bg-gradient-to-r from-purple-200 to-purple-300 text-transparent bg-clip-text">
+          Berry
+        </span>
+        <span className="font-poppins font-black text-lg leading-relaxed py-1 bg-gradient-to-r from-purple-300 to-purple-400 text-transparent bg-clip-text">
+          Fi
+        </span>
+      </h1>
+    );
+  };
 
-return (
-  <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
-    {/* Header */}
-    <div className="relative crystal-bg py-4 border-b border-purple-500/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-          <BerryFiLogo />
-          
-          {session ? (
-            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group flex-1 sm:flex-initial">
-                  <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
-                  <span className="font-medium text-base text-purple-200">
-                    {session.actor.toString()}
-                  </span>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-900 to-slate-900">
+      {/* Header */}
+      <div className="relative crystal-bg py-4 border-b border-purple-500/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <BerryFiLogo />
+            
+            {session ? (
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 px-4 flex items-center gap-2 group flex-1 sm:flex-initial">
+                    <div className="w-2 h-2 rounded-full bg-green-500 group-hover:animate-pulse" />
+                    <span className="font-medium text-base text-purple-200">
+                      {session.actor.toString()}
+                    </span>
+                  </div>
+                  {playerStake && tierProgress?.currentTier && (
+                    <TierBadge 
+                      tier={playerStake.tier}
+                      showLevel
+                      compact
+                      className="transition-all shine-effect"
+                    />
+                  )}
                 </div>
-                {playerStake && tierProgress?.currentTier && (
-                  <TierBadge 
-                    tier={playerStake.tier}
-                    showLevel
-                    compact
-                    className="transition-all shine-effect"
-                  />
-                )}
+                <Button 
+                  variant="outline" 
+                  className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200 text-base w-full sm:w-auto"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
               </div>
+            ) : (
               <Button 
                 variant="outline" 
                 className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200 text-base w-full sm:w-auto"
-                onClick={handleLogout}
+                onClick={handleLogin}
               >
-                Logout
+                Connect Wallet
               </Button>
-            </div>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="bg-slate-800/30 border border-slate-700/50 hover:bg-slate-700/50 text-purple-200 text-base w-full sm:w-auto"
-              onClick={handleLogin}
-            >
-              Connect Wallet
-            </Button>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-6">
@@ -549,7 +585,12 @@ return (
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  if (!isProcessingTransaction) {
+                    setActiveTab(item.id);
+                  }
+                }}
+                disabled={isProcessingTransaction}
                 className={cn(
                   "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all",
                   activeTab === item.id 
@@ -557,7 +598,8 @@ return (
                     : "hover:bg-slate-800/30",
                   activeTab === item.id 
                     ? "text-purple-200" 
-                    : "text-slate-400 hover:text-purple-200"
+                    : "text-slate-400 hover:text-purple-200",
+                  isProcessingTransaction && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <item.icon className={cn(
