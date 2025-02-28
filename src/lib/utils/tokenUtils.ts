@@ -14,15 +14,19 @@ export const parseTokenString = (tokenString: string | undefined) => {
     const amount = parseFloat(amountStr) || 0;
     
     // Detect decimals from the amount string
-    let decimals = 8; // Default fallback
+    let decimals = 0;
     
     if (amountStr.includes('.')) {
       // If amount has decimal point, count decimal places
       decimals = amountStr.split('.')[1].length;
     } else {
-      // Try to detect from contract data or use fallback
-      decimals = 8;
+      // If no decimal point, attempt to detect from trailing zeros
+      const matchZeros = amountStr.match(/\.?0*$/);
+      decimals = matchZeros ? matchZeros[0].length : 0;
     }
+    
+    // Set minimum decimals to ensure proper formatting
+    decimals = Math.max(decimals, 4);
     
     return {
       amount,
