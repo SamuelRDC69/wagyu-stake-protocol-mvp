@@ -2,12 +2,11 @@ import { TierEntity, TierProgress } from '../types/tier';
 import { parseTokenString } from './tokenUtils';
 import { TIER_CONFIG } from '../config/tierConfig';
 
-const FEE_RATE = 0.003; // 0.3% fee as per contract
-const PRECISION = 100000000; // 8 decimal places for WAX
-
-// Helper function to apply WAX precision
-const applyWaxPrecision = (value: number): number => {
-  return Math.round(value * PRECISION) / PRECISION;
+// Helper function to apply precision based on token's decimals
+const applyPrecision = (value: number, stakedAmount: string): number => {
+  const { decimals } = parseTokenString(stakedAmount);
+  const precision = Math.pow(10, decimals);
+  return Math.round(value * precision) / precision;
 };
 
 // Determine which tier a user is in based on their staked percentage
@@ -33,10 +32,10 @@ export const determineTier = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find first tier where threshold is >= staked percentage (lower_bound)
+    // Find the tier where the staked percentage falls within its range
     for (let i = 0; i < sortedTiers.length; i++) {
       const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
-      if (tierThreshold >= stakedPercent) {
+      if (stakedPercent <= tierThreshold) {
         return sortedTiers[i];
       }
     }
@@ -73,7 +72,7 @@ export const calculateSafeUnstakeAmount = (
   currentTier: TierEntity
 ): number => {
   try {
-    const { amount: stakedValue } = parseTokenString(stakedAmount);
+    const { amount: stakedValue, decimals } = parseTokenString(stakedAmount);
     const { amount: totalValue } = parseTokenString(totalStaked);
     
     if (totalValue === 0) return 0;
@@ -82,23 +81,25 @@ export const calculateSafeUnstakeAmount = (
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
-
+    
     // Find current tier index
     const currentTierIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
     
     // For lowest tier, can unstake everything
     if (currentTierIndex <= 0) {
-      return applyWaxPrecision(stakedValue);
+      return applyPrecision(stakedValue, stakedAmount);
     }
 
-    // Get the previous tier's threshold - need to stay above this to maintain current tier
-    const prevTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent);
-    const minRequired = (prevTierThreshold * totalValue) / 100;
-
-    // Calculate how much we can unstake while staying above previous tier's threshold
+    // Get the threshold for current tier
+    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
+    
+    // Calculate minimum amount needed to maintain current tier
+    const minRequired = (currentTierThreshold * totalValue) / 100;
+    
+    // Safe amount is current staked amount minus min required plus a small buffer
     const safeAmount = Math.max(0, stakedValue - minRequired);
     
-    return applyWaxPrecision(safeAmount);
+    return applyPrecision(safeAmount, stakedAmount);
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
     return 0;
@@ -112,7 +113,7 @@ export const calculateTierProgress = (
   tiers: TierEntity[]
 ): TierProgress | null => {
   try {
-    const { amount: stakedValue, symbol } = parseTokenString(stakedAmount);
+    const { amount: stakedValue, symbol, decimals } = parseTokenString(stakedAmount);
     const { amount: totalValue } = parseTokenString(totalStaked);
     
     if (isNaN(stakedValue) || isNaN(totalValue) || totalValue === 0) {
@@ -127,12 +128,11 @@ export const calculateTierProgress = (
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find exact tier based on staked percentage
-    let currentTier = sortedTiers[sortedTiers.length - 1]; // Default to max tier
+    // Find current tier based on staked percentage
+    let currentTier = sortedTiers[0]; // Default to lowest tier
     let progress = 0;
-    let currentTierIndex = sortedTiers.length - 1;
+    let currentTierIndex = 0;
 
-    // Find the tier where stake percentage is in its range
     for (let i = 0; i < sortedTiers.length; i++) {
       const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
       
@@ -140,20 +140,26 @@ export const calculateTierProgress = (
         currentTier = sortedTiers[i];
         currentTierIndex = i;
         
-        // Calculate exact progress within this tier
+        // Calculate progress within this tier
         const lowerThreshold = i > 0 ? parseFloat(sortedTiers[i - 1].staked_up_to_percent) : 0;
         const range = tierThreshold - lowerThreshold;
         
         if (range > 0) {
           progress = ((stakedPercent - lowerThreshold) / range) * 100;
-          // Ensure progress is between 0 and 100 with high precision
           progress = Math.min(100, Math.max(0, progress));
         }
         break;
       }
     }
 
-    // Get adjacent tiers for level progression
+    // If no tier was found (exceeded all thresholds), use the highest tier
+    if (currentTierIndex === 0 && stakedPercent > parseFloat(sortedTiers[0].staked_up_to_percent)) {
+      currentTier = sortedTiers[sortedTiers.length - 1];
+      currentTierIndex = sortedTiers.length - 1;
+      progress = 100;
+    }
+
+    // Get adjacent tiers
     const nextTier = currentTierIndex < sortedTiers.length - 1 
       ? sortedTiers[currentTierIndex + 1] 
       : undefined;
@@ -161,46 +167,26 @@ export const calculateTierProgress = (
       ? sortedTiers[currentTierIndex - 1] 
       : undefined;
 
-    // Calculate amounts for next tier
+    // Calculate amounts needed for next tier
     let totalAmountForNext: number | undefined;
     let additionalAmountNeeded: number | undefined;
 
     if (nextTier) {
-      const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
-      const targetPercentage = currentThreshold + 0.00001; // Just slightly over threshold
+      const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
+      const targetAmount = (nextTierThreshold * totalValue) / 100;
       
-      // Calculate the minimum total staked amount needed to exceed current tier
-      // If we stake amount x:
-      // 1. Total pool becomes: totalValue + x*(1-FEE_RATE)
-      // 2. Our staked amount becomes: stakedValue + x*(1-FEE_RATE)
-      // 3. We need: (stakedValue + x*(1-FEE_RATE)) / (totalValue + x*(1-FEE_RATE)) > targetPercentage/100
-      
-      // Solving for x:
-      // (stakedValue + x*(1-FEE_RATE)) > (targetPercentage/100)(totalValue + x*(1-FEE_RATE))
-      // stakedValue + x*(1-FEE_RATE) > (targetPercentage/100)*totalValue + (targetPercentage/100)*x*(1-FEE_RATE)
-      // x*(1-FEE_RATE) - (targetPercentage/100)*x*(1-FEE_RATE) > (targetPercentage/100)*totalValue - stakedValue
-      // x*(1-FEE_RATE)*(1 - targetPercentage/100) > (targetPercentage/100)*totalValue - stakedValue
-      // x > ((targetPercentage/100)*totalValue - stakedValue) / ((1-FEE_RATE)*(1 - targetPercentage/100))
-      
-      const targetAmount = (targetPercentage/100) * totalValue;
-      const denominator = (1-FEE_RATE) * (1 - targetPercentage/100);
-      
-      if (denominator !== 0) {
-        // Calculate amount needed including fee compensation
-        const amountNeeded = (targetAmount - stakedValue) / denominator;
-        
-        if (amountNeeded > 0) {
-          totalAmountForNext = applyWaxPrecision(targetAmount);
-          additionalAmountNeeded = applyWaxPrecision(Math.max(0, amountNeeded));
-        } else {
-          additionalAmountNeeded = 0;
-        }
+      if (targetAmount > stakedValue) {
+        totalAmountForNext = applyPrecision(targetAmount, stakedAmount);
+        additionalAmountNeeded = applyPrecision(targetAmount - stakedValue, stakedAmount);
+      } else {
+        totalAmountForNext = applyPrecision(targetAmount, stakedAmount);
+        additionalAmountNeeded = 0;
       }
     }
 
     // Calculate required amount for current tier
     const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
-    const requiredForCurrent = applyWaxPrecision((currentTierThreshold * totalValue) / 100);
+    const requiredForCurrent = applyPrecision((currentTierThreshold * totalValue) / 100, stakedAmount);
 
     return {
       currentTier,
@@ -213,7 +199,8 @@ export const calculateTierProgress = (
       currentStakedAmount: stakedValue,
       symbol,
       totalAmountForNext,
-      additionalAmountNeeded
+      additionalAmountNeeded,
+      weight: parseFloat(currentTier.weight)
     };
   } catch (error) {
     console.error('Error in calculateTierProgress:', error);
@@ -245,11 +232,23 @@ export const isTierUpgradeAvailable = (
     // Calculate staked percentage
     const stakedPercent = Math.min((stakedValue / totalValue) * 100, 100);
     
-    // Find current tier's "staked up to" percentage
-    const currentThreshold = parseFloat(currentTier.staked_up_to_percent);
+    // Get the next tier (if any)
+    const sortedTiers = [...tiers].sort((a, b) => 
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+    );
     
-    // If we exceed current tier's threshold, upgrade is available
-    return stakedPercent > currentThreshold;
+    const currentTierIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
+    
+    // If already at max tier, no upgrade available
+    if (currentTierIndex >= sortedTiers.length - 1) {
+      return false;
+    }
+    
+    const nextTier = sortedTiers[currentTierIndex + 1];
+    const nextTierThreshold = parseFloat(currentTier.staked_up_to_percent);
+    
+    // If we exceed current tier's threshold, an upgrade is available
+    return stakedPercent > nextTierThreshold;
   } catch (error) {
     console.error('Error checking tier upgrade availability:', error);
     return false;
