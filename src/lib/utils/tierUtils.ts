@@ -105,21 +105,28 @@ export const calculateSafeUnstakeAmount = (
     // Find current tier index
     const currentTierIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
     
-    // For lowest tier, can unstake everything
+    // If already at lowest tier, can unstake everything
     if (currentTierIndex <= 0) {
-      return applyPrecision(stakedValue, stakedAmount);
+      // Round to appropriate decimal places
+      return Number(stakedValue.toFixed(decimals));
     }
 
-    // Get the threshold for current tier
-    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
+    // Get the previous tier's threshold
+    const prevTier = sortedTiers[currentTierIndex - 1];
+    const prevTierThreshold = parseFloat(prevTier.staked_up_to_percent);
     
     // Calculate minimum amount needed to maintain current tier
-    const minRequired = (currentTierThreshold * totalValue) / 100;
+    // (totalValue * prevTierThreshold / 100) is the absolute minimum needed
+    const minRequired = (prevTierThreshold * totalValue) / 100;
     
-    // Safe amount is current staked amount minus min required plus a small buffer
-    const safeAmount = Math.max(0, stakedValue - minRequired);
+    // Add a small buffer to prevent edge cases (0.1% buffer)
+    const withBuffer = minRequired * 1.001;
     
-    return applyPrecision(safeAmount, stakedAmount);
+    // Safe amount is current staked amount minus min required
+    const safeAmount = Math.max(0, stakedValue - withBuffer);
+    
+    // Round to appropriate decimal places based on the token
+    return Number(safeAmount.toFixed(decimals));
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
     return 0;
