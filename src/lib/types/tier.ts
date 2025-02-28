@@ -7,6 +7,7 @@ export interface TierEntity {
   staked_up_to_percent: string;
 }
 
+// src/lib/types/tier.ts
 export interface TierProgress {
   currentTier: TierEntity;
   nextTier?: TierEntity;
@@ -18,9 +19,9 @@ export interface TierProgress {
   stakedAmount: string;
   currentStakedAmount: number;
   symbol: string;  
-  // Fields for tier amounts
-  totalAmountForNext?: number;  // Total amount needed for next tier
-  additionalAmountNeeded?: number;  // Additional amount needed with fee adjustment
+  totalAmountForNext?: number;
+  additionalAmountNeeded?: number;
+  weight?: number;  // Add this property
 }
 
 // Type for tier variants (a through v)
