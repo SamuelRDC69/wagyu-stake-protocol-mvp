@@ -25,23 +25,22 @@ export const determineTier = (
     }
 
     // Calculate percentage with precise decimal handling
-    const stakedPercent = (stakedValue / totalValue) * 100;
+    const stakedPercent = Math.min((stakedValue / totalValue) * 100, 100);
 
     // Sort tiers by percentage threshold
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // For each tier, check if the staked percentage is <= the tier's threshold
-    for (let i = 0; i < sortedTiers.length; i++) {
-      const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
-      if (stakedPercent <= tierThreshold) {
-        return sortedTiers[i];
+    // Find first tier where threshold exceeds staked percentage
+    for (const tier of sortedTiers) {
+      if (parseFloat(tier.staked_up_to_percent) > stakedPercent) {
+        const currentIndex = sortedTiers.indexOf(tier);
+        return currentIndex > 0 ? sortedTiers[currentIndex - 1] : sortedTiers[0];
       }
     }
 
-    // If we've reached this point, user exceeds all tier thresholds
-    // Return the highest tier
+    // If no tier found, use highest tier
     return sortedTiers[sortedTiers.length - 1];
   } catch (error) {
     console.error('Error determining tier:', error);
