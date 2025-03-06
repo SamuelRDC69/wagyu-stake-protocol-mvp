@@ -21,8 +21,8 @@ export const determineTier = (
     const { amount: stakedValue, decimals } = parseTokenString(stakedAmount);
     const { amount: totalValue } = parseTokenString(totalStaked);
 
-    // If pool is empty, return lowest tier
-    if (totalValue === 0) {
+    // If pool is empty or user has no stake, return lowest tier
+    if (totalValue === 0 || stakedValue === 0) {
       const sortedTiers = [...tiers].sort((a, b) => 
         parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
       );
@@ -30,42 +30,42 @@ export const determineTier = (
     }
 
     // Calculate percentage with precise decimal handling
-    const stakedPercent = Math.min((stakedValue / totalValue) * 100, 100);
+    const stakedPercent = (stakedValue / totalValue) * 100;
     console.log(`Determining tier - Staked: ${stakedValue}, Total: ${totalValue}, Percent: ${stakedPercent}%`);
 
-    // Sort tiers by percentage threshold
+    // Sort tiers by percentage threshold (ascending order)
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find matching tier - we need the HIGHEST tier where the threshold is LOWER than or EQUAL to staked percentage
-    let foundTier = sortedTiers[0]; // Start with lowest tier
+    // Start with the lowest tier
+    let matchingTier = sortedTiers[0];
     
+    // Iterate through sorted tiers to find the highest tier where the user's percentage is below the threshold
     for (let i = 0; i < sortedTiers.length; i++) {
       const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
       console.log(`  Checking tier ${sortedTiers[i].tier_name} (${tierThreshold}%)`);
       
-      // If our staked percentage exceeds this tier's threshold, update our tier
-      if (stakedPercent <= tierThreshold) {
-        // For the first tier or if we're at the exact threshold
-        if (i === 0 || stakedPercent === tierThreshold) {
-          console.log(`  Selected tier: ${sortedTiers[i].tier_name} (direct match)`);
-          return sortedTiers[i];
+      // If we find a tier where the staked percentage is LESS THAN the threshold
+      if (stakedPercent < tierThreshold) {
+        // If it's the first tier
+        if (i === 0) {
+          console.log(`  Selected first tier: ${sortedTiers[0].tier_name}`);
+          return sortedTiers[0];
         }
         
-        // Otherwise, return the previous tier
-        console.log(`  Selected tier: ${sortedTiers[i-1].tier_name} (previous tier)`);
+        // Otherwise, return the previous tier (highest tier below the threshold)
+        console.log(`  Selected tier: ${sortedTiers[i-1].tier_name} (highest below threshold)`);
         return sortedTiers[i-1];
       }
       
-      // Keep track of the current highest matching tier
-      foundTier = sortedTiers[i];
+      // Update to the current tier as we go
+      matchingTier = sortedTiers[i];
     }
 
-    // If we've gone through all tiers and none exceeded our percentage,
-    // return the highest tier
-    console.log(`  Selected tier: ${foundTier.tier_name} (highest matching)`);
-    return foundTier;
+    // If we've checked all tiers and none exceeded our percentage, return the highest tier
+    console.log(`  Selected max tier: ${matchingTier.tier_name} (no threshold exceeded)`);
+    return matchingTier;
   } catch (error) {
     console.error('Error determining tier:', error);
     return tiers[0];
@@ -145,7 +145,7 @@ export const calculateTierProgress = (
     }
 
     // Calculate staked percentage
-    const stakedPercent = Math.min((stakedValue / totalValue) * 100, 100);
+    const stakedPercent = (stakedValue / totalValue) * 100;
     console.log(`Calculating tier progress: Staked ${stakedValue} ${symbol} of ${totalValue} (${stakedPercent}%)`);
 
     // Sort tiers by percentage threshold
@@ -170,20 +170,16 @@ export const calculateTierProgress = (
 
     // Calculate progress within current tier
     let progress = 0;
+    
     if (nextTier) {
       const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
       const nextTierThreshold = parseFloat(nextTier.staked_up_to_percent);
       const prevTierThreshold = prevTier ? parseFloat(prevTier.staked_up_to_percent) : 0;
       
-      // If the current percentage is below this tier's threshold
-      if (stakedPercent < currentTierThreshold) {
-        // Calculate progress from previous tier to current tier
-        const prevRange = currentTierThreshold - prevTierThreshold;
-        progress = prevRange > 0 ? ((stakedPercent - prevTierThreshold) / prevRange) * 100 : 0;
-      } else {
-        // Calculate progress from current tier to next tier
-        const range = nextTierThreshold - currentTierThreshold;
-        progress = range > 0 ? ((stakedPercent - currentTierThreshold) / range) * 100 : 0;
+      // Calculate progress from lower threshold to current percentage
+      const rangeSize = nextTierThreshold - currentTierThreshold;
+      if (rangeSize > 0) {
+        progress = ((stakedPercent - currentTierThreshold) / rangeSize) * 100;
       }
     } else {
       // For max tier, show 100% progress
