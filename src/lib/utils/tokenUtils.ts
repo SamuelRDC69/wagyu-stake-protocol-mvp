@@ -6,9 +6,14 @@ export interface TokenInfo {
 }
 
 export const detectDecimals = (amount: string): number => {
-  const parts = amount.split('.');
-  if (parts.length < 2) return 0;
-  return parts[1].length;
+  try {
+    const parts = amount.split('.');
+    if (parts.length < 2) return 0;
+    return parts[1].length;
+  } catch (error) {
+    console.error('Error detecting decimals:', error);
+    return 8; // Default to 8 decimals
+  }
 };
 
 export const parseTokenString = (tokenString: string | undefined): TokenInfo => {
@@ -28,6 +33,8 @@ export const parseTokenString = (tokenString: string | undefined): TokenInfo => 
     
     // Determine decimals from the amount format
     const decimals = detectDecimals(amountStr);
+    console.log(`Parsing token: ${amountStr} ${symbol}, detected ${decimals} decimals`);
+    
     const amount = parseFloat(amountStr) || 0;
 
     return {
@@ -36,7 +43,8 @@ export const parseTokenString = (tokenString: string | undefined): TokenInfo => 
       formatted: `${amount.toFixed(decimals)} ${symbol}`,
       decimals
     };
-  } catch {
+  } catch (error) {
+    console.error('Error parsing token string:', error, tokenString);
     return {
       amount: 0,
       symbol: 'WAX',
