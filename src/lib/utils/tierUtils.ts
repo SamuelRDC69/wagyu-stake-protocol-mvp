@@ -132,16 +132,51 @@ export const calculateSafeUnstakeAmount = (
     // For lowest tier, can unstake everything
     if (currentTierIndex <= 0) return stakedValue;
 
-    // Get PREVIOUS tier threshold - this is what we must stay above
-    const prevTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent) / 100;
+    // Current percentage
+    const currentPercent = (stakedValue / totalValue) * 100;
     
-    // This formula accounts for how the unstake affects both the user's stake AND the total pool:
-    // We solve for the maximum unstake amount (x) where:
-    // (stakedValue - x) / (totalValue - x) >= prevTierThreshold
-    const safeAmount = (stakedValue - prevTierThreshold * totalValue) / (1 - prevTierThreshold);
+    // Instead of using the previous tier, we'll find the tier boundary JUST below our current position
+    // This ensures we don't drop more than one level
+    
+    // First, find which tier we're actually in based on percentage
+    let actualTierIndex = -1;
+    for (let i = 0; i < sortedTiers.length; i++) {
+      if (parseFloat(sortedTiers[i].staked_up_to_percent) >= currentPercent) {
+        actualTierIndex = i > 0 ? i - 1 : 0;
+        break;
+      }
+    }
+    
+    // If we didn't find a tier or we're at the lowest, use lowest tier
+    if (actualTierIndex === -1) {
+      actualTierIndex = sortedTiers.length - 1; // Highest tier
+    }
+    
+    // Find next lower tier threshold
+    const nextLowerTierIndex = Math.max(0, actualTierIndex - 1);
+    const nextLowerTierThreshold = parseFloat(sortedTiers[nextLowerTierIndex].staked_up_to_percent) / 100;
+    
+    // Calculate the maximum safe unstake amount that won't drop us below the next lower tier
+    // Using the complete formula that accounts for both numerator and denominator changes
+    const safeAmount = (stakedValue - nextLowerTierThreshold * totalValue) / (1 - nextLowerTierThreshold);
+    
+    // Add a small safety margin to prevent rounding issues (0.5%)
+    const safetyMargin = safeAmount * 0.005;
+    const finalSafeAmount = Math.max(0, safeAmount - safetyMargin);
+    
+    console.log('Safe unstake calculation:', {
+      stakedValue,
+      totalValue,
+      currentPercent,
+      actualTierIndex,
+      nextLowerTierIndex,
+      nextLowerTierThreshold: nextLowerTierThreshold * 100 + '%',
+      safeAmount,
+      finalSafeAmount: applyPrecision(finalSafeAmount, decimals)
+    });
     
     // Apply precision and ensure we don't return negative values
-    return Math.max(0, applyPrecision(safeAmount, decimals));
+    return Math.max(0, applyPrecision(finalSafeAmount, decimals));
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
     return 0;
