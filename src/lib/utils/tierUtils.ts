@@ -132,25 +132,26 @@ export const calculateSafeUnstakeAmount = (
     // For lowest tier, can unstake everything
     if (currentTierIndex <= 0) return stakedValue;
 
-    // Get previous tier threshold
+    // Get PREVIOUS tier threshold - this is what we must stay above
     const prevTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent) / 100;
     
-    // The formula needs to solve for maximum unstake amount (x) where:
+    // This formula accounts for how the unstake affects both the user's stake AND the total pool:
+    // We solve for the maximum unstake amount (x) where:
     // (stakedValue - x) / (totalValue - x) >= prevTierThreshold
-    // Algebra: (stakedValue - x) >= prevTierThreshold * (totalValue - x)
-    // stakedValue - x >= prevTierThreshold * totalValue - prevTierThreshold * x
-    // stakedValue - x >= prevTierThreshold * totalValue - prevTierThreshold * x
-    // stakedValue - prevTierThreshold * totalValue >= x - prevTierThreshold * x
-    // stakedValue - prevTierThreshold * totalValue >= x * (1 - prevTierThreshold)
-    // (stakedValue - prevTierThreshold * totalValue) / (1 - prevTierThreshold) >= x
-    
     const safeAmount = (stakedValue - prevTierThreshold * totalValue) / (1 - prevTierThreshold);
     
-    return Math.max(0, Math.floor(safeAmount * Math.pow(10, decimals)) / Math.pow(10, decimals));
+    // Apply precision and ensure we don't return negative values
+    return Math.max(0, applyPrecision(safeAmount, decimals));
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
     return 0;
   }
+};
+
+// Helper function to apply WAX precision
+const applyPrecision = (value: number, decimals: number = 8): number => {
+  const multiplier = Math.pow(10, decimals);
+  return Math.floor(value * multiplier) / multiplier;
 };
 
 /**
