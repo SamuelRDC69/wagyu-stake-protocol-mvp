@@ -60,9 +60,9 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
   const [isMultiplierDialogOpen, setMultiplierDialogOpen] = useState(false);
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
 
-  // Extract token decimals from stakedData for proper formatting
+  // Extract token info
   const tokenInfo = useMemo(() => {
-    if (!stakedData?.staked_quantity) return { decimals: 8, symbol: 'TOKEN' };
+    if (!stakedData?.staked_quantity) return { decimals: 0, symbol: 'TOKEN' };
     return parseTokenString(stakedData.staked_quantity);
   }, [stakedData]);
   
