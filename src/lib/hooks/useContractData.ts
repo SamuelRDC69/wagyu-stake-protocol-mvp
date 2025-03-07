@@ -21,12 +21,19 @@ const DEFAULT_CONFIG: ConfigEntity = {
   vault_account: "stakevault"
 };
 
-const CONTRACT_TIERS: TierEntity[] = Object.entries(TIER_CONFIG).map(([key, value]) => ({
-  tier: key,
-  tier_name: value.displayName,
-  weight: value.weight,
-  staked_up_to_percent: value.staked_up_to_percent
-}));
+// This function builds properly formatted tier entities that match the frontend configuration
+const buildTierEntities = (): TierEntity[] => {
+  // Create tiers based on TIER_CONFIG with correct mapping
+  return Object.entries(TIER_CONFIG).map(([key, value]) => ({
+    tier: key, // This is the important part - using the actual key from TIER_CONFIG
+    tier_name: value.displayName,
+    weight: value.weight,
+    staked_up_to_percent: value.staked_up_to_percent
+  }));
+};
+
+// Constant tiers based on frontend configuration
+const CONTRACT_TIERS: TierEntity[] = buildTierEntities();
 
 interface StakingData {
   pools: PoolEntity[];
@@ -35,19 +42,36 @@ interface StakingData {
   config: ConfigEntity;
 }
 
-interface APIResponse<T> {
-  stakingDetails?: T[];
-  pools?: PoolEntity[];
-  error?: string;
-}
-
 function enrichStakeData(stake: StakedEntity): StakedEntity {
-  // Ensure the tier is lowercase to match our configuration
-  const tierLower = stake.tier.toLowerCase();
+  console.log("Processing stake tier:", stake.tier);
+  
+  // Handle older tier names or numerical tiers
+  let tierKey: string;
+  
+  if (stake.tier.match(/^[a-v]$/i)) {
+    // Already using correct letter format, just ensure lowercase
+    tierKey = stake.tier.toLowerCase();
+  } else if (stake.tier.match(/^level\s*\d+$/i)) {
+    // Format like "Level 5" - extract number and convert to letter
+    const level = parseInt(stake.tier.replace(/[^0-9]/g, ''));
+    const tierKeys = Object.keys(TIER_CONFIG).sort();
+    tierKey = level < tierKeys.length ? tierKeys[level] : tierKeys[0];
+  } else if (!isNaN(parseInt(stake.tier))) {
+    // Numerical tier
+    const level = parseInt(stake.tier);
+    const tierKeys = Object.keys(TIER_CONFIG).sort();
+    tierKey = level < tierKeys.length ? tierKeys[level] : tierKeys[0];
+  } else {
+    // Unable to determine tier, use lowest
+    tierKey = 'a';
+  }
+  
+  console.log(`Mapped tier from "${stake.tier}" to "${tierKey}"`);
+  
+  // Return stake with corrected tier
   return {
     ...stake,
-    // Validate the tier exists in config, otherwise default to 'a'
-    tier: Object.keys(TIER_CONFIG).includes(tierLower) ? tierLower : 'a'
+    tier: tierKey
   };
 }
 
@@ -93,7 +117,10 @@ export function useContractData() {
         : API_ENDPOINTS.LEADERBOARD;
         
       const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(leaderboardEndpoint);
+      
+      console.log("Raw leaderboard stakes:", leaderboardStakes);
       const processedLeaderboardStakes = leaderboardStakes.map(stake => enrichStakeData(stake));
+      console.log("Processed leaderboard stakes:", processedLeaderboardStakes);
       
       // Check if current user's stakes are in leaderboard
       const userStakesInLeaderboard = session ? processedLeaderboardStakes.some(
@@ -109,6 +136,7 @@ export function useContractData() {
           );
           
           if (userResponse.stakingDetails) {
+            console.log("Raw user stakes:", userResponse.stakingDetails);
             userStakes = userResponse.stakingDetails
               .filter(stake => !selectedPoolId || stake.pool_id === selectedPoolId)
               .map(stake => 
@@ -117,6 +145,7 @@ export function useContractData() {
                   owner: session.actor.toString()
                 })
               );
+            console.log("Processed user stakes:", userStakes);
           }
         } catch (error) {
           console.warn('[API] Could not fetch user data:', error);
@@ -147,11 +176,13 @@ export function useContractData() {
         const amountB = parseFloat(b.staked_quantity.split(' ')[0]);
         return amountB - amountA;
       });
+      
+      console.log("Using tier configuration:", CONTRACT_TIERS);
 
       return {
         pools,
         stakes: sortedStakes,
-        tiers: CONTRACT_TIERS,
+        tiers: CONTRACT_TIERS, // Use our frontend-defined tiers
         config: DEFAULT_CONFIG
       };
 
@@ -171,31 +202,30 @@ export function useContractData() {
     }
   }, [session, lastFetch]);
 
-// Fetch leaderboard data for a specific token/pool
-const fetchLeaderboardByPool = useCallback(async (poolId: number) => {
-  setLoading(true);
-  try {
-    // Try the specific endpoint first
+  const fetchLeaderboardByPool = useCallback(async (poolId: number) => {
+    setLoading(true);
     try {
-      const endpoint = API_ENDPOINTS.FILTERED_LEADERBOARD(poolId);
-      const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(endpoint);
-      return leaderboardStakes.map(stake => enrichStakeData(stake));
+      // Try the specific endpoint first
+      try {
+        const endpoint = API_ENDPOINTS.FILTERED_LEADERBOARD(poolId);
+        const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(endpoint);
+        return leaderboardStakes.map(stake => enrichStakeData(stake));
+      } catch (err) {
+        // If specific endpoint fails, fall back to general leaderboard and filter
+        console.warn('Filtered leaderboard API failed, falling back to global leaderboard');
+        const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(API_ENDPOINTS.LEADERBOARD);
+        return leaderboardStakes
+          .filter(stake => stake.pool_id === poolId)
+          .map(stake => enrichStakeData(stake));
+      }
     } catch (err) {
-      // If specific endpoint fails, fall back to general leaderboard and filter
-      console.warn('Filtered leaderboard API failed, falling back to global leaderboard');
-      const leaderboardStakes = await fetchFromAPI<StakedEntity[]>(API_ENDPOINTS.LEADERBOARD);
-      return leaderboardStakes
-        .filter(stake => stake.pool_id === poolId)
-        .map(stake => enrichStakeData(stake));
+      console.error('Error fetching filtered leaderboard:', err);
+      setError(err instanceof Error ? err : new Error('Failed to load leaderboard'));
+      return [];
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Error fetching filtered leaderboard:', err);
-    setError(err instanceof Error ? err : new Error('Failed to load leaderboard'));
-    return [];
-  } finally {
-    setLoading(false);
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (!session) return;
