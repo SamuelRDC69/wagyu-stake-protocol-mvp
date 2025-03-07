@@ -121,56 +121,53 @@ export const calculateSafeUnstakeAmount = (
     
     if (totalValue === 0 || stakedValue === 0) return 0;
 
-    // Sort tiers by percentage threshold
+    // Sort tiers by percentage threshold (ascending)
     const sortedTiers = [...tiers].sort((a, b) => 
       parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
     );
 
-    // Find current tier index
-    const currentTierIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
-    
-    // For lowest tier, can unstake everything
-    if (currentTierIndex <= 0) return stakedValue;
-
-    // Current percentage
+    // Calculate current percentage in the pool
     const currentPercent = (stakedValue / totalValue) * 100;
     
-    // Instead of using the previous tier, we'll find the tier boundary JUST below our current position
-    // This ensures we don't drop more than one level
-    
-    // First, find which tier we're actually in based on percentage
-    let actualTierIndex = -1;
+    // First, determine the tier the user is ACTUALLY in based on percentage
+    let actualTierIndex = 0;
     for (let i = 0; i < sortedTiers.length; i++) {
-      if (parseFloat(sortedTiers[i].staked_up_to_percent) >= currentPercent) {
-        actualTierIndex = i > 0 ? i - 1 : 0;
+      const tierThreshold = parseFloat(sortedTiers[i].staked_up_to_percent);
+      if (currentPercent <= tierThreshold) {
+        // Found the first tier where user's percentage doesn't exceed threshold
         break;
       }
+      actualTierIndex = i;
     }
     
-    // If we didn't find a tier or we're at the lowest, use lowest tier
-    if (actualTierIndex === -1) {
-      actualTierIndex = sortedTiers.length - 1; // Highest tier
+    // For lowest tier, can unstake most everything (leave minimum stake)
+    if (actualTierIndex === 0) {
+      return Math.max(0, stakedValue - 0.00000001); // Leave minimal amount
     }
     
-    // Find next lower tier threshold
-    const nextLowerTierIndex = Math.max(0, actualTierIndex - 1);
-    const nextLowerTierThreshold = parseFloat(sortedTiers[nextLowerTierIndex].staked_up_to_percent) / 100;
+    // Get the threshold of the tier IMMEDIATELY below our actual tier
+    // This is the tier we want to avoid dropping below
+    const lowerTierIndex = actualTierIndex - 1;
+    const lowerTierThreshold = parseFloat(sortedTiers[lowerTierIndex].staked_up_to_percent) / 100;
     
-    // Calculate the maximum safe unstake amount that won't drop us below the next lower tier
-    // Using the complete formula that accounts for both numerator and denominator changes
-    const safeAmount = (stakedValue - nextLowerTierThreshold * totalValue) / (1 - nextLowerTierThreshold);
+    // Calculate how much we can unstake while staying above the lower tier threshold
+    // Formula: (stakedValue - x) / (totalValue - x) = lowerTierThreshold
+    // Solved for x: x = (stakedValue - lowerTierThreshold * totalValue) / (1 - lowerTierThreshold)
+    const safeAmount = (stakedValue - lowerTierThreshold * totalValue) / (1 - lowerTierThreshold);
     
     // Add a small safety margin to prevent rounding issues (0.5%)
     const safetyMargin = safeAmount * 0.005;
     const finalSafeAmount = Math.max(0, safeAmount - safetyMargin);
     
+    // Log detailed information for debugging
     console.log('Safe unstake calculation:', {
       stakedValue,
       totalValue,
-      currentPercent,
+      currentPercent: currentPercent.toFixed(4) + '%',
+      assignedTier: currentTier.tier_name,
       actualTierIndex,
-      nextLowerTierIndex,
-      nextLowerTierThreshold: nextLowerTierThreshold * 100 + '%',
+      lowerTierIndex,
+      lowerTierThreshold: (lowerTierThreshold * 100).toFixed(4) + '%',
       safeAmount,
       finalSafeAmount: applyPrecision(finalSafeAmount, decimals)
     });
@@ -181,12 +178,6 @@ export const calculateSafeUnstakeAmount = (
     console.error('Error calculating safe unstake amount:', error);
     return 0;
   }
-};
-
-// Helper function to apply WAX precision
-const applyPrecision = (value: number, decimals: number = 8): number => {
-  const multiplier = Math.pow(10, decimals);
-  return Math.floor(value * multiplier) / multiplier;
 };
 
 /**
