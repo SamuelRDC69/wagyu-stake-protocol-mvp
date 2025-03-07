@@ -116,10 +116,10 @@ export const calculateSafeUnstakeAmount = (
   currentTier: TierEntity
 ): number => {
   try {
-    const staked = parseTokenString(stakedAmount);
-    const total = parseTokenString(totalStaked);
+    const { amount: stakedValue, decimals } = parseTokenString(stakedAmount);
+    const { amount: totalValue } = parseTokenString(totalStaked);
     
-    if (total.amount === 0) return 0;
+    if (totalValue === 0 || stakedValue === 0) return 0;
 
     // Sort tiers by percentage threshold
     const sortedTiers = [...tiers].sort((a, b) => 
@@ -130,26 +130,23 @@ export const calculateSafeUnstakeAmount = (
     const currentTierIndex = sortedTiers.findIndex(t => t.tier === currentTier.tier);
     
     // For lowest tier, can unstake everything
-    if (currentTierIndex <= 0) {
-      return applyPrecision(staked.amount, staked.decimals);
-    }
+    if (currentTierIndex <= 0) return stakedValue;
 
-    // Calculate current staked percentage
-    const stakedPercent = (staked.amount / total.amount) * 100;
+    // Get previous tier threshold
+    const prevTierThreshold = parseFloat(sortedTiers[currentTierIndex - 1].staked_up_to_percent) / 100;
     
-    // Get current tier threshold
-    const currentTierThreshold = parseFloat(currentTier.staked_up_to_percent);
+    // The formula needs to solve for maximum unstake amount (x) where:
+    // (stakedValue - x) / (totalValue - x) >= prevTierThreshold
+    // Algebra: (stakedValue - x) >= prevTierThreshold * (totalValue - x)
+    // stakedValue - x >= prevTierThreshold * totalValue - prevTierThreshold * x
+    // stakedValue - x >= prevTierThreshold * totalValue - prevTierThreshold * x
+    // stakedValue - prevTierThreshold * totalValue >= x - prevTierThreshold * x
+    // stakedValue - prevTierThreshold * totalValue >= x * (1 - prevTierThreshold)
+    // (stakedValue - prevTierThreshold * totalValue) / (1 - prevTierThreshold) >= x
     
-    // Get the minimum required amount to stay at the current tier
-    const minRequired = (currentTierThreshold * total.amount) / 100;
+    const safeAmount = (stakedValue - prevTierThreshold * totalValue) / (1 - prevTierThreshold);
     
-    // Calculate how much can be safely unstaked while staying above current tier threshold
-    // This is the key change - comparing to current tier threshold instead of previous tier
-    const safeAmount = Math.max(0, staked.amount - minRequired);
-    
-    console.log(`Safe unstake calculation: ${staked.amount} - ${minRequired} = ${safeAmount} (${stakedPercent}% vs threshold ${currentTierThreshold}%)`);
-    
-    return applyPrecision(safeAmount, staked.decimals);
+    return Math.max(0, Math.floor(safeAmount * Math.pow(10, decimals)) / Math.pow(10, decimals));
   } catch (error) {
     console.error('Error calculating safe unstake amount:', error);
     return 0;
