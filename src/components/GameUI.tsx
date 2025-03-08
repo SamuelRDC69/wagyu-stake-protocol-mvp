@@ -409,7 +409,7 @@ const handleUnstake = async (amount: string) => {
   };
 
   const navItems: NavItem[] = [
-    { icon: Crown, label: 'Farms', id: 'farms' },
+    { icon: Crown, label: 'Farms', id: 'kingdom' },
     { icon: Users, label: 'Guild', id: 'guild' },
     { icon: BarChart3, label: 'Leaderboard', id: 'leaderboard' },
     { icon: Sword, label: 'Battle', id: 'battle' },
@@ -462,7 +462,7 @@ const handleUnstake = async (amount: string) => {
     }
 
     switch (activeTab) {
-      case 'farms':
+      case 'kingdom':
         return (
           <div className="space-y-6">
             <div className="crystal-bg rounded-2xl p-6 border border-purple-500/20">
