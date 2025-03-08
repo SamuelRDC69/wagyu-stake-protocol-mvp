@@ -42,28 +42,37 @@ interface StakingData {
   config: ConfigEntity;
 }
 
+/**
+ * Normalize tier data to ensure consistent tier keys
+ */
 function enrichStakeData(stake: StakedEntity): StakedEntity {
   console.log("Processing stake tier:", stake.tier);
   
-  // Handle older tier names or numerical tiers
+  // Normalize tier key to lowercase letter
   let tierKey: string;
   
-  if (stake.tier.match(/^[a-v]$/i)) {
-    // Already using correct letter format, just ensure lowercase
+  // Handle already correct letter tiers (a through v)
+  if (/^[a-v]$/i.test(stake.tier)) {
     tierKey = stake.tier.toLowerCase();
-  } else if (stake.tier.match(/^level\s*\d+$/i)) {
-    // Format like "Level 5" - extract number and convert to letter
-    const level = parseInt(stake.tier.replace(/[^0-9]/g, ''));
+  } 
+  // Handle level-based tier names (e.g., "Level 5")
+  else if (/^level\s*\d+$/i.test(stake.tier)) {
+    const levelMatch = stake.tier.match(/(\d+)/);
+    const level = levelMatch ? parseInt(levelMatch[1]) : 0;
+    // Map level to letter (a=0, b=1, etc.)
     const tierKeys = Object.keys(TIER_CONFIG).sort();
-    tierKey = level < tierKeys.length ? tierKeys[level] : tierKeys[0];
-  } else if (!isNaN(parseInt(stake.tier))) {
-    // Numerical tier
+    tierKey = level < tierKeys.length ? tierKeys[level] : 'a';
+  }
+  // Handle numeric tiers
+  else if (!isNaN(parseInt(stake.tier))) {
     const level = parseInt(stake.tier);
     const tierKeys = Object.keys(TIER_CONFIG).sort();
-    tierKey = level < tierKeys.length ? tierKeys[level] : tierKeys[0];
-  } else {
-    // Unable to determine tier, use lowest
+    tierKey = level < tierKeys.length ? tierKeys[level] : 'a';
+  }
+  // Default to lowest tier if can't determine
+  else {
     tierKey = 'a';
+    console.warn(`Could not determine tier for "${stake.tier}", defaulting to lowest tier`);
   }
   
   console.log(`Mapped tier from "${stake.tier}" to "${tierKey}"`);
