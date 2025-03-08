@@ -14,13 +14,15 @@ interface PoolStatsProps {
   isLoading?: boolean;
   userStakedQuantity?: string;
   userTierWeight?: string;
+  refreshCounter?: number; // Add this prop to force updates
 }
 
 export const PoolStats: React.FC<PoolStatsProps> = memo(({ 
   poolData, 
   isLoading, 
   userStakedQuantity, 
-  userTierWeight 
+  userTierWeight,
+  refreshCounter = 0 // Default to 0 if not provided
 }) => {
   const [currentRewards, setCurrentRewards] = useState<number>(0);
   const [updateKey, setUpdateKey] = useState<number>(0);
@@ -31,41 +33,51 @@ export const PoolStats: React.FC<PoolStatsProps> = memo(({
     parseTokenString(poolData?.total_staked_quantity),
     [poolData?.total_staked_quantity]
   );
-
-const calculateCurrentRewards = useCallback(() => {
-  if (!poolData) return 0;
-
-  try {
-    const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
-    const initialAmount = parseFloat(initialAmountStr);
-    const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
-    const currentTime = new Date().getTime();
-    const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
-    
-    // Get token decimals
-    const { decimals } = parseTokenString(poolData.reward_pool.quantity);
-    
-    let tokensPerSecond;
-    if (decimals === 4) {
-      // For 4 decimal token (REK): emission_rate * 0.01
-      tokensPerSecond = poolData.emission_rate * 0.01;
-    } else {
-      // For 8 decimal token (WAX): emission_rate * 0.000000001 (9 zeros)
-      tokensPerSecond = poolData.emission_rate * 0.000000001;
+  
+  // Force recalculations when refreshCounter changes
+  useEffect(() => {
+    if (poolData) {
+      console.log('PoolStats refreshing due to refreshCounter change:', refreshCounter);
+      setUpdateKey(prev => prev + 1);
     }
-    
-    const additionalAmount = elapsedSeconds * tokensPerSecond;
-    return initialAmount + additionalAmount;
-  } catch (error) {
-    console.error('Error calculating rewards:', error);
-    return 0;
-  }
-}, [poolData]);
+  }, [refreshCounter, poolData]);
 
+  const calculateCurrentRewards = useCallback(() => {
+    if (!poolData) return 0;
+
+    try {
+      const [initialAmountStr] = poolData.reward_pool.quantity.split(' ');
+      const initialAmount = parseFloat(initialAmountStr);
+      const lastUpdate = new Date(poolData.last_emission_updated_at).getTime();
+      const currentTime = new Date().getTime();
+      const elapsedSeconds = Math.floor((currentTime - lastUpdate) / 1000);
+      
+      // Get token decimals
+      const { decimals } = parseTokenString(poolData.reward_pool.quantity);
+      
+      let tokensPerSecond;
+      if (decimals === 4) {
+        // For 4 decimal token (REK): emission_rate * 0.01
+        tokensPerSecond = poolData.emission_rate * 0.01;
+      } else {
+        // For 8 decimal token (WAX): emission_rate * 0.000000001 (9 zeros)
+        tokensPerSecond = poolData.emission_rate * 0.000000001;
+      }
+      
+      const additionalAmount = elapsedSeconds * tokensPerSecond;
+      return initialAmount + additionalAmount;
+    } catch (error) {
+      console.error('Error calculating rewards:', error);
+      return 0;
+    }
+  }, [poolData]);
+
+  // Update when pool data changes
   useEffect(() => {
     setUpdateKey(prev => prev + 1);
   }, [poolData?.reward_pool.quantity, poolData?.last_emission_updated_at]);
 
+  // Set up rewards update interval
   useEffect(() => {
     if (!poolData) return;
 
@@ -73,10 +85,11 @@ const calculateCurrentRewards = useCallback(() => {
       setCurrentRewards(calculateCurrentRewards());
     };
 
-    updateRewards();
+    updateRewards(); // Initial calculation
     const interval = setInterval(updateRewards, 1000);
     return () => clearInterval(interval);
   }, [updateKey, calculateCurrentRewards, poolData]);
+  
 
   if (isLoading) {
     return (
