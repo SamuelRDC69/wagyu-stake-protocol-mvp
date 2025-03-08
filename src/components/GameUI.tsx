@@ -180,7 +180,7 @@ const GameUI: React.FC = () => {
     return claimAction?.act.data;
   };
 
-  const handleStake = async (amount: string) => {
+const handleStake = async (amount: string) => {
   if (!session || !selectedPool) return;
   
   try {
@@ -211,16 +211,26 @@ const GameUI: React.FC = () => {
 
     // Calculate fee (0.3% of staked amount)
     const FEE_RATE = 0.003;
-    const feeAmount = parseFloat(formattedAmount) * FEE_RATE;
-    const actualStakedAmount = parseFloat(formattedAmount) - feeAmount;
+    const stakedAmount = parseFloat(formattedAmount);
+    const feeAmount = stakedAmount * FEE_RATE;
+    const actualStakedAmount = stakedAmount - feeAmount;
+    
+    console.log(`Staking ${formattedAmount} ${symbol} with fee: ${feeAmount.toFixed(decimals)} ${symbol}`);
+    console.log(`Actual staked amount: ${actualStakedAmount.toFixed(decimals)} ${symbol}`);
     
     // Update local state to reflect changes immediately
     if (selectedPool) {
+      // Calculate new pool total (precise calculation)
+      const currentPoolTotal = parseFloat(selectedPool.total_staked_quantity);
+      const newPoolTotal = currentPoolTotal + actualStakedAmount;
+      
       // Create updated pool with new total
       const updatedPool = {
         ...selectedPool,
-        total_staked_quantity: `${(parseFloat(selectedPool.total_staked_quantity) + actualStakedAmount).toFixed(decimals)} ${symbol}`
+        total_staked_quantity: `${newPoolTotal.toFixed(decimals)} ${symbol}`
       };
+      
+      console.log(`Updated pool total: ${currentPoolTotal.toFixed(decimals)} + ${actualStakedAmount.toFixed(decimals)} = ${newPoolTotal.toFixed(decimals)}`);
       
       // Update gameData with updated pool
       setGameData(prev => {
@@ -228,9 +238,41 @@ const GameUI: React.FC = () => {
           pool.pool_id === selectedPool.pool_id ? updatedPool : pool
         );
         
+        // If player already has a stake, update their stake data
+        let updatedStakes = [...prev.stakes];
+        if (playerStake) {
+          const currentStakeAmount = parseFloat(playerStake.staked_quantity);
+          const newStakeAmount = currentStakeAmount + actualStakedAmount;
+          
+          // Update the player's stake
+          updatedStakes = updatedStakes.map(stake => 
+            (stake.owner === session.actor.toString() && stake.pool_id === selectedPool.pool_id)
+              ? {
+                  ...stake,
+                  staked_quantity: `${newStakeAmount.toFixed(decimals)} ${symbol}`,
+                  // Don't update tier here - let backend determine it
+                  last_claimed_at: new Date().toISOString(),
+                  cooldown_end_at: new Date(Date.now() + (prev.config?.cooldown_seconds_per_claim || 60) * 1000).toISOString()
+                }
+              : stake
+          );
+        } else {
+          // Create a new stake entry if player doesn't have one yet
+          // This is just a placeholder until backend data loads
+          updatedStakes.push({
+            pool_id: selectedPool.pool_id,
+            staked_quantity: `${actualStakedAmount.toFixed(decimals)} ${symbol}`,
+            tier: 'a', // Start with lowest tier
+            last_claimed_at: new Date().toISOString(),
+            cooldown_end_at: new Date(Date.now() + (prev.config?.cooldown_seconds_per_claim || 60) * 1000).toISOString(),
+            owner: session.actor.toString()
+          });
+        }
+        
         return {
           ...prev,
-          pools: updatedPools
+          pools: updatedPools,
+          stakes: updatedStakes
         };
       });
       
@@ -248,6 +290,9 @@ const GameUI: React.FC = () => {
       message: toastMessage
     });
 
+    // Increment refresh counter to force UI updates
+    setRefreshCounter(prev => prev + 1);
+    
     await handleTransactionCompletion();
   } catch (error) {
     console.error('Stake error:', error);
@@ -269,9 +314,12 @@ const handleUnstake = async (amount: string) => {
     
     // Log current tier before transaction
     console.log(`Current tier before unstake: ${playerStake.tier}`);
+    console.log(`Current staked amount: ${playerStake.staked_quantity}`);
     
     const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
     const formattedAmount = parseFloat(amount).toFixed(decimals);
+    const unstakeAmount = parseFloat(formattedAmount);
+    
     const action = {
       account: Name.from(CONTRACTS.STAKING.NAME),
       name: Name.from('unstake'),
@@ -286,22 +334,57 @@ const handleUnstake = async (amount: string) => {
     await session.transact({ actions: [action] });
 
     // Update local state to reflect changes immediately
-    if (selectedPool) {
+    if (selectedPool && playerStake) {
+      // Calculate new values (precise calculation)
+      const currentPoolTotal = parseFloat(selectedPool.total_staked_quantity);
+      const currentStakedAmount = parseFloat(playerStake.staked_quantity);
+      
+      const newPoolTotal = Math.max(0, currentPoolTotal - unstakeAmount);
+      const newStakedAmount = Math.max(0, currentStakedAmount - unstakeAmount);
+      
+      console.log(`Unstaking ${unstakeAmount.toFixed(decimals)} ${symbol}`);
+      console.log(`Updated pool total: ${currentPoolTotal.toFixed(decimals)} - ${unstakeAmount.toFixed(decimals)} = ${newPoolTotal.toFixed(decimals)}`);
+      console.log(`Updated stake amount: ${currentStakedAmount.toFixed(decimals)} - ${unstakeAmount.toFixed(decimals)} = ${newStakedAmount.toFixed(decimals)}`);
+      
       // Create updated pool with new total
       const updatedPool = {
         ...selectedPool,
-        total_staked_quantity: `${(parseFloat(selectedPool.total_staked_quantity) - parseFloat(formattedAmount)).toFixed(decimals)} ${symbol}`
+        total_staked_quantity: `${newPoolTotal.toFixed(decimals)} ${symbol}`
       };
       
-      // Update gameData with updated pool
+      // Update gameData with updated pool and stake
       setGameData(prev => {
+        // Update the pool
         const updatedPools = prev.pools.map(pool => 
           pool.pool_id === selectedPool.pool_id ? updatedPool : pool
         );
         
+        // Update the player's stake or remove it if fully unstaked
+        let updatedStakes;
+        if (newStakedAmount <= 0) {
+          // Remove stake if fully unstaked
+          updatedStakes = prev.stakes.filter(stake => 
+            !(stake.owner === session.actor.toString() && stake.pool_id === selectedPool.pool_id)
+          );
+        } else {
+          // Update stake with new amount
+          updatedStakes = prev.stakes.map(stake => 
+            (stake.owner === session.actor.toString() && stake.pool_id === selectedPool.pool_id)
+              ? {
+                  ...stake,
+                  staked_quantity: `${newStakedAmount.toFixed(decimals)} ${symbol}`,
+                  // Don't update tier here - let backend determine it
+                  last_claimed_at: new Date().toISOString(),
+                  cooldown_end_at: new Date(Date.now() + (prev.config?.cooldown_seconds_per_claim || 60) * 1000).toISOString()
+                }
+              : stake
+          );
+        }
+        
         return {
           ...prev,
-          pools: updatedPools
+          pools: updatedPools,
+          stakes: updatedStakes
         };
       });
       
@@ -315,6 +398,9 @@ const handleUnstake = async (amount: string) => {
       message: `Unstaked ${formattedAmount} ${symbol}`
     });
 
+    // Increment refresh counter to force UI updates
+    setRefreshCounter(prev => prev + 1);
+    
     await handleTransactionCompletion();
   } catch (error) {
     console.error('Unstake error:', error);
