@@ -467,12 +467,12 @@ const GameUI: React.FC = () => {
                 </div>}
               >
                 <div className="space-y-6">
-                  <PoolStats 
-                    key={`pool-${selectedPool.pool_id}-${selectedPool.total_staked_quantity}-${selectedPool.reward_pool.quantity}-${refreshCounter}`}
-                    poolData={selectedPool}
-                    userStakedQuantity={playerStake?.staked_quantity}
-                    userTierWeight={tierProgress?.currentTier?.weight}
-                  />
+<PoolStats 
+  key={`pool-${selectedPool.pool_id}-${selectedPool.total_staked_quantity}-${selectedPool.reward_pool.quantity}-${refreshCounter}`}
+  poolData={selectedPool}
+  userStakedQuantity={playerStake?.staked_quantity}
+  userTierWeight={tierProgress?.currentTier?.weight}
+/>
 
                   {tierProgress && playerStake && (
                     <TierDisplay 
