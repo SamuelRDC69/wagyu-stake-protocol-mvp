@@ -409,7 +409,7 @@ const handleUnstake = async (amount: string) => {
   };
 
   const navItems: NavItem[] = [
-    { icon: Crown, label: 'Kingdom', id: 'kingdom' },
+    { icon: Crown, label: 'Farms', id: 'farms' },
     { icon: Users, label: 'Guild', id: 'guild' },
     { icon: BarChart3, label: 'Leaderboard', id: 'leaderboard' },
     { icon: Sword, label: 'Battle', id: 'battle' },
