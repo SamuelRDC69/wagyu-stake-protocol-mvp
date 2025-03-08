@@ -181,98 +181,151 @@ const GameUI: React.FC = () => {
   };
 
   const handleStake = async (amount: string) => {
-    if (!session || !selectedPool) return;
+  if (!session || !selectedPool) return;
+  
+  try {
+    setPreviousTab(activeTab);
+    setIsProcessingTransaction(true);
     
-    try {
-      setPreviousTab(activeTab);
-      setIsProcessingTransaction(true);
-      
-      // Log current tier before transaction if available
-      if (playerStake) {
-        console.log(`Current tier before stake: ${playerStake.tier}`);
+    // Log current tier before transaction if available
+    if (playerStake) {
+      console.log(`Current tier before stake: ${playerStake.tier}`);
+    }
+    
+    const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(decimals);
+    const action = {
+      account: Name.from(selectedPool.staked_token_contract),
+      name: Name.from('transfer'),
+      authorization: [session.permissionLevel],
+      data: {
+        from: session.actor,
+        to: CONTRACTS.STAKING.NAME,
+        quantity: `${formattedAmount} ${symbol}`,
+        memo: 'stake'
       }
-      
-      const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
-      const formattedAmount = parseFloat(amount).toFixed(decimals);
-      const action = {
-        account: Name.from(selectedPool.staked_token_contract),
-        name: Name.from('transfer'),
-        authorization: [session.permissionLevel],
-        data: {
-          from: session.actor,
-          to: CONTRACTS.STAKING.NAME,
-          quantity: `${formattedAmount} ${symbol}`,
-          memo: 'stake'
-        }
-      };
+    };
 
-      const result = await session.transact({ actions: [action] });
-      const claimTransfer = findClaimTransfer(result);
+    const result = await session.transact({ actions: [action] });
+    const claimTransfer = findClaimTransfer(result);
 
-      const toastMessage = claimTransfer?.quantity
-        ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.quantity}`
-        : `Staked ${formattedAmount} ${symbol}`;
-
-      addToast({
-        type: 'success',
-        title: 'Stake Successful!',
-        message: toastMessage
-      });
-
-      await handleTransactionCompletion();
-    } catch (error) {
-      console.error('Stake error:', error);
-      addToast({
-        type: 'error',
-        title: 'Stake Failed',
-        message: 'Failed to stake tokens. Please try again.'
-      });
-      setIsProcessingTransaction(false);
-    }
-  };
-
-  const handleUnstake = async (amount: string) => {
-    if (!session || !selectedPool || !playerStake) return;
+    // Calculate fee (0.3% of staked amount)
+    const FEE_RATE = 0.003;
+    const feeAmount = parseFloat(formattedAmount) * FEE_RATE;
+    const actualStakedAmount = parseFloat(formattedAmount) - feeAmount;
     
-    try {
-      setPreviousTab(activeTab);
-      setIsProcessingTransaction(true);
-      
-      // Log current tier before transaction
-      console.log(`Current tier before unstake: ${playerStake.tier}`);
-      
-      const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
-      const formattedAmount = parseFloat(amount).toFixed(decimals);
-      const action = {
-        account: Name.from(CONTRACTS.STAKING.NAME),
-        name: Name.from('unstake'),
-        authorization: [session.permissionLevel],
-        data: {
-          claimer: session.actor,
-          pool_id: selectedPool.pool_id,
-          quantity: `${formattedAmount} ${symbol}`,
-        }
+    // Update local state to reflect changes immediately
+    if (selectedPool) {
+      // Create updated pool with new total
+      const updatedPool = {
+        ...selectedPool,
+        total_staked_quantity: `${(parseFloat(selectedPool.total_staked_quantity) + actualStakedAmount).toFixed(decimals)} ${symbol}`
       };
-
-      await session.transact({ actions: [action] });
-
-      addToast({
-        type: 'success',
-        title: 'Unstake Successful!',
-        message: `Unstaked ${formattedAmount} ${symbol}`
+      
+      // Update gameData with updated pool
+      setGameData(prev => {
+        const updatedPools = prev.pools.map(pool => 
+          pool.pool_id === selectedPool.pool_id ? updatedPool : pool
+        );
+        
+        return {
+          ...prev,
+          pools: updatedPools
+        };
       });
-
-      await handleTransactionCompletion();
-    } catch (error) {
-      console.error('Unstake error:', error);
-      addToast({
-        type: 'error',
-        title: 'Unstake Failed',
-        message: 'Failed to unstake tokens. Please try again.'
-      });
-      setIsProcessingTransaction(false);
+      
+      // Update selectedPool reference
+      setSelectedPool(updatedPool);
     }
-  };
+
+    const toastMessage = claimTransfer?.quantity
+      ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.quantity}`
+      : `Staked ${formattedAmount} ${symbol}`;
+
+    addToast({
+      type: 'success',
+      title: 'Stake Successful!',
+      message: toastMessage
+    });
+
+    await handleTransactionCompletion();
+  } catch (error) {
+    console.error('Stake error:', error);
+    addToast({
+      type: 'error',
+      title: 'Stake Failed',
+      message: 'Failed to stake tokens. Please try again.'
+    });
+    setIsProcessingTransaction(false);
+  }
+};
+
+const handleUnstake = async (amount: string) => {
+  if (!session || !selectedPool || !playerStake) return;
+  
+  try {
+    setPreviousTab(activeTab);
+    setIsProcessingTransaction(true);
+    
+    // Log current tier before transaction
+    console.log(`Current tier before unstake: ${playerStake.tier}`);
+    
+    const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
+    const formattedAmount = parseFloat(amount).toFixed(decimals);
+    const action = {
+      account: Name.from(CONTRACTS.STAKING.NAME),
+      name: Name.from('unstake'),
+      authorization: [session.permissionLevel],
+      data: {
+        claimer: session.actor,
+        pool_id: selectedPool.pool_id,
+        quantity: `${formattedAmount} ${symbol}`,
+      }
+    };
+
+    await session.transact({ actions: [action] });
+
+    // Update local state to reflect changes immediately
+    if (selectedPool) {
+      // Create updated pool with new total
+      const updatedPool = {
+        ...selectedPool,
+        total_staked_quantity: `${(parseFloat(selectedPool.total_staked_quantity) - parseFloat(formattedAmount)).toFixed(decimals)} ${symbol}`
+      };
+      
+      // Update gameData with updated pool
+      setGameData(prev => {
+        const updatedPools = prev.pools.map(pool => 
+          pool.pool_id === selectedPool.pool_id ? updatedPool : pool
+        );
+        
+        return {
+          ...prev,
+          pools: updatedPools
+        };
+      });
+      
+      // Update selectedPool reference
+      setSelectedPool(updatedPool);
+    }
+
+    addToast({
+      type: 'success',
+      title: 'Unstake Successful!',
+      message: `Unstaked ${formattedAmount} ${symbol}`
+    });
+
+    await handleTransactionCompletion();
+  } catch (error) {
+    console.error('Unstake error:', error);
+    addToast({
+      type: 'error',
+      title: 'Unstake Failed',
+      message: 'Failed to unstake tokens. Please try again.'
+    });
+    setIsProcessingTransaction(false);
+  }
+};
 
   const handleClaim = async () => {
     if (!session || !selectedPool) return;
@@ -472,6 +525,7 @@ const GameUI: React.FC = () => {
   poolData={selectedPool}
   userStakedQuantity={playerStake?.staked_quantity}
   userTierWeight={tierProgress?.currentTier?.weight}
+  refreshCounter={refreshCounter}
 />
 
                   {tierProgress && playerStake && (
