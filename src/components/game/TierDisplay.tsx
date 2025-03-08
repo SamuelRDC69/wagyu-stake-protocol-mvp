@@ -195,7 +195,6 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
               )}
             />
             <div className="flex justify-between items-center text-xs">
-// In TierDisplay.tsx, use tierProgress.safeUnstakeAmount directly
 <span className="text-slate-300">
   Safe Unstake: {formatNumber(tierProgress.safeUnstakeAmount, decimals)} {symbol}
 </span>
