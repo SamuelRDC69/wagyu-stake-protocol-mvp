@@ -1,4 +1,4 @@
-import React, { useContext, useState, useMemo, useEffect, useCallback, FC } from 'react';
+import React, { useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { Crown, 
   Sword, 
   Shield, 
@@ -47,7 +47,7 @@ import { parseTokenString } from '../lib/utils/tokenUtils';
 import { 
   calculateTierProgress, 
   isTierUpgradeAvailable,
-  determineTier
+  determineTier 
 } from '../lib/utils/tierUtils';
 
 interface NavItem {
@@ -93,9 +93,12 @@ const GameUI: React.FC = () => {
     config: undefined
   });
   const [isProcessingTransaction, setIsProcessingTransaction] = useState<boolean>(false);
+  // Add a refresh counter to force re-renders when needed
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const loadData = useCallback(async () => {
     try {
+      console.log('Loading game data...');
       const data = await fetchData();
       if (data) {
         setGameData({
@@ -108,6 +111,10 @@ const GameUI: React.FC = () => {
         if (data.pools.length > 0 && !selectedPool) {
           setSelectedPool(data.pools[0]);
         }
+        
+        // Increment refresh counter on successful data load
+        setRefreshCounter(prev => prev + 1);
+        console.log('Game data loaded successfully, refresh counter:', refreshCounter + 1);
       }
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -117,43 +124,45 @@ const GameUI: React.FC = () => {
         message: 'Failed to load game data. Please try again.'
       });
     }
-  }, [fetchData, selectedPool, addToast]);
+  }, [fetchData, selectedPool, addToast, refreshCounter]);
 
+  // Update the effect to track processing state
   useEffect(() => {
-    if (session) {
-      const initialLoad = async () => {
-        const data = await fetchData();
-        if (data) {
-          setGameData({
-            pools: data.pools,
-            stakes: data.stakes,
-            tiers: data.tiers,
-            config: data.config
-          });
-
-          if (data.pools.length > 0 && !selectedPool) {
-            setSelectedPool(data.pools[0]);
-          }
-        }
-      };
-      initialLoad();
-    } else {
-      setGameData({
-        pools: [],
-        stakes: [],
-        tiers: [],
-        config: undefined
-      });
-      setSelectedPool(undefined);
+    if (session && !isProcessingTransaction) {
+      // Only reload data when processing finishes or session changes
+      loadData();
     }
-  }, [session]);
+  }, [session, isProcessingTransaction, loadData]);
 
-  // After transaction, return to previous tab
+  // Visibility change handler to refresh data
   useEffect(() => {
-    if (!isProcessingTransaction && previousTab !== activeTab) {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && session && !isProcessingTransaction) {
+        loadData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [session, isProcessingTransaction, loadData]);
+
+  // Improve transaction handling for consistent tier display
+  const handleTransactionCompletion = useCallback(async () => {
+    console.log('Transaction completed, refreshing data...');
+    setIsProcessingTransaction(false);
+    
+    // Add a slight delay before reloading data to allow backend to update
+    setTimeout(() => {
+      loadData();
+    }, 500);
+    
+    // Return to previous tab if needed
+    if (previousTab !== activeTab) {
       setActiveTab(previousTab);
     }
-  }, [isProcessingTransaction, previousTab]);
+  }, [loadData, previousTab, activeTab]);
 
   const findClaimTransfer = (transaction: any) => {
     const actionTraces = transaction?.response?.processed?.action_traces;
@@ -164,6 +173,7 @@ const GameUI: React.FC = () => {
     const claimAction = actionTraces.find(trace => 
       trace.act.account === 'eosio.token' &&
       trace.act.name === 'transfer' && 
+      trace.act.data.from === 'test1ngstake' &&
       trace.act.data.memo === 'Token staking reward.'
     );
 
@@ -176,6 +186,11 @@ const GameUI: React.FC = () => {
     try {
       setPreviousTab(activeTab);
       setIsProcessingTransaction(true);
+      
+      // Log current tier before transaction if available
+      if (playerStake) {
+        console.log(`Current tier before stake: ${playerStake.tier}`);
+      }
       
       const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
       const formattedAmount = parseFloat(amount).toFixed(decimals);
@@ -194,7 +209,6 @@ const GameUI: React.FC = () => {
       const result = await session.transact({ actions: [action] });
       const claimTransfer = findClaimTransfer(result);
 
-      // Determine the appropriate message based on if tokens were also claimed
       const toastMessage = claimTransfer?.quantity
         ? `Staked ${formattedAmount} ${symbol} and claimed ${claimTransfer.quantity}`
         : `Staked ${formattedAmount} ${symbol}`;
@@ -205,8 +219,7 @@ const GameUI: React.FC = () => {
         message: toastMessage
       });
 
-      // Immediately refresh data to get the updated tier
-      await loadData();
+      await handleTransactionCompletion();
     } catch (error) {
       console.error('Stake error:', error);
       addToast({
@@ -214,7 +227,6 @@ const GameUI: React.FC = () => {
         title: 'Stake Failed',
         message: 'Failed to stake tokens. Please try again.'
       });
-    } finally {
       setIsProcessingTransaction(false);
     }
   };
@@ -225,6 +237,9 @@ const GameUI: React.FC = () => {
     try {
       setPreviousTab(activeTab);
       setIsProcessingTransaction(true);
+      
+      // Log current tier before transaction
+      console.log(`Current tier before unstake: ${playerStake.tier}`);
       
       const { symbol, decimals } = parseTokenString(selectedPool.total_staked_quantity);
       const formattedAmount = parseFloat(amount).toFixed(decimals);
@@ -247,7 +262,7 @@ const GameUI: React.FC = () => {
         message: `Unstaked ${formattedAmount} ${symbol}`
       });
 
-      await loadData();
+      await handleTransactionCompletion();
     } catch (error) {
       console.error('Unstake error:', error);
       addToast({
@@ -255,7 +270,6 @@ const GameUI: React.FC = () => {
         title: 'Unstake Failed',
         message: 'Failed to unstake tokens. Please try again.'
       });
-    } finally {
       setIsProcessingTransaction(false);
     }
   };
@@ -266,6 +280,11 @@ const GameUI: React.FC = () => {
     try {
       setPreviousTab(activeTab);
       setIsProcessingTransaction(true);
+      
+      // Log current tier before claim if available
+      if (playerStake) {
+        console.log(`Current tier before claim: ${playerStake.tier}`);
+      }
       
       const action = {
         account: Name.from(CONTRACTS.STAKING.NAME),
@@ -288,7 +307,7 @@ const GameUI: React.FC = () => {
         });
       }
       
-      await loadData();
+      await handleTransactionCompletion();
     } catch (error) {
       console.error('Claim error:', error);
       addToast({
@@ -296,7 +315,6 @@ const GameUI: React.FC = () => {
         title: 'Claim Failed',
         message: 'Failed to claim rewards. Please try again.'
       });
-    } finally {
       setIsProcessingTransaction(false);
     }
   };
@@ -345,8 +363,10 @@ const GameUI: React.FC = () => {
     { icon: Trophy, label: 'Rewards', id: 'rewards' }
   ];
 
+  // Use a more resilient tier calculation
   const tierProgress = useTierCalculation(playerStake, selectedPool, gameData.tiers);
 
+  // More robust upgrade check
   const canUpgradeTier = useMemo(() => {
     if (!tierProgress?.currentTier || !selectedPool || !playerStake) return false;
     
@@ -358,6 +378,7 @@ const GameUI: React.FC = () => {
     );
   }, [tierProgress, selectedPool, playerStake, gameData.tiers]);
 
+  // Enhanced props with better key tracking for UI components
   const userStatusProps = useMemo(() => ({
     stakedData: playerStake,
     config: gameData.config,
@@ -447,14 +468,15 @@ const GameUI: React.FC = () => {
               >
                 <div className="space-y-6">
                   <PoolStats 
-                    key={`pool-${selectedPool.pool_id}-${selectedPool.total_staked_quantity}-${selectedPool.reward_pool.quantity}`}
+                    key={`pool-${selectedPool.pool_id}-${selectedPool.total_staked_quantity}-${selectedPool.reward_pool.quantity}-${refreshCounter}`}
                     poolData={selectedPool}
                     userStakedQuantity={playerStake?.staked_quantity}
-                    userTierWeight={tierProgress?.currentTier.weight}
+                    userTierWeight={tierProgress?.currentTier?.weight}
                   />
 
-                  {tierProgress && (
+                  {tierProgress && playerStake && (
                     <TierDisplay 
+                      key={`tier-${playerStake.tier}-${playerStake.staked_quantity}-${selectedPool.pool_id}-${refreshCounter}`}
                       tierProgress={tierProgress}
                       isUpgradeAvailable={canUpgradeTier}
                       stakedData={playerStake}
@@ -465,7 +487,7 @@ const GameUI: React.FC = () => {
 
                   {gameData.config && (
                     <UserStatus 
-                      key={`user-${playerStake?.staked_quantity}-${playerStake?.cooldown_end_at}-${selectedPool.pool_id}`}
+                      key={`user-${playerStake?.tier}-${playerStake?.staked_quantity}-${playerStake?.cooldown_end_at}-${selectedPool.pool_id}-${refreshCounter}`}
                       {...userStatusProps}
                       {...memoizedHandlers}
                     />
