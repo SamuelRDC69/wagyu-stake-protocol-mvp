@@ -8,20 +8,21 @@ export interface TierEntity {
 }
 
 // src/lib/types/tier.ts
+// Add safeUnstakeAmount to the interface
 export interface TierProgress {
   currentTier: TierEntity;
   nextTier?: TierEntity;
   prevTier?: TierEntity;
   progress: number;
-  requiredForNext?: number;
   requiredForCurrent: number;
   totalStaked: string;
   stakedAmount: string;
   currentStakedAmount: number;
-  symbol: string;  
+  symbol: string;
   totalAmountForNext?: number;
   additionalAmountNeeded?: number;
-  weight?: number;  // Add this property
+  weight: number;
+  safeUnstakeAmount: number; // New field
 }
 
 // Type for tier variants (a through v)
