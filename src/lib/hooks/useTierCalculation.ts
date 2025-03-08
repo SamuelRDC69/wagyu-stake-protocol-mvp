@@ -21,10 +21,11 @@ export function useTierCalculation(
     }
     
     try {
-      console.log('Calculating tier progress for:', {
-        stake: stakedData.staked_quantity,
-        tier: stakedData.tier,
-        pool: poolData.pool_id
+      // Perform calculation with fresh data each time
+      console.log('Recalculating tier progress with fresh data:', {
+        stakedQuantity: stakedData.staked_quantity,
+        poolTotal: poolData.total_staked_quantity,
+        tier: stakedData.tier
       });
       
       // Get tier calculation based on accurate data
@@ -79,5 +80,11 @@ export function useTierCalculation(
       console.error('Error in useTierCalculation:', error);
       return null;
     }
-  }, [stakedData, poolData, tiers]);
+  }, [
+    stakedData?.staked_quantity, 
+    stakedData?.tier,
+    poolData?.total_staked_quantity,
+    poolData?.pool_id,
+    tiers
+  ]); // Add more explicit dependencies for better memoization
 }
