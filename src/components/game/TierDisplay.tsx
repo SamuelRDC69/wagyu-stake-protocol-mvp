@@ -62,7 +62,7 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   // Extract token info
   const tokenInfo = useMemo(() => {
-    if (!stakedData?.staked_quantity) return { decimals: 0, symbol: 'TOKEN' };
+    if (!stakedData?.staked_quantity) return { decimals: 8, symbol: 'TOKEN' };
     return parseTokenString(stakedData.staked_quantity);
   }, [stakedData]);
   
@@ -78,12 +78,29 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
     );
   }, [stakedData, totalStaked, allTiers, tierProgress]);
 
+  // Identify the next tier by finding the next higher tier in the sorted tiers list
+  const nextTierKey = useMemo(() => {
+    if (!stakedData || !allTiers) return null;
+    
+    // Sort tiers by percentage threshold
+    const sortedTiers = [...allTiers].sort((a, b) => 
+      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
+    );
+    
+    // Find current tier index
+    const currentTierIndex = sortedTiers.findIndex(t => t.tier === stakedData.tier);
+    
+    // Return next tier key if available
+    if (currentTierIndex >= 0 && currentTierIndex < sortedTiers.length - 1) {
+      return sortedTiers[currentTierIndex + 1].tier;
+    }
+    
+    return null;
+  }, [stakedData, allTiers]);
+
   if (isLoading || !tierProgress || !stakedData) {
     return (
       <Card className="w-full crystal-bg">
-        <CardHeader>
-          <CardTitle>Level Status</CardTitle>
-        </CardHeader>
         <CardContent className="p-6">
           {isLoading ? (
             <div className="animate-pulse space-y-4">
@@ -104,43 +121,18 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
 
   const { 
     currentTier,
-    nextTier,
     currentStakedAmount, 
     totalAmountForNext,
     additionalAmountNeeded,
     symbol,
     progress
   } = tierProgress;
-
-  // Correctly identify the next tier by finding the next higher tier in the sorted tiers list
-  const getActualNextTier = () => {
-    if (!allTiers || !stakedData) return nextTier;
-    
-    const sortedTiers = [...allTiers].sort((a, b) => 
-      parseFloat(a.staked_up_to_percent) - parseFloat(b.staked_up_to_percent)
-    );
-    
-    const currentTierIndex = sortedTiers.findIndex(t => t.tier === stakedData.tier);
-    if (currentTierIndex === -1 || currentTierIndex >= sortedTiers.length - 1) return undefined;
-    
-    // Return the tier immediately above the current tier
-    return sortedTiers[currentTierIndex + 1];
-  };
   
   // Get the actual next tier (not what might be incorrectly set in tierProgress)
-  const actualNextTier = getActualNextTier(); 
+  const actualNextTier = allTiers?.find(t => t.tier === nextTierKey); 
   const nextTierStyle = actualNextTier ? getTierConfig(actualNextTier.tier) : null;
   const currentMultiplier = parseFloat(getTierWeight(stakedData.tier)).toFixed(3);
   const decimals = tokenInfo.decimals;
-
-  // Log for debugging
-  console.log('TierDisplay render:', {
-    currentTier: stakedData.tier_name || stakedData.tier,
-    nextTierFromProgress: nextTier?.tier_name || nextTier?.tier,
-    actualNextTier: actualNextTier?.tier_name || actualNextTier?.tier,
-    progress,
-    additionalAmountNeeded
-  });
 
   return (
     <>
@@ -243,7 +235,6 @@ export const TierDisplay: React.FC<TierDisplayProps> = ({
             <div className="bg-slate-800/30 rounded-lg p-3 md:p-4 border border-slate-700/50">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-slate-300 text-sm">
-                  {/* Always show progress to the NEXT higher level */}
                   Progress to {getTierDisplayName(actualNextTier.tier)}
                 </p>
                 {nextTierStyle && (
