@@ -462,7 +462,7 @@ const handleUnstake = async (amount: string) => {
     }
 
     switch (activeTab) {
-      case 'kingdom':
+      case 'farms':
         return (
           <div className="space-y-6">
             <div className="crystal-bg rounded-2xl p-6 border border-purple-500/20">
